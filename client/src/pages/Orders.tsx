@@ -104,13 +104,12 @@ export default function Orders() {
               <TableHead className="text-primary font-bold">CUSTOMER</TableHead>
               <TableHead className="text-primary font-bold">ITEMS</TableHead>
               <TableHead className="text-primary font-bold">AMOUNT PAID</TableHead>
-              <TableHead className="text-primary font-bold">PROCESSING FEE</TableHead>
             </TableRow>
           </TableHeader>
           <TableBody>
             {orders.length === 0 ? (
               <TableRow>
-                <TableCell colSpan={7} className="text-center py-8 text-muted-foreground">
+                <TableCell colSpan={6} className="text-center py-8 text-muted-foreground">
                   No orders found. Check your Shopify API credentials in Settings.
                 </TableCell>
               </TableRow>
@@ -157,10 +156,7 @@ export default function Orders() {
                     </div>
                   </TableCell>
                   <TableCell className="text-primary font-bold">
-                    €{parseFloat(order.current_total_price || "0").toFixed(2)}
-                  </TableCell>
-                  <TableCell className="text-destructive font-bold">
-                    €{(parseFloat(order.current_total_price || "0") * 0.029 + 0.30).toFixed(2)}
+                    ${parseFloat(order.current_total_price || "0").toFixed(2)}
                   </TableCell>
                 </TableRow>
               ))

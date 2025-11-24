@@ -462,11 +462,26 @@ export const appRouter = router({
         // Calculate total disputes
         const totalDisputes = disputes.reduce((sum, d) => sum + d.amount, 0);
 
+        // Get exchange rate for USD to EUR conversion
+        const { getExchangeRate } = await import('./utils');
+        const exchangeRate = await getExchangeRate('USD', 'EUR');
+        
+        // Fetch processing fees from Shopify Payouts API
+        const { getProcessingFees } = await import('./shopify-payouts');
+        const processingFeesUSD = await getProcessingFees(startDateObj, endDateObj);
+        const processingFeesEUR = Math.round(processingFeesUSD * 100 * exchangeRate); // Convert to cents
+        
+        // Revenue is in USD cents, convert to EUR cents
+        const revenueEUR = Math.round(shopifyData.revenue * exchangeRate);
+        const cogsEUR = Math.round(shopifyData.cogs * exchangeRate);
+        const shippingEUR = Math.round(shopifyData.shipping * exchangeRate);
+        
         const metrics = utils.calculateMetrics({
-          revenue: shopifyData.revenue,
-          adSpend: adSpend,
-          cogs: shopifyData.cogs,
-          shipping: shopifyData.shipping,
+          revenue: revenueEUR, // Use EUR for calculations
+          adSpend: adSpend, // Already in EUR
+          cogs: cogsEUR,
+          shipping: shippingEUR,
+          processingFees: processingFeesEUR,
           operationalExpenses: totalExpenses,
           disputes: totalDisputes,
           orders: shopifyData.orderCount,
@@ -474,11 +489,14 @@ export const appRouter = router({
 
         return {
           ...metrics,
-          // Convert to euros for display
-          revenue: metrics.revenue / 100,
+          // Return both USD and EUR amounts
+          revenueUSD: shopifyData.revenue / 100, // Original USD amount
+          revenue: metrics.revenue / 100, // Converted EUR amount
+          exchangeRate: exchangeRate,
           adSpend: metrics.adSpend / 100,
           cogs: metrics.cogs / 100,
           shipping: metrics.shipping / 100,
+          processingFees: metrics.processingFees / 100,
           grossProfit: metrics.grossProfit / 100,
           operationalExpenses: metrics.operationalExpenses / 100,
           disputes: metrics.disputes / 100,

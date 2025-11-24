@@ -152,6 +152,7 @@ export interface MetricsData {
   adSpend: number;
   cogs: number;
   shipping: number;
+  processingFees: number;
   grossProfit: number;
   operationalExpenses: number;
   disputes: number;
@@ -165,11 +166,12 @@ export function calculateMetrics(params: {
   adSpend: number;
   cogs: number;
   shipping: number;
+  processingFees: number;
   operationalExpenses: number;
   disputes: number;
   orders: number;
 }): MetricsData {
-  const grossProfit = params.revenue - params.cogs - params.shipping;
+  const grossProfit = params.revenue - params.cogs - params.shipping - params.processingFees;
   const netProfit = grossProfit - params.adSpend - params.operationalExpenses - params.disputes;
   const profitMargin = params.revenue > 0 ? (netProfit / params.revenue) * 100 : 0;
   
@@ -178,6 +180,7 @@ export function calculateMetrics(params: {
     adSpend: params.adSpend,
     cogs: params.cogs,
     shipping: params.shipping,
+    processingFees: params.processingFees,
     grossProfit,
     operationalExpenses: params.operationalExpenses,
     disputes: params.disputes,

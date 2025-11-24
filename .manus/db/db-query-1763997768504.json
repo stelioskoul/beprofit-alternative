@@ -1,0 +1,18 @@
+{
+  "query": "SELECT service, storeDomain, accountId, LENGTH(accessToken) as token_length, createdAt, updatedAt FROM apiCredentials WHERE service = 'shopify'",
+  "command": "mysql --batch --raw --column-names --default-character-set=utf8mb4 --host gateway02.us-east-1.prod.aws.tidbcloud.com --port 4000 --user 2bmgmz1emMhJCnb.bf576383e5e9 --database RjhzmSqRUNWVHnL9UUquHF --execute SELECT service, storeDomain, accountId, LENGTH(accessToken) as token_length, createdAt, updatedAt FROM apiCredentials WHERE service = 'shopify'",
+  "rows": [
+    {
+      "service": "shopify",
+      "storeDomain": "da53d4-2.myshopify.com",
+      "accountId": "NULL",
+      "token_length": "52",
+      "createdAt": "2025-11-24 10:25:56",
+      "updatedAt": "2025-11-24 10:25:56"
+    }
+  ],
+  "messages": [],
+  "stdout": "service\tstoreDomain\taccountId\ttoken_length\tcreatedAt\tupdatedAt\nshopify\tda53d4-2.myshopify.com\tNULL\t52\t2025-11-24 10:25:56\t2025-11-24 10:25:56\n",
+  "stderr": "",
+  "execution_time_ms": 115
+}

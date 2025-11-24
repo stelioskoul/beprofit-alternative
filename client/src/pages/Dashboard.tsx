@@ -152,7 +152,7 @@ export default function Dashboard() {
             <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
               <MetricCard
                 label="Revenue"
-                value={`€${metrics.revenue.toFixed(2)}`}
+                value={`$${metrics.revenueUSD.toFixed(2)} → €${metrics.revenue.toFixed(2)}`}
                 type="neutral"
               />
               <MetricCard
@@ -174,6 +174,11 @@ export default function Dashboard() {
                 label="Shipping"
                 value={`€${metrics.shipping.toFixed(2)}`}
                 type="neutral"
+              />
+              <MetricCard
+                label="Processing Fees"
+                value={`€${metrics.processingFees.toFixed(2)}`}
+                type="negative"
               />
               <MetricCard
                 label="Net Profit"

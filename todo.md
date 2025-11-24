@@ -197,3 +197,21 @@
 - [x] Verify date filtering works correctly
 - [x] Verify revenue calculations are accurate
 - [x] Test dashboard with real historical data
+
+## Currency Display & Real Transaction Fees
+
+- [x] Fix Orders page to display USD amounts with $ sign (not €)
+- [x] Update dashboard Revenue to show both USD and EUR amounts
+- [x] Display conversion with arrow (→) on dashboard
+- [x] Ensure all profit calculations use EUR converted amounts
+- [x] Test with today's data to verify accuracy
+
+## Processing Fees from Payouts API
+
+- [x] Remove Processing Fee column from Orders page
+- [x] Implement Shopify Payouts API client (GraphQL)
+- [x] Fetch payout fees for selected date range
+- [x] Add Processing Fees metric card to Dashboard
+- [x] Update profit calculations to subtract payout fees
+- [x] Test with different time periods (today, yesterday, this month) - All working!
+- [x] Verify Shopify OAuth access token is stored correctly

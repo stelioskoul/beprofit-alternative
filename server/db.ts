@@ -353,3 +353,25 @@ export async function getShopifyRefunds(startDate?: Date, endDate?: Date) {
     return [];
   }
 }
+
+/**
+ * Get Shopify access token from database
+ */
+export async function getShopifyAccessToken(): Promise<string | null> {
+  const db = await getDb();
+  if (!db) return null;
+
+  const result = await db
+    .select()
+    .from(apiCredentials)
+    .where(eq(apiCredentials.service, "shopify"))
+    .limit(1);
+
+  if (result.length === 0 || !result[0]?.accessToken) {
+    return null;
+  }
+
+  // Decrypt the access token
+  const { decrypt } = await import("./utils");
+  return decrypt(result[0].accessToken);
+}
