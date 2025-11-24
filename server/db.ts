@@ -1,4 +1,4 @@
-import { eq, and, gte, lte, desc } from "drizzle-orm";
+import { eq, and, gte, lte, desc, sql } from "drizzle-orm";
 import { drizzle } from "drizzle-orm/mysql2";
 import { 
   InsertUser, users, 
@@ -272,9 +272,14 @@ export async function clearExpiredCache(): Promise<void> {
 /**
  * Get Shopify orders from webhook data
  */
-export async function getShopifyOrdersFromDb(startDate?: Date, endDate?: Date) {
+export async function getShopifyOrdersFromDb(
+  startDate?: Date, 
+  endDate?: Date, 
+  limit?: number, 
+  offset?: number
+) {
   const db = await getDb();
-  if (!db) return [];
+  if (!db) return { orders: [], total: 0 };
 
   try {
     const conditions = [
@@ -290,15 +295,34 @@ export async function getShopifyOrdersFromDb(startDate?: Date, endDate?: Date) {
       conditions.push(lte(shopifyOrders.createdAt, endDate));
     }
     
-    const orders = await db
-      .select()
+    // Get total count
+    const countResult = await db
+      .select({ count: sql<number>`count(*)` })
       .from(shopifyOrders)
       .where(and(...conditions));
+    const total = countResult[0]?.count || 0;
     
-    return orders;
+    // Get paginated orders
+    let query = db
+      .select()
+      .from(shopifyOrders)
+      .where(and(...conditions))
+      .orderBy(desc(shopifyOrders.createdAt)); // Most recent first
+    
+    if (limit !== undefined) {
+      query = query.limit(limit);
+    }
+    
+    if (offset !== undefined) {
+      query = query.offset(offset);
+    }
+    
+    const orders = await query;
+    
+    return { orders, total };
   } catch (error) {
     console.error("[Database] Failed to fetch Shopify orders:", error);
-    return [];
+    return { orders: [], total: 0 };
   }
 }
 
@@ -391,8 +415,8 @@ export async function calculateOrderCostsForPeriod(
   // Import tiered pricing utilities
   const { calculateOrderCostsAndShipping } = await import("./tiered-pricing");
 
-  // Get all orders in the date range
-  const orders = await getShopifyOrdersFromDb(startDate, endDate);
+  // Get all orders in the date range (no pagination for cost calculation)
+  const { orders } = await getShopifyOrdersFromDb(startDate, endDate);
 
   let totalCOGS = 0;
   let totalShipping = 0;

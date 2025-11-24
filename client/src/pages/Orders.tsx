@@ -17,14 +17,8 @@ export default function Orders() {
   const [startDate, setStartDate] = useState("");
   const [endDate, setEndDate] = useState("");
   
-  // Set default date range to last 30 days
-  useEffect(() => {
-    const end = new Date();
-    const start = new Date();
-    start.setDate(start.getDate() - 30);
-    setEndDate(end.toISOString().split('T')[0]);
-    setStartDate(start.toISOString().split('T')[0]);
-  }, []);
+  // Set default to show all orders (no date filter)
+  // Users can manually set date range if needed
 
   const { data: ordersData, isLoading, refetch } = trpc.orders.list.useQuery({
     page,

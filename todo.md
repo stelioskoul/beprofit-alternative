@@ -287,3 +287,38 @@
 - [x] Test flat COGS calculation with real orders
 - [x] Update unit tests for new calculation logic
 - [x] Verify dashboard shows correct COGS totals
+
+## Critical Fixes - Orders & Revenue
+
+### Orders Tab Not Updating
+- [x] Investigate Orders tab query/filter logic (found 30-day default filter)
+- [x] Check if Orders page has date range filter causing issue (yes, defaulted to last 30 days)
+- [x] Fix Orders tab to show all newly imported orders (removed default date filter)
+- [x] Test Orders tab displays all orders correctly (17,211 orders loading fast with pagination)
+
+### Revenue Accuracy
+- [x] Verify Shopify order timestamps are in UTC (confirmed)
+- [x] Check dashboard timezone handling for revenue calculations (fixed to use UTC)
+- [x] Fix timezone mismatch in orders and metrics queries (added 'Z' suffix for UTC)
+- [x] Add database-level pagination to prevent memory issues
+- [x] Test revenue accuracy across different time periods (TODAY showing correct data)
+
+## Medium Priority Features
+
+### Products Page Layout
+- [ ] Fix Products page positioning (move right of sidebar)
+
+### Disputes Auto-Pull
+- [ ] Add Shopify Disputes API integration
+- [ ] Create "Pull Disputes" button in Disputes page
+- [ ] Fetch dispute amounts for selected time period
+- [ ] Store dispute data in database
+
+### Manual Product Management
+- [ ] Add "Create Product" button and form
+- [ ] Add delete button for each product
+- [ ] Implement product deletion with confirmation
+
+### Shopify OAuth
+- [ ] Add "Connect Shopify" button in Settings
+- [ ] Implement OAuth flow for automatic webhook setup

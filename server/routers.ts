@@ -355,12 +355,18 @@ export const appRouter = router({
         let endDateObj: Date | undefined;
         
         if (input.startDate && input.endDate) {
-          // Parse dates and set to start/end of day in local timezone
-          startDateObj = new Date(input.startDate + 'T00:00:00');
-          endDateObj = new Date(input.endDate + 'T23:59:59.999');
+          // Parse dates and set to start/end of day in UTC to match Shopify timestamps
+          startDateObj = new Date(input.startDate + 'T00:00:00Z');
+          endDateObj = new Date(input.endDate + 'T23:59:59.999Z');
         }
         
-        const dbOrders = await db.getShopifyOrdersFromDb(startDateObj, endDateObj);
+        const offset = (input.page - 1) * input.limit;
+        const { orders: dbOrders, total } = await db.getShopifyOrdersFromDb(
+          startDateObj, 
+          endDateObj, 
+          input.limit, 
+          offset
+        );
         
         // Get line items for all orders
         const orderIds = dbOrders.map(o => o.id);
@@ -396,12 +402,10 @@ export const appRouter = router({
           };
         });
         
-        // Pagination
-        const start = (input.page - 1) * input.limit;
-        const end = start + input.limit;
+        // Return paginated results
         return {
-          orders: orders.slice(start, end),
-          total: orders.length,
+          orders,
+          total,
           page: input.page,
           limit: input.limit,
         };
@@ -433,11 +437,11 @@ export const appRouter = router({
         const adSpend = await getFacebookAdSpend(startDate, endDate);
         
         // Get Shopify data from webhook database
-        // Parse dates and set to start/end of day in local timezone
-        const startDateObj = new Date(startDate + 'T00:00:00');
-        const endDateObj = new Date(endDate + 'T23:59:59.999');
+        // Parse dates and set to start/end of day in UTC to match Shopify timestamps
+        const startDateObj = new Date(startDate + 'T00:00:00Z');
+        const endDateObj = new Date(endDate + 'T23:59:59.999Z');
         
-        const dbOrders = await db.getShopifyOrdersFromDb(startDateObj, endDateObj);
+        const { orders: dbOrders } = await db.getShopifyOrdersFromDb(startDateObj, endDateObj);
         const orderIds = dbOrders.map(o => o.id);
         const lineItems = await db.getShopifyOrderItems(orderIds);
         
