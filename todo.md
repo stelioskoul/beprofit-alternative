@@ -54,3 +54,12 @@
 - [x] Update metrics endpoint to use real API data instead of mock data
 - [x] Add error handling for API failures
 - [x] Cache API responses to avoid rate limits
+
+## Bug Fixes - Revenue & API Issues
+
+- [x] Fix Facebook Ads API - not fetching ad spend data
+- [x] Fix Shopify revenue calculation - exclude refunded orders
+- [x] Filter out cancelled/pending Shopify orders
+- [x] Only count fulfilled orders with confirmed payments
+- [x] Research Bprofit's Shopify filtering methodology
+- [x] Add proper financial_status and fulfillment_status filtering

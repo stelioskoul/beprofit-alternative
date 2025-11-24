@@ -37,7 +37,10 @@ export async function getFacebookAdSpend(startDate: string, endDate: string): Pr
     }
 
     // Fetch from Facebook API
-    const url = new URL(`${FACEBOOK_API_BASE}/${accountId}/insights`);
+    // Account ID should be prefixed with 'act_' if not already
+    const formattedAccountId = accountId.startsWith('act_') ? accountId : `act_${accountId}`;
+    
+    const url = new URL(`${FACEBOOK_API_BASE}/${formattedAccountId}/insights`);
     url.searchParams.set("access_token", accessToken);
     url.searchParams.set("fields", "spend");
     url.searchParams.set("time_range", JSON.stringify({
@@ -45,7 +48,6 @@ export async function getFacebookAdSpend(startDate: string, endDate: string): Pr
       until: endDate,
     }));
     url.searchParams.set("level", "account");
-    url.searchParams.set("time_increment", "all_days");
 
     const response = await fetch(url.toString());
     

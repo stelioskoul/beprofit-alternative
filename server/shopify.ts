@@ -10,6 +10,8 @@ interface ShopifyOrder {
   id: number;
   created_at: string;
   total_price: string;
+  current_total_price?: string;
+  cancelled_at?: string | null;
   line_items: Array<{
     sku: string;
     quantity: number;
@@ -54,7 +56,10 @@ export async function getShopifyOrders(startDate: string, endDate: string): Prom
     const startDateTime = `${startDate}T00:00:00Z`;
     const endDateTime = `${endDate}T23:59:59Z`;
     
-    const url = `https://${storeDomain}/admin/api/2024-01/orders.json?status=any&created_at_min=${startDateTime}&created_at_max=${endDateTime}&limit=250`;
+    // Only fetch paid orders (excludes pending, refunded, voided)
+    // status=any includes all order statuses (open, closed, cancelled)
+    // We'll filter out cancelled orders in post-processing
+    const url = `https://${storeDomain}/admin/api/2024-01/orders.json?financial_status=paid&created_at_min=${startDateTime}&created_at_max=${endDateTime}&limit=250`;
     
     const response = await fetch(url, {
       headers: {
@@ -84,10 +89,19 @@ export async function getShopifyOrders(startDate: string, endDate: string): Prom
     let orderCount = 0;
 
     for (const order of data.orders || []) {
+      // Skip cancelled orders - only count closed/open orders that are paid
+      // financial_status filter already ensures only 'paid' orders
+      // But we also need to exclude orders that were later refunded
+      if (order.cancelled_at) {
+        continue; // Skip cancelled orders
+      }
+      
       orderCount++;
       
-      // Revenue (convert from dollars to cents)
-      totalRevenue += Math.round(parseFloat(order.total_price || "0") * 100);
+      // Revenue: Use current_total_price which accounts for refunds/adjustments
+      // If not available, fall back to total_price
+      const orderTotal = parseFloat(order.current_total_price || order.total_price || "0");
+      totalRevenue += Math.round(orderTotal * 100);
 
       // Calculate COGS and shipping from line items
       for (const item of order.line_items || []) {
