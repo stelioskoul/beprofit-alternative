@@ -1,17 +1,10 @@
-import { int, mysqlEnum, mysqlTable, text, timestamp, varchar } from "drizzle-orm/mysql-core";
+import { int, mysqlEnum, mysqlTable, text, timestamp, varchar, decimal, date } from "drizzle-orm/mysql-core";
 
 /**
  * Core user table backing auth flow.
- * Extend this file with additional tables as your product grows.
- * Columns use camelCase to match both database fields and generated types.
  */
 export const users = mysqlTable("users", {
-  /**
-   * Surrogate primary key. Auto-incremented numeric value managed by the database.
-   * Use this for relations between tables.
-   */
   id: int("id").autoincrement().primaryKey(),
-  /** Manus OAuth identifier (openId) returned from the OAuth callback. Unique per user. */
   openId: varchar("openId", { length: 64 }).notNull().unique(),
   name: text("name"),
   email: varchar("email", { length: 320 }),
@@ -25,4 +18,81 @@ export const users = mysqlTable("users", {
 export type User = typeof users.$inferSelect;
 export type InsertUser = typeof users.$inferInsert;
 
-// TODO: Add your tables here
+/**
+ * Products table - stores SKU, COGS, and shipping costs
+ */
+export const products = mysqlTable("products", {
+  id: int("id").autoincrement().primaryKey(),
+  sku: varchar("sku", { length: 255 }).notNull().unique(),
+  cogs: int("cogs").notNull(), // Store as cents to avoid decimal issues
+  shippingCost: int("shippingCost").notNull(), // Store as cents
+  createdAt: timestamp("createdAt").defaultNow().notNull(),
+  updatedAt: timestamp("updatedAt").defaultNow().onUpdateNow().notNull(),
+});
+
+export type Product = typeof products.$inferSelect;
+export type InsertProduct = typeof products.$inferInsert;
+
+/**
+ * Operational expenses table - supports one-time, monthly, and yearly expenses
+ */
+export const expenses = mysqlTable("expenses", {
+  id: int("id").autoincrement().primaryKey(),
+  category: varchar("category", { length: 255 }).notNull(),
+  amount: int("amount").notNull(), // Store as cents
+  expenseType: mysqlEnum("expenseType", ["one_time", "monthly", "yearly"]).notNull(),
+  date: varchar("date", { length: 10 }), // YYYY-MM-DD for one-time expenses
+  startDate: varchar("startDate", { length: 10 }), // YYYY-MM-DD for recurring
+  endDate: varchar("endDate", { length: 10 }), // YYYY-MM-DD for recurring (optional)
+  description: text("description"),
+  createdAt: timestamp("createdAt").defaultNow().notNull(),
+  updatedAt: timestamp("updatedAt").defaultNow().onUpdateNow().notNull(),
+});
+
+export type Expense = typeof expenses.$inferSelect;
+export type InsertExpense = typeof expenses.$inferInsert;
+
+/**
+ * Disputes table - tracks dispute losses by date range
+ */
+export const disputes = mysqlTable("disputes", {
+  id: int("id").autoincrement().primaryKey(),
+  startDate: varchar("startDate", { length: 10 }).notNull(), // YYYY-MM-DD
+  endDate: varchar("endDate", { length: 10 }).notNull(), // YYYY-MM-DD
+  amount: int("amount").notNull(), // Store as cents
+  notes: text("notes"),
+  createdAt: timestamp("createdAt").defaultNow().notNull(),
+});
+
+export type Dispute = typeof disputes.$inferSelect;
+export type InsertDispute = typeof disputes.$inferInsert;
+
+/**
+ * API credentials table - encrypted storage for Facebook and Shopify credentials
+ */
+export const apiCredentials = mysqlTable("apiCredentials", {
+  id: int("id").autoincrement().primaryKey(),
+  service: varchar("service", { length: 50 }).notNull().unique(), // 'facebook' or 'shopify'
+  accessToken: text("accessToken"), // Encrypted
+  accountId: varchar("accountId", { length: 255 }), // For Facebook Ad Account ID
+  storeDomain: varchar("storeDomain", { length: 255 }), // For Shopify domain
+  createdAt: timestamp("createdAt").defaultNow().notNull(),
+  updatedAt: timestamp("updatedAt").defaultNow().onUpdateNow().notNull(),
+});
+
+export type ApiCredential = typeof apiCredentials.$inferSelect;
+export type InsertApiCredential = typeof apiCredentials.$inferInsert;
+
+/**
+ * Cache table - for storing API responses and exchange rates
+ */
+export const cache = mysqlTable("cache", {
+  id: int("id").autoincrement().primaryKey(),
+  cacheKey: varchar("cacheKey", { length: 255 }).notNull().unique(),
+  cacheValue: text("cacheValue").notNull(),
+  expiresAt: timestamp("expiresAt").notNull(),
+  createdAt: timestamp("createdAt").defaultNow().notNull(),
+});
+
+export type Cache = typeof cache.$inferSelect;
+export type InsertCache = typeof cache.$inferInsert;

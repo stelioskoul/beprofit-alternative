@@ -1,11 +1,17 @@
-import { eq } from "drizzle-orm";
+import { eq, and, gte, lte, desc } from "drizzle-orm";
 import { drizzle } from "drizzle-orm/mysql2";
-import { InsertUser, users } from "../drizzle/schema";
+import { 
+  InsertUser, users, 
+  products, InsertProduct, Product,
+  expenses, InsertExpense, Expense,
+  disputes, InsertDispute, Dispute,
+  apiCredentials, InsertApiCredential, ApiCredential,
+  cache, InsertCache, Cache
+} from "../drizzle/schema";
 import { ENV } from './_core/env';
 
 let _db: ReturnType<typeof drizzle> | null = null;
 
-// Lazily create the drizzle instance so local tooling can run without a DB.
 export async function getDb() {
   if (!_db && process.env.DATABASE_URL) {
     try {
@@ -89,4 +95,173 @@ export async function getUserByOpenId(openId: string) {
   return result.length > 0 ? result[0] : undefined;
 }
 
-// TODO: add feature queries here as your schema grows.
+// ============= Products =============
+
+export async function getAllProducts(): Promise<Product[]> {
+  const db = await getDb();
+  if (!db) return [];
+  return await db.select().from(products).orderBy(desc(products.createdAt));
+}
+
+export async function getProductBySku(sku: string): Promise<Product | undefined> {
+  const db = await getDb();
+  if (!db) return undefined;
+  const result = await db.select().from(products).where(eq(products.sku, sku)).limit(1);
+  return result[0];
+}
+
+export async function createProduct(product: InsertProduct): Promise<Product> {
+  const db = await getDb();
+  if (!db) throw new Error("Database not available");
+  
+  const result = await db.insert(products).values(product);
+  const insertedId = Number(result[0].insertId);
+  const inserted = await db.select().from(products).where(eq(products.id, insertedId)).limit(1);
+  return inserted[0]!;
+}
+
+export async function updateProduct(sku: string, updates: Partial<InsertProduct>): Promise<void> {
+  const db = await getDb();
+  if (!db) throw new Error("Database not available");
+  await db.update(products).set(updates).where(eq(products.sku, sku));
+}
+
+export async function deleteProduct(sku: string): Promise<void> {
+  const db = await getDb();
+  if (!db) throw new Error("Database not available");
+  await db.delete(products).where(eq(products.sku, sku));
+}
+
+// ============= Expenses =============
+
+export async function getAllExpenses(): Promise<Expense[]> {
+  const db = await getDb();
+  if (!db) return [];
+  return await db.select().from(expenses).orderBy(desc(expenses.createdAt));
+}
+
+export async function createExpense(expense: InsertExpense): Promise<Expense> {
+  const db = await getDb();
+  if (!db) throw new Error("Database not available");
+  
+  const result = await db.insert(expenses).values(expense);
+  const insertedId = Number(result[0].insertId);
+  const inserted = await db.select().from(expenses).where(eq(expenses.id, insertedId)).limit(1);
+  return inserted[0]!;
+}
+
+export async function deleteExpense(id: number): Promise<void> {
+  const db = await getDb();
+  if (!db) throw new Error("Database not available");
+  await db.delete(expenses).where(eq(expenses.id, id));
+}
+
+export async function getExpensesForPeriod(startDate: string, endDate: string): Promise<Expense[]> {
+  const db = await getDb();
+  if (!db) return [];
+  
+  // Get all expenses and filter in application logic
+  // This is needed because we need to handle recurring expenses
+  return await db.select().from(expenses);
+}
+
+// ============= Disputes =============
+
+export async function getAllDisputes(): Promise<Dispute[]> {
+  const db = await getDb();
+  if (!db) return [];
+  return await db.select().from(disputes).orderBy(desc(disputes.createdAt));
+}
+
+export async function createDispute(dispute: InsertDispute): Promise<Dispute> {
+  const db = await getDb();
+  if (!db) throw new Error("Database not available");
+  
+  const result = await db.insert(disputes).values(dispute);
+  const insertedId = Number(result[0].insertId);
+  const inserted = await db.select().from(disputes).where(eq(disputes.id, insertedId)).limit(1);
+  return inserted[0]!;
+}
+
+export async function deleteDispute(id: number): Promise<void> {
+  const db = await getDb();
+  if (!db) throw new Error("Database not available");
+  await db.delete(disputes).where(eq(disputes.id, id));
+}
+
+export async function getDisputesForPeriod(startDate: string, endDate: string): Promise<Dispute[]> {
+  const db = await getDb();
+  if (!db) return [];
+  
+  // Get disputes that overlap with the period
+  return await db.select().from(disputes).where(
+    and(
+      lte(disputes.startDate, endDate),
+      gte(disputes.endDate, startDate)
+    )
+  );
+}
+
+// ============= API Credentials =============
+
+export async function getApiCredential(service: string): Promise<ApiCredential | undefined> {
+  const db = await getDb();
+  if (!db) return undefined;
+  const result = await db.select().from(apiCredentials).where(eq(apiCredentials.service, service)).limit(1);
+  return result[0];
+}
+
+export async function upsertApiCredential(credential: InsertApiCredential): Promise<void> {
+  const db = await getDb();
+  if (!db) throw new Error("Database not available");
+  
+  await db.insert(apiCredentials).values(credential).onDuplicateKeyUpdate({
+    set: {
+      accessToken: credential.accessToken,
+      accountId: credential.accountId,
+      storeDomain: credential.storeDomain,
+      updatedAt: new Date(),
+    },
+  });
+}
+
+// ============= Cache =============
+
+export async function getCacheValue(key: string): Promise<string | null> {
+  const db = await getDb();
+  if (!db) return null;
+  
+  const result = await db.select().from(cache).where(
+    and(
+      eq(cache.cacheKey, key),
+      gte(cache.expiresAt, new Date())
+    )
+  ).limit(1);
+  
+  return result[0]?.cacheValue ?? null;
+}
+
+export async function setCacheValue(key: string, value: string, expiresAt: Date): Promise<void> {
+  const db = await getDb();
+  if (!db) throw new Error("Database not available");
+  
+  await db.insert(cache).values({
+    cacheKey: key,
+    cacheValue: value,
+    expiresAt,
+  }).onDuplicateKeyUpdate({
+    set: {
+      cacheValue: value,
+      expiresAt,
+    },
+  });
+}
+
+export async function clearExpiredCache(): Promise<void> {
+  const db = await getDb();
+  if (!db) return;
+  
+  await db.delete(cache).where(
+    lte(cache.expiresAt, new Date())
+  );
+}
