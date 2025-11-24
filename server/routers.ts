@@ -290,6 +290,55 @@ export const appRouter = router({
         await db.deleteDispute(input.id);
         return { success: true };
       }),
+
+    // Shopify disputes
+    listShopify: protectedProcedure.query(async () => {
+      const disputes = await db.getAllShopifyDisputes();
+      return disputes.map(d => ({
+        ...d,
+        amount: d.amount / 100,
+      }));
+    }),
+
+    pullFromShopify: protectedProcedure
+      .input(z.object({
+        startDate: z.string().optional(),
+        endDate: z.string().optional(),
+        status: z.string().optional(),
+      }))
+      .mutation(async ({ input, ctx }) => {
+        const { fetchShopifyDisputes, amountToCents, parseTimestamp } = await import("./shopify-disputes");
+        
+        try {
+          const disputes = await fetchShopifyDisputes(input.startDate, input.endDate, input.status);
+          
+          let imported = 0;
+          for (const dispute of disputes) {
+            await db.upsertShopifyDispute({
+              shopifyDisputeId: dispute.id.toString(),
+              shopifyOrderId: dispute.order_id ? dispute.order_id.toString() : null,
+              orderId: null, // Will be linked later if needed
+              disputeType: dispute.type,
+              amount: amountToCents(dispute.amount),
+              currency: dispute.currency,
+              reason: dispute.reason,
+              networkReasonCode: dispute.network_reason_code,
+              status: dispute.status,
+              evidenceDueBy: parseTimestamp(dispute.evidence_due_by),
+              evidenceSentOn: parseTimestamp(dispute.evidence_sent_on),
+              finalizedOn: parseTimestamp(dispute.finalized_on),
+              initiatedAt: new Date(dispute.initiated_at),
+              disputeData: JSON.stringify(dispute),
+            });
+            imported++;
+          }
+          
+          return { success: true, imported };
+        } catch (error) {
+          console.error("[Disputes] Failed to pull from Shopify:", error);
+          throw new Error(error instanceof Error ? error.message : "Failed to pull disputes");
+        }
+      }),
   }),
 
   // ============= Settings =============
@@ -471,6 +520,7 @@ export const appRouter = router({
         // Get expenses and disputes from database
         const expenses = await db.getExpensesForPeriod(startDate, endDate);
         const disputes = await db.getDisputesForPeriod(startDate, endDate);
+        const shopifyDisputes = await db.getShopifyDisputesForPeriod(startDateObj, endDateObj);
 
         // Calculate total expenses for period
         let totalExpenses = 0;
@@ -478,8 +528,12 @@ export const appRouter = router({
           totalExpenses += utils.calculateExpenseForPeriod(expense, startDate, endDate);
         }
 
-        // Calculate total disputes
-        const totalDisputes = disputes.reduce((sum, d) => sum + d.amount, 0);
+        // Calculate total disputes (manual + Shopify lost disputes)
+        const manualDisputes = disputes.reduce((sum, d) => sum + d.amount, 0);
+        const shopifyDisputeLosses = shopifyDisputes
+          .filter(d => d.status === "lost")
+          .reduce((sum, d) => sum + d.amount, 0);
+        const totalDisputes = manualDisputes + shopifyDisputeLosses;
 
         // Get exchange rate for USD to EUR conversion
         const { getExchangeRate } = await import('./utils');

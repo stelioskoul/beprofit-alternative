@@ -5,6 +5,7 @@ import {
   products, InsertProduct, Product,
   expenses, InsertExpense, Expense,
   disputes, InsertDispute, Dispute,
+  shopifyDisputes, InsertShopifyDispute, ShopifyDispute,
   apiCredentials, InsertApiCredential, ApiCredential,
   cache, InsertCache, Cache,
   shopifyOrders, shopifyOrderItems, shopifyRefunds
@@ -473,4 +474,75 @@ export async function updateProductTiers(variantId: string, updates: { cogs: num
   const db = await getDb();
   if (!db) throw new Error("Database not available");
   await db.update(products).set(updates).where(eq(products.variantId, variantId));
+}
+
+/**
+ * Shopify Disputes database functions
+ */
+
+export async function upsertShopifyDispute(dispute: InsertShopifyDispute): Promise<void> {
+  const db = await getDb();
+  if (!db) throw new Error("Database not available");
+  
+  await db.insert(shopifyDisputes).values(dispute).onDuplicateKeyUpdate({
+    set: {
+      shopifyOrderId: dispute.shopifyOrderId,
+      orderId: dispute.orderId,
+      disputeType: dispute.disputeType,
+      amount: dispute.amount,
+      currency: dispute.currency,
+      reason: dispute.reason,
+      networkReasonCode: dispute.networkReasonCode,
+      status: dispute.status,
+      evidenceDueBy: dispute.evidenceDueBy,
+      evidenceSentOn: dispute.evidenceSentOn,
+      finalizedOn: dispute.finalizedOn,
+      initiatedAt: dispute.initiatedAt,
+      disputeData: dispute.disputeData,
+      updatedAt: sql`CURRENT_TIMESTAMP`,
+    },
+  });
+}
+
+export async function getAllShopifyDisputes(): Promise<ShopifyDispute[]> {
+  const db = await getDb();
+  if (!db) return [];
+  return db.select().from(shopifyDisputes).orderBy(desc(shopifyDisputes.initiatedAt));
+}
+
+export async function getShopifyDisputesForPeriod(startDate: Date, endDate: Date): Promise<ShopifyDispute[]> {
+  const db = await getDb();
+  if (!db) return [];
+  
+  return db
+    .select()
+    .from(shopifyDisputes)
+    .where(
+      and(
+        gte(shopifyDisputes.initiatedAt, startDate),
+        lte(shopifyDisputes.initiatedAt, endDate)
+      )
+    )
+    .orderBy(desc(shopifyDisputes.initiatedAt));
+}
+
+export async function getTotalDisputeLossesForPeriod(startDate: Date, endDate: Date): Promise<number> {
+  const db = await getDb();
+  if (!db) return 0;
+  
+  // Only count lost disputes
+  const result = await db
+    .select({
+      total: sql<number>`SUM(${shopifyDisputes.amount})`,
+    })
+    .from(shopifyDisputes)
+    .where(
+      and(
+        gte(shopifyDisputes.initiatedAt, startDate),
+        lte(shopifyDisputes.initiatedAt, endDate),
+        eq(shopifyDisputes.status, "lost")
+      )
+    );
+  
+  return result[0]?.total || 0;
 }

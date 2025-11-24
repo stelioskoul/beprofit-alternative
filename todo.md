@@ -319,12 +319,13 @@
 
 ### Disputes Auto-Pull
 - [x] Research Shopify Disputes API endpoint and authentication (GET /admin/api/latest/shopify_payments/disputes.json)
-- [ ] Add "Pull Disputes" button in Disputes page with date range selector
-- [ ] Implement Shopify Disputes API integration
-- [ ] Create pullDisputes tRPC procedure
+- [x] Add "Pull Disputes" button in Disputes page with date range selector
+- [x] Implement Shopify Disputes API integration (created shopify-disputes.ts)
+- [x] Add database functions for disputes (upsertShopifyDispute, getShopifyDisputesForPeriod, getTotalDisputeLossesForPeriod)
+- [x] Create pullDisputes tRPC procedure (disputes.pullFromShopify)
 - [x] Store dispute data in database (created shopifyDisputes table)
-- [ ] Display disputes in Disputes page
-- [ ] Integrate disputes into profit calculations
+- [x] Display disputes in Disputes page (added Shopify Disputes tab with table)
+- [x] Integrate disputes into profit calculations (added Shopify lost disputes to dashboard metrics)
 - [ ] Test disputes auto-pull functionality
 
 ### Shopify OAuth in Settings
