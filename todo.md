@@ -263,3 +263,27 @@
 - [x] Test tier configuration UI
 - [x] Verify tier data saves to database correctly
 - [x] Write and pass unit tests for updateTiers procedure
+
+## Implement Tiered Profit Calculation System
+
+- [ ] Create helper function to map shipping country to zone (EU/USA/Canada/ROW)
+- [ ] Create helper function to look up COGS tier based on quantity
+- [ ] Create helper function to look up shipping tier based on zone and quantity
+- [ ] Update profit calculation to use tiered COGS per line item
+- [ ] Update profit calculation to use tiered shipping per line item
+- [ ] Aggregate all line items correctly for total order cost
+- [ ] Update dashboard analytics queries to use new calculation
+- [ ] Handle products without tier configuration (fallback to flat rates)
+- [ ] Write unit tests for tier lookup functions
+- [ ] Test with real order data on dashboard
+
+## Simplify COGS to Flat Rate (Remove Tiers)
+
+- [x] Remove cogsTiers column from products table schema
+- [x] Update tiered-pricing.ts to use flat COGS × quantity
+- [x] Update Products page UI to show single COGS input instead of 4 tiers
+- [x] Update updateTiers procedure to accept cogs and shippingTiers
+- [x] Update database helper functions
+- [x] Test flat COGS calculation with real orders
+- [x] Update unit tests for new calculation logic
+- [x] Verify dashboard shows correct COGS totals

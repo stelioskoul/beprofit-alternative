@@ -3,13 +3,6 @@
  * Handles COGS and shipping calculations based on quantity tiers and regions
  */
 
-export interface CogsTiers {
-  "1": number;  // Price in cents for 1 item
-  "2": number;  // Price in cents for 2 items
-  "3": number;  // Price in cents for 3 items
-  "4": number;  // Price in cents for 4+ items
-}
-
 export interface ShippingTiers {
   EU: {
     "1": number;
@@ -68,26 +61,13 @@ export function getShippingRegion(countryCode: string): ShippingRegion {
 }
 
 /**
- * Calculate COGS for a line item based on quantity and tiers
+ * Calculate COGS for a line item - flat rate per unit
  */
 export function calculateCOGS(
   quantity: number,
-  cogsTiers: CogsTiers | null,
-  fallbackCogs: number  // Simple COGS in cents if no tiers configured
+  cogsPerUnit: number  // COGS in cents per unit
 ): number {
-  if (!cogsTiers) {
-    // No tiers configured, use simple COGS * quantity
-    return fallbackCogs * quantity;
-  }
-  
-  try {
-    const tierKey = getTierKey(quantity);
-    const pricePerUnit = cogsTiers[tierKey];
-    return pricePerUnit * quantity;
-  } catch (error) {
-    console.error("Error calculating COGS:", error);
-    return fallbackCogs * quantity;
-  }
+  return cogsPerUnit * quantity;
 }
 
 /**
@@ -121,9 +101,8 @@ export interface OrderLineItem {
   variantId: string;
   quantity: number;
   productId?: number;
-  cogsTiers?: string | null;  // JSON string
+  cogs: number;  // Flat COGS per unit in cents
   shippingTiers?: string | null;  // JSON string
-  fallbackCogs?: number;  // cents
   fallbackShipping?: number;  // cents
 }
 
@@ -148,17 +127,8 @@ export function calculateOrderCostsAndShipping(
   const lineItemBreakdown: OrderCalculation["lineItemBreakdown"] = [];
   
   for (const item of lineItems) {
-    // Parse tiers if available
-    let cogsTiers: CogsTiers | null = null;
+    // Parse shipping tiers if available
     let shippingTiers: ShippingTiers | null = null;
-    
-    if (item.cogsTiers) {
-      try {
-        cogsTiers = JSON.parse(item.cogsTiers);
-      } catch (e) {
-        console.error("Failed to parse cogsTiers:", e);
-      }
-    }
     
     if (item.shippingTiers) {
       try {
@@ -168,11 +138,10 @@ export function calculateOrderCostsAndShipping(
       }
     }
     
-    // Calculate COGS for this line item
+    // Calculate COGS for this line item (flat rate)
     const itemCOGS = calculateCOGS(
       item.quantity,
-      cogsTiers,
-      item.fallbackCogs || 0
+      item.cogs || 0
     );
     
     // Calculate shipping for this line item

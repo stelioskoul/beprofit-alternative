@@ -27,13 +27,10 @@ export const products = mysqlTable("products", {
   sku: varchar("sku", { length: 255 }), // Optional SKU for reference
   variantId: varchar("variantId", { length: 255 }).notNull().unique(), // Shopify variant ID - primary identifier
   productName: text("productName"), // Full product name including variant details
-  cogs: int("cogs").notNull(), // Store as cents - legacy field for backward compatibility
-  shippingCost: int("shippingCost").notNull(), // Store as cents - legacy field
-  // Tiered pricing: JSON object with quantity tiers
-  // Format: { "1": 1000, "2": 900, "3": 850, "4": 800 } (prices in cents)
-  cogsTiers: text("cogsTiers"), // JSON string
+  cogs: int("cogs").notNull(), // Store as cents - flat rate per unit
+  shippingCost: int("shippingCost").notNull(), // Store as cents - legacy field for backward compatibility
   // Region-based tiered shipping: JSON object with zones and quantity tiers
-  // Format: { "EU": { "1": 500, "2": 700, "3": 900 }, "USA": {...}, "Canada": {...}, "ROW": {...} }
+  // Format: { "EU": { "1": 500, "2": 700, "3": 900, "4": 1100 }, "USA": {...}, "Canada": {...}, "ROW": {...} }
   shippingTiers: text("shippingTiers"), // JSON string
   createdAt: timestamp("createdAt").defaultNow().notNull(),
   updatedAt: timestamp("updatedAt").defaultNow().onUpdateNow().notNull(),

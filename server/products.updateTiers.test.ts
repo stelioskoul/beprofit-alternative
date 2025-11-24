@@ -56,27 +56,20 @@ describe("products.updateTiers", () => {
     }
   });
 
-  it("should save COGS and shipping tiers as JSON strings", async () => {
+  it("should save flat COGS and shipping tiers", async () => {
     const ctx = createAuthContext();
     const caller = appRouter.createCaller(ctx);
 
-    const cogsTiers = JSON.stringify({
-      "1": 15.00,
-      "2": 13.50,
-      "3": 12.00,
-      "4+": 10.50,
-    });
-
     const shippingTiers = JSON.stringify({
-      EU: { "1": 5.00, "2": 7.00, "3": 9.00, "4+": 11.00 },
-      USA: { "1": 8.00, "2": 10.00, "3": 12.00, "4+": 14.00 },
-      Canada: { "1": 9.00, "2": 11.00, "3": 13.00, "4+": 15.00 },
-      ROW: { "1": 12.00, "2": 14.00, "3": 16.00, "4+": 18.00 },
+      EU: { "1": 500, "2": 700, "3": 900, "4": 1100 },
+      USA: { "1": 800, "2": 1000, "3": 1200, "4": 1400 },
+      Canada: { "1": 900, "2": 1100, "3": 1300, "4": 1500 },
+      ROW: { "1": 1200, "2": 1400, "3": 1600, "4": 1800 },
     });
 
     const result = await caller.products.updateTiers({
       variantId: testVariantId,
-      cogsTiers,
+      cogs: 25.50, // EUR
       shippingTiers,
     });
 
@@ -85,52 +78,65 @@ describe("products.updateTiers", () => {
     // Verify data was saved
     const product = await db.getProductByVariantId(testVariantId);
     expect(product).toBeDefined();
-    expect(product?.cogsTiers).toBe(cogsTiers);
+    expect(product?.cogs).toBe(2550); // Converted to cents
     expect(product?.shippingTiers).toBe(shippingTiers);
   });
 
-  it("should allow null values for tiers", async () => {
+  it("should allow null shipping tiers", async () => {
     const ctx = createAuthContext();
     const caller = appRouter.createCaller(ctx);
 
     const result = await caller.products.updateTiers({
       variantId: testVariantId,
-      cogsTiers: null,
+      cogs: 10.00,
       shippingTiers: null,
     });
 
     expect(result).toEqual({ success: true });
 
     const product = await db.getProductByVariantId(testVariantId);
-    expect(product?.cogsTiers).toBeNull();
+    expect(product?.cogs).toBe(1000);
     expect(product?.shippingTiers).toBeNull();
   });
 
-  it("should update only COGS tiers without affecting shipping tiers", async () => {
+  it("should update COGS without affecting existing shipping tiers", async () => {
     const ctx = createAuthContext();
     const caller = appRouter.createCaller(ctx);
 
     const shippingTiers = JSON.stringify({
-      EU: { "1": 5.00 },
+      EU: { "1": 500, "2": 700, "3": 900, "4": 1100 },
     });
 
     // First set shipping tiers
     await caller.products.updateTiers({
       variantId: testVariantId,
-      cogsTiers: null,
+      cogs: 15.00,
       shippingTiers,
     });
 
-    // Then update only COGS tiers
-    const cogsTiers = JSON.stringify({ "1": 20.00 });
+    // Then update only COGS
     await caller.products.updateTiers({
       variantId: testVariantId,
-      cogsTiers,
+      cogs: 20.00,
       shippingTiers,
     });
 
     const product = await db.getProductByVariantId(testVariantId);
-    expect(product?.cogsTiers).toBe(cogsTiers);
-    expect(product?.shippingTiers).toBe(shippingTiers);
+    expect(product?.cogs).toBe(2000); // Updated COGS
+    expect(product?.shippingTiers).toBe(shippingTiers); // Unchanged shipping
+  });
+
+  it("should handle decimal COGS values correctly", async () => {
+    const ctx = createAuthContext();
+    const caller = appRouter.createCaller(ctx);
+
+    await caller.products.updateTiers({
+      variantId: testVariantId,
+      cogs: 12.99,
+      shippingTiers: null,
+    });
+
+    const product = await db.getProductByVariantId(testVariantId);
+    expect(product?.cogs).toBe(1299); // 12.99 EUR = 1299 cents
   });
 });

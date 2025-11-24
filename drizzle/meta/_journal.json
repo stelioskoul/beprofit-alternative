@@ -57,6 +57,13 @@
       "when": 1763999657189,
       "tag": "0007_soft_purple_man",
       "breakpoints": true
+    },
+    {
+      "idx": 8,
+      "version": "5",
+      "when": 1764011992347,
+      "tag": "0008_famous_grandmaster",
+      "breakpoints": true
     }
   ]
 }

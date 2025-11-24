@@ -405,9 +405,8 @@ export async function calculateOrderCostsForPeriod(
         variantId: shopifyOrderItems.variantId,
         quantity: shopifyOrderItems.quantity,
         productId: products.id,
-        cogsTiers: products.cogsTiers,
+        cogs: products.cogs,
         shippingTiers: products.shippingTiers,
-        fallbackCogs: products.cogs,
         fallbackShipping: products.shippingCost,
       })
       .from(shopifyOrderItems)
@@ -446,7 +445,7 @@ export async function updateProductByVariantId(variantId: string, updates: Parti
   await db.update(products).set(updates).where(eq(products.variantId, variantId));
 }
 
-export async function updateProductTiers(variantId: string, updates: { cogsTiers: string | null, shippingTiers: string | null }): Promise<void> {
+export async function updateProductTiers(variantId: string, updates: { cogs: number, shippingTiers: string | null }): Promise<void> {
   const db = await getDb();
   if (!db) throw new Error("Database not available");
   await db.update(products).set(updates).where(eq(products.variantId, variantId));

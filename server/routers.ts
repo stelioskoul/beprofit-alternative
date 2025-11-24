@@ -165,12 +165,12 @@ export const appRouter = router({
     updateTiers: protectedProcedure
       .input(z.object({
         variantId: z.string().min(1),
-        cogsTiers: z.string().nullable(),
+        cogs: z.number().min(0),
         shippingTiers: z.string().nullable(),
       }))
       .mutation(async ({ input }) => {
         await db.updateProductTiers(input.variantId, {
-          cogsTiers: input.cogsTiers,
+          cogs: Math.round(input.cogs * 100), // Convert to cents
           shippingTiers: input.shippingTiers,
         });
         return { success: true };
