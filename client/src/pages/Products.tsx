@@ -5,8 +5,27 @@ import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { toast } from "sonner";
-import { Upload, ChevronDown, ChevronUp, Save } from "lucide-react";
+import { Upload, ChevronDown, ChevronUp, Save, Plus, Trash2 } from "lucide-react";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
+import {
+  Dialog,
+  DialogContent,
+  DialogDescription,
+  DialogFooter,
+  DialogHeader,
+  DialogTitle,
+  DialogTrigger,
+} from "@/components/ui/dialog";
+import {
+  AlertDialog,
+  AlertDialogAction,
+  AlertDialogCancel,
+  AlertDialogContent,
+  AlertDialogDescription,
+  AlertDialogFooter,
+  AlertDialogHeader,
+  AlertDialogTitle,
+} from "@/components/ui/alert-dialog";
 
 interface TierInputs {
   "1": string;
@@ -26,6 +45,16 @@ export default function Products() {
   const [expandedProduct, setExpandedProduct] = useState<number | null>(null);
   const [cogsValues, setCogsValues] = useState<Record<number, string>>({});
   const [shippingTiers, setShippingTiers] = useState<Record<number, ShippingTierInputs>>({});
+  const [createDialogOpen, setCreateDialogOpen] = useState(false);
+  const [deleteDialogOpen, setDeleteDialogOpen] = useState(false);
+  const [productToDelete, setProductToDelete] = useState<string | null>(null);
+  const [newProduct, setNewProduct] = useState({
+    variantId: "",
+    sku: "",
+    productName: "",
+    cogs: "",
+    shippingCost: "",
+  });
 
   const utils = trpc.useUtils();
   const { data: products, isLoading } = trpc.products.list.useQuery();
@@ -47,6 +76,30 @@ export default function Products() {
     },
     onError: (error) => {
       toast.error(error.message || "Failed to save configuration");
+    },
+  });
+
+  const createProductMutation = trpc.products.create.useMutation({
+    onSuccess: () => {
+      utils.products.list.invalidate();
+      toast.success("Product created successfully");
+      setCreateDialogOpen(false);
+      setNewProduct({ variantId: "", sku: "", productName: "", cogs: "", shippingCost: "" });
+    },
+    onError: (error) => {
+      toast.error(error.message || "Failed to create product");
+    },
+  });
+
+  const deleteProductMutation = trpc.products.delete.useMutation({
+    onSuccess: () => {
+      utils.products.list.invalidate();
+      toast.success("Product deleted successfully");
+      setDeleteDialogOpen(false);
+      setProductToDelete(null);
+    },
+    onError: (error) => {
+      toast.error(error.message || "Failed to delete product");
     },
   });
 
@@ -141,7 +194,7 @@ export default function Products() {
     <div className="min-h-screen bg-[#0a0e1a]">
       <Navigation />
       
-      <main className="container py-8">
+      <main className="container py-8 ml-[210px]">
         <div className="mb-8">
           <h1 className="text-4xl font-bold text-[#f0e040] mb-2 font-mono tracking-wider">
             // PRODUCTS
@@ -151,7 +204,7 @@ export default function Products() {
           </p>
         </div>
 
-        <div className="mb-6">
+        <div className="mb-6 flex gap-4">
           <Button
             onClick={() => importShopifyMutation.mutate()}
             disabled={importShopifyMutation.isPending}
@@ -160,9 +213,102 @@ export default function Products() {
             <Upload className="mr-2 h-4 w-4" />
             Import from Shopify
           </Button>
-          <p className="text-gray-400 text-sm mt-2">
-            Import all products from Shopify. Configure COGS and shipping tiers for each product below.
-          </p>
+          
+          <Dialog open={createDialogOpen} onOpenChange={setCreateDialogOpen}>
+            <DialogTrigger asChild>
+              <Button className="bg-[#00d9ff] text-[#0a0e1a] hover:bg-[#00d9ff]/90 font-mono">
+                <Plus className="mr-2 h-4 w-4" />
+                Create Product
+              </Button>
+            </DialogTrigger>
+            <DialogContent className="bg-[#0a0e1a] border-[#f0e040]">
+              <DialogHeader>
+                <DialogTitle className="text-[#f0e040] font-mono">Create New Product</DialogTitle>
+                <DialogDescription className="text-[#00d9ff]">
+                  Add a new product manually. All fields are required.
+                </DialogDescription>
+              </DialogHeader>
+              <div className="grid gap-4 py-4">
+                <div className="grid gap-2">
+                  <Label htmlFor="variantId" className="text-[#00d9ff]">Variant ID *</Label>
+                  <Input
+                    id="variantId"
+                    value={newProduct.variantId}
+                    onChange={(e) => setNewProduct({ ...newProduct, variantId: e.target.value })}
+                    className="bg-[#1a1e2a] border-[#00d9ff] text-white"
+                    placeholder="e.g., 12345678901234"
+                  />
+                </div>
+                <div className="grid gap-2">
+                  <Label htmlFor="sku" className="text-[#00d9ff]">SKU</Label>
+                  <Input
+                    id="sku"
+                    value={newProduct.sku}
+                    onChange={(e) => setNewProduct({ ...newProduct, sku: e.target.value })}
+                    className="bg-[#1a1e2a] border-[#00d9ff] text-white"
+                    placeholder="e.g., RK-VISION-001"
+                  />
+                </div>
+                <div className="grid gap-2">
+                  <Label htmlFor="productName" className="text-[#00d9ff]">Product Name</Label>
+                  <Input
+                    id="productName"
+                    value={newProduct.productName}
+                    onChange={(e) => setNewProduct({ ...newProduct, productName: e.target.value })}
+                    className="bg-[#1a1e2a] border-[#00d9ff] text-white"
+                    placeholder="e.g., RideKing Vision™"
+                  />
+                </div>
+                <div className="grid gap-2">
+                  <Label htmlFor="cogs" className="text-[#00d9ff]">COGS (€) *</Label>
+                  <Input
+                    id="cogs"
+                    type="number"
+                    step="0.01"
+                    min="0"
+                    value={newProduct.cogs}
+                    onChange={(e) => setNewProduct({ ...newProduct, cogs: e.target.value })}
+                    className="bg-[#1a1e2a] border-[#00d9ff] text-white"
+                    placeholder="e.g., 25.50"
+                  />
+                </div>
+                <div className="grid gap-2">
+                  <Label htmlFor="shippingCost" className="text-[#00d9ff]">Default Shipping Cost (€) *</Label>
+                  <Input
+                    id="shippingCost"
+                    type="number"
+                    step="0.01"
+                    min="0"
+                    value={newProduct.shippingCost}
+                    onChange={(e) => setNewProduct({ ...newProduct, shippingCost: e.target.value })}
+                    className="bg-[#1a1e2a] border-[#00d9ff] text-white"
+                    placeholder="e.g., 5.00"
+                  />
+                </div>
+              </div>
+              <DialogFooter>
+                <Button
+                  onClick={() => {
+                    if (!newProduct.variantId || !newProduct.cogs || !newProduct.shippingCost) {
+                      toast.error("Please fill in all required fields");
+                      return;
+                    }
+                    createProductMutation.mutate({
+                      variantId: newProduct.variantId,
+                      sku: newProduct.sku || undefined,
+                      productName: newProduct.productName || undefined,
+                      cogs: parseFloat(newProduct.cogs),
+                      shippingCost: parseFloat(newProduct.shippingCost),
+                    });
+                  }}
+                  disabled={createProductMutation.isPending}
+                  className="bg-[#f0e040] text-[#0a0e1a] hover:bg-[#f0e040]/90 font-mono"
+                >
+                  Create Product
+                </Button>
+              </DialogFooter>
+            </DialogContent>
+          </Dialog>
         </div>
 
         {isLoading ? (
@@ -196,6 +342,18 @@ export default function Products() {
                         <span className="text-lg">⚠</span> No Tiers
                       </span>
                     )}
+                    <Button
+                      variant="ghost"
+                      size="icon"
+                      onClick={(e) => {
+                        e.stopPropagation();
+                        setProductToDelete(product.sku);
+                        setDeleteDialogOpen(true);
+                      }}
+                      className="text-[#ff6b6b] hover:text-[#ff6b6b]/80 hover:bg-[#ff6b6b]/10"
+                    >
+                      <Trash2 className="h-4 w-4" />
+                    </Button>
                     {expandedProduct === product.id ? (
                       <ChevronUp className="h-5 w-5 text-[#00d9ff]" />
                     ) : (
@@ -313,6 +471,36 @@ export default function Products() {
           </div>
         )}
       </main>
+      
+      {/* Delete Confirmation Dialog */}
+      <AlertDialog open={deleteDialogOpen} onOpenChange={setDeleteDialogOpen}>
+        <AlertDialogContent className="bg-[#0a0e1a] border-[#ff6b6b]">
+          <AlertDialogHeader>
+            <AlertDialogTitle className="text-[#ff6b6b] font-mono">Delete Product?</AlertDialogTitle>
+            <AlertDialogDescription className="text-[#00d9ff]">
+              Are you sure you want to delete this product? This action cannot be undone.
+              {productToDelete && (
+                <span className="block mt-2 text-white font-mono">SKU: {productToDelete}</span>
+              )}
+            </AlertDialogDescription>
+          </AlertDialogHeader>
+          <AlertDialogFooter>
+            <AlertDialogCancel className="bg-[#1a1e2a] border-[#00d9ff] text-white hover:bg-[#1a1e2a]/80">
+              Cancel
+            </AlertDialogCancel>
+            <AlertDialogAction
+              onClick={() => {
+                if (productToDelete) {
+                  deleteProductMutation.mutate({ sku: productToDelete });
+                }
+              }}
+              className="bg-[#ff6b6b] text-white hover:bg-[#ff6b6b]/90 font-mono"
+            >
+              Delete
+            </AlertDialogAction>
+          </AlertDialogFooter>
+        </AlertDialogContent>
+      </AlertDialog>
     </div>
   );
 }

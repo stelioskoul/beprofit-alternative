@@ -306,18 +306,23 @@
 ## Medium Priority Features
 
 ### Products Page Layout
-- [ ] Fix Products page positioning (move right of sidebar)
-
-### Disputes Auto-Pull
-- [ ] Add Shopify Disputes API integration
-- [ ] Create "Pull Disputes" button in Disputes page
-- [ ] Fetch dispute amounts for selected time period
-- [ ] Store dispute data in database
+- [x] Add left margin to Products page main content
+- [x] Test Products page displays correctly next to sidebar
 
 ### Manual Product Management
-- [ ] Add "Create Product" button and form
-- [ ] Add delete button for each product
-- [ ] Implement product deletion with confirmation
+- [x] Add "Create Product" button and modal form
+- [x] Implement createProduct tRPC procedure (already exists)
+- [x] Add delete icon button for each product
+- [x] Implement deleteProduct tRPC procedure with confirmation dialog (already exists)
+- [x] Test product creation and deletion (UI working correctly)
+
+### Disputes Auto-Pull
+- [ ] Research Shopify Disputes API endpoint
+- [ ] Add "Pull Disputes" button in Disputes page with date range
+- [ ] Implement Shopify Disputes API integration
+- [ ] Create pullDisputes tRPC procedure
+- [ ] Store dispute data in database
+- [ ] Test disputes auto-pull functionality
 
 ### Shopify OAuth
 - [ ] Add "Connect Shopify" button in Settings
