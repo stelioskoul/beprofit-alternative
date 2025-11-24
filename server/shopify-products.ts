@@ -25,6 +25,7 @@ interface ShopifyProductsResponse {
 
 export interface ImportedProduct {
   sku: string;
+  variantId: string;
   productName: string;
   price: number; // in cents
 }
@@ -78,6 +79,7 @@ export async function getShopifyProducts(): Promise<ImportedProduct[]> {
         
         products.push({
           sku: sku,
+          variantId: String(variant.id),
           productName: product.variants.length > 1 
             ? `${product.title} - ${variant.title}`
             : product.title,

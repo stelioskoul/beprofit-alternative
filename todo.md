@@ -78,3 +78,15 @@
 - [x] Check server logs for API errors
 - [x] Verify Shopify API endpoint and authentication
 - [x] Test import functionality after fix
+
+## Variant ID Matching & Product Editing
+
+- [x] Update products table schema to include variant_id and product_name fields
+- [x] Modify Shopify import to save variant IDs and full product names
+- [x] Update Shopify orders integration to fetch line items with variant IDs
+- [x] Implement line item matching logic (variant_id → product → COGS/shipping)
+- [x] Calculate accurate COGS from matched line items
+- [x] Calculate accurate shipping costs from matched line items
+- [x] Add inline editing functionality to products table
+- [x] Display product names in products table
+- [x] Test variant ID matching with real orders

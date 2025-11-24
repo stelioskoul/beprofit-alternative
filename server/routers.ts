@@ -35,7 +35,7 @@ export const appRouter = router({
         cogs: z.number().min(0),
         shippingCost: z.number().min(0),
       }))
-      .mutation(async ({ input }) => {
+      .mutation(async ({ input, ctx }) => {
         const existing = await db.getProductBySku(input.sku);
         if (existing) {
           // Update existing
@@ -47,12 +47,27 @@ export const appRouter = router({
         } else {
           // Create new
           await db.createProduct({
+            userId: ctx.user.id,
             sku: input.sku,
             cogs: Math.round(input.cogs * 100),
             shippingCost: Math.round(input.shippingCost * 100),
           });
           return { success: true, message: "Product created" };
         }
+      }),
+
+    update: protectedProcedure
+      .input(z.object({
+        sku: z.string().min(1),
+        cogs: z.number().min(0),
+        shippingCost: z.number().min(0),
+      }))
+      .mutation(async ({ input }) => {
+        await db.updateProduct(input.sku, {
+          cogs: Math.round(input.cogs * 100),
+          shippingCost: Math.round(input.shippingCost * 100),
+        });
+        return { success: true };
       }),
 
     delete: protectedProcedure
@@ -64,7 +79,7 @@ export const appRouter = router({
 
     importCSV: protectedProcedure
       .input(z.object({ csvContent: z.string() }))
-      .mutation(async ({ input }) => {
+      .mutation(async ({ input, ctx }) => {
         const rows = utils.parseCSV(input.csvContent);
         let success = 0;
         let failed = 0;
@@ -83,6 +98,7 @@ export const appRouter = router({
             }
 
             await db.createProduct({
+              userId: ctx.user.id,
               sku,
               cogs: Math.round(cogs * 100),
               shippingCost: Math.round(shippingCost * 100),
@@ -98,7 +114,7 @@ export const appRouter = router({
       }),
 
     importShopifyProducts: protectedProcedure
-      .mutation(async () => {
+      .mutation(async ({ ctx }) => {
         const { getShopifyProducts } = await import("./shopify-products");
         const shopifyProducts = await getShopifyProducts();
         
@@ -110,15 +126,25 @@ export const appRouter = router({
         let skipped = 0;
         
         for (const product of shopifyProducts) {
-          if (!existingSkus.has(product.sku)) {
-            // Create with default COGS (0) - user will need to set these
-            await db.createProduct({
-              sku: product.sku,
-              cogs: 0,
-              shippingCost: 0,
-            });
-            imported++;
-          } else {
+          try {
+            if (!existingSkus.has(product.sku)) {
+              // Create with default COGS (0) - user will need to set these
+              await db.createProduct({
+                userId: ctx.user.id,
+                sku: product.sku,
+                variantId: product.variantId,
+                productName: product.productName,
+                cogs: 0,
+                shippingCost: 0,
+              });
+              imported++;
+              console.log(`[Import] Created product: ${product.sku} - ${product.productName}`);
+            } else {
+              skipped++;
+              console.log(`[Import] Skipped existing product: ${product.sku}`);
+            }
+          } catch (error) {
+            console.error(`[Import] Failed to create product ${product.sku}:`, error);
             skipped++;
           }
         }
@@ -169,7 +195,7 @@ export const appRouter = router({
 
     importCSV: protectedProcedure
       .input(z.object({ csvContent: z.string() }))
-      .mutation(async ({ input }) => {
+      .mutation(async ({ input, ctx }) => {
         const rows = utils.parseCSV(input.csvContent);
         let success = 0;
         let failed = 0;

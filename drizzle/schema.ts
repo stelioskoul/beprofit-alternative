@@ -23,7 +23,10 @@ export type InsertUser = typeof users.$inferInsert;
  */
 export const products = mysqlTable("products", {
   id: int("id").autoincrement().primaryKey(),
+  userId: int("userId").notNull(),
   sku: varchar("sku", { length: 255 }).notNull().unique(),
+  variantId: varchar("variantId", { length: 255 }), // Shopify variant ID for matching
+  productName: text("productName"), // Full product name including variant details
   cogs: int("cogs").notNull(), // Store as cents to avoid decimal issues
   shippingCost: int("shippingCost").notNull(), // Store as cents
   createdAt: timestamp("createdAt").defaultNow().notNull(),

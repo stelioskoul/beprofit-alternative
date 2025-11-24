@@ -15,6 +15,20 @@
       "when": 1763979357658,
       "tag": "0001_neat_molly_hayes",
       "breakpoints": true
+    },
+    {
+      "idx": 2,
+      "version": "5",
+      "when": 1763984722985,
+      "tag": "0002_dapper_ezekiel_stane",
+      "breakpoints": true
+    },
+    {
+      "idx": 3,
+      "version": "5",
+      "when": 1763985112211,
+      "tag": "0003_last_maggott",
+      "breakpoints": true
     }
   ]
 }

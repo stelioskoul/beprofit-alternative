@@ -14,6 +14,7 @@ interface ShopifyOrder {
   cancelled_at?: string | null;
   line_items: Array<{
     sku: string;
+    variant_id: number;
     quantity: number;
     price: string;
   }>;
@@ -78,7 +79,11 @@ export async function getShopifyOrders(startDate: string, endDate: string): Prom
     
     // Get product costs from database
     const products = await getAllProducts();
-    const productCostMap = new Map(
+    // Create map by variant ID for matching (fallback to SKU if no variant ID)
+    const productCostByVariantId = new Map(
+      products.filter(p => p.variantId).map(p => [p.variantId!, { cogs: p.cogs, shipping: p.shippingCost }])
+    );
+    const productCostBySku = new Map(
       products.map(p => [p.sku, { cogs: p.cogs, shipping: p.shippingCost }])
     );
 
@@ -105,7 +110,14 @@ export async function getShopifyOrders(startDate: string, endDate: string): Prom
 
       // Calculate COGS and shipping from line items
       for (const item of order.line_items || []) {
-        const productCost = productCostMap.get(item.sku);
+        // Try to match by variant ID first, then fall back to SKU
+        const variantIdStr = String(item.variant_id);
+        let productCost = productCostByVariantId.get(variantIdStr);
+        
+        if (!productCost && item.sku) {
+          productCost = productCostBySku.get(item.sku);
+        }
+        
         if (productCost) {
           totalCogs += productCost.cogs * item.quantity;
           totalShipping += productCost.shipping * item.quantity;
