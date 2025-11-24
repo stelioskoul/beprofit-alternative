@@ -71,3 +71,10 @@
 - [x] Auto-create product entries with SKU from Shopify
 - [x] Allow user to set COGS and shipping costs after import
 - [x] Show which products are missing COGS/shipping data
+
+## Bug - Shopify Import Not Working
+
+- [x] Debug Shopify import button - not working despite full API permissions
+- [x] Check server logs for API errors
+- [x] Verify Shopify API endpoint and authentication
+- [x] Test import functionality after fix
