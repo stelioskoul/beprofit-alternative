@@ -34,6 +34,42 @@ interface OrderMetrics {
   orderCount: number;
 }
 
+/**
+ * Fetch raw order list for Orders page
+ */
+export async function getRawOrders(): Promise<any[]> {
+  try {
+    const credential = await getApiCredential("shopify");
+    if (!credential?.accessToken || !credential?.storeDomain) {
+      return [];
+    }
+
+    const accessToken = decrypt(credential.accessToken);
+    const storeDomain = credential.storeDomain;
+
+    // Fetch last 250 orders (Shopify API limit)
+    const url = `https://${storeDomain}/admin/api/2024-01/orders.json?limit=250&status=any`;
+    
+    const response = await fetch(url, {
+      headers: {
+        "X-Shopify-Access-Token": accessToken,
+        "Content-Type": "application/json",
+      },
+    });
+
+    if (!response.ok) {
+      console.error("[Shopify] API error:", response.status);
+      return [];
+    }
+
+    const data: ShopifyOrdersResponse = await response.json();
+    return data.orders || [];
+  } catch (error) {
+    console.error("[Shopify] Failed to fetch raw orders:", error);
+    return [];
+  }
+}
+
 export async function getShopifyOrders(startDate: string, endDate: string): Promise<OrderMetrics> {
   try {
     // Get credentials

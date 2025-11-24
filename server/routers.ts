@@ -317,6 +317,26 @@ export const appRouter = router({
       }),
   }),
 
+  // ============= Orders =============
+  orders: router({ list: protectedProcedure
+      .input(z.object({
+        page: z.number().min(1).default(1),
+        limit: z.number().min(1).max(100).default(50),
+      }))
+      .query(async ({ input }) => {
+        const shopify = await import('./shopify');
+        const orders = await shopify.getRawOrders();
+        const start = (input.page - 1) * input.limit;
+        const end = start + input.limit;
+        return {
+          orders: orders.slice(start, end),
+          total: orders.length,
+          page: input.page,
+          limit: input.limit,
+        };
+      }),
+  }),
+
   // ============= Metrics =============
   metrics: router({
     get: protectedProcedure

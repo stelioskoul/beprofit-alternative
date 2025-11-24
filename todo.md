@@ -90,3 +90,21 @@
 - [x] Add inline editing functionality to products table
 - [x] Display product names in products table
 - [x] Test variant ID matching with real orders
+
+## Orders Tab Feature
+
+- [x] Create Orders page to display all Shopify orders
+- [x] Show order date, order ID, status, customer name
+- [x] Display items ordered with quantities
+- [x] Show amount paid and processing fee
+- [x] Add filtering and sorting options
+- [x] Add pagination for large order lists
+
+## Custom Date Range Feature
+
+- [x] Add custom date range picker to dashboard
+- [x] Allow user to select start and end dates
+- [x] Update metrics calculation to use custom date range
+- [x] Save selected date range in state
+- [x] Add "Custom" button next to period buttons
+- [x] Use amount paid from orders for revenue calculation

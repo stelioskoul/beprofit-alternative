@@ -11,9 +11,25 @@ export default function Dashboard() {
   const { user, loading: authLoading } = useAuth();
   const [period, setPeriod] = useState("today");
   const [autoRefresh, setAutoRefresh] = useState(true);
+  const [customStart, setCustomStart] = useState("");
+  const [customEnd, setCustomEnd] = useState("");
+  const [showCustomPicker, setShowCustomPicker] = useState(false);
+
+  // Set default custom dates to last 30 days
+  useEffect(() => {
+    const end = new Date();
+    const start = new Date();
+    start.setDate(start.getDate() - 30);
+    setCustomEnd(end.toISOString().split('T')[0]);
+    setCustomStart(start.toISOString().split('T')[0]);
+  }, []);
 
   const { data: metrics, isLoading, refetch } = trpc.metrics.get.useQuery(
-    { period },
+    { 
+      period, 
+      customStart: period === 'custom' ? customStart : undefined,
+      customEnd: period === 'custom' ? customEnd : undefined,
+    },
     { refetchInterval: autoRefresh ? 10000 : false }
   );
 
@@ -68,12 +84,20 @@ export default function Dashboard() {
                 key={p}
                 variant={period === p ? "default" : "outline"}
                 size="sm"
-                onClick={() => setPeriod(p)}
+                onClick={() => { setPeriod(p); setShowCustomPicker(false); }}
                 className="uppercase"
               >
                 {p.replace("_", " ")}
               </Button>
             ))}
+            <Button
+              variant={period === "custom" ? "default" : "outline"}
+              size="sm"
+              onClick={() => { setPeriod("custom"); setShowCustomPicker(true); }}
+              className="uppercase"
+            >
+              CUSTOM
+            </Button>
             <Button
               variant="outline"
               size="sm"
@@ -85,6 +109,41 @@ export default function Dashboard() {
               Refresh
             </Button>
           </div>
+
+          {/* Custom Date Range Picker */}
+          {showCustomPicker && (
+            <div className="mb-8 p-4 border-2 border-primary/30 rounded-lg bg-card/50">
+              <div className="flex items-center gap-4 flex-wrap">
+                <span className="text-sm text-muted-foreground font-bold">CUSTOM RANGE:</span>
+                <div className="flex items-center gap-2">
+                  <label className="text-xs text-muted-foreground">START:</label>
+                  <input
+                    type="date"
+                    value={customStart}
+                    onChange={(e) => setCustomStart(e.target.value)}
+                    className="px-3 py-1 bg-background border border-primary/30 rounded text-foreground text-sm"
+                  />
+                </div>
+                <div className="flex items-center gap-2">
+                  <label className="text-xs text-muted-foreground">END:</label>
+                  <input
+                    type="date"
+                    value={customEnd}
+                    onChange={(e) => setCustomEnd(e.target.value)}
+                    className="px-3 py-1 bg-background border border-primary/30 rounded text-foreground text-sm"
+                  />
+                </div>
+                <Button
+                  variant="default"
+                  size="sm"
+                  onClick={() => refetch()}
+                  className="uppercase"
+                >
+                  APPLY
+                </Button>
+              </div>
+            </div>
+          )}
 
           {/* Metrics Grid */}
           {isLoading ? (

@@ -1,5 +1,5 @@
 import { Link, useLocation } from "wouter";
-import { BarChart3, Package, DollarSign, AlertTriangle, Settings, LogOut } from "lucide-react";
+import { BarChart3, Package, DollarSign, AlertTriangle, Settings, LogOut, ShoppingCart } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { useAuth } from "@/_core/hooks/useAuth";
 import { trpc } from "@/lib/trpc";
@@ -25,6 +25,7 @@ export function Navigation() {
     { path: "/products", icon: Package, label: "Products" },
     { path: "/expenses", icon: DollarSign, label: "Expenses" },
     { path: "/disputes", icon: AlertTriangle, label: "Disputes" },
+    { path: "/orders", icon: ShoppingCart, label: "Orders" },
     { path: "/settings", icon: Settings, label: "Settings" },
   ];
 

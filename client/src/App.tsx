@@ -9,6 +9,7 @@ import Products from "./pages/Products";
 import Expenses from "./pages/Expenses";
 import Disputes from "./pages/Disputes";
 import Settings from "./pages/Settings";
+import Orders from "./pages/Orders";
 
 function Router() {
   return (
@@ -17,6 +18,7 @@ function Router() {
       <Route path={"/products"} component={Products} />
       <Route path={"/expenses"} component={Expenses} />
       <Route path={"/disputes"} component={Disputes} />
+      <Route path={"/orders"} component={Orders} />
       <Route path={"/settings"} component={Settings} />
       <Route path={"/404"} component={NotFound} />
       <Route component={NotFound} />
