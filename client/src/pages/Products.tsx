@@ -141,7 +141,7 @@ export default function Products() {
     <div className="min-h-screen bg-[#0a0e1a]">
       <Navigation />
       
-      <main className="container py-8 ml-[210px]">
+      <main className="container py-8">
         <div className="mb-8">
           <h1 className="text-4xl font-bold text-[#f0e040] mb-2 font-mono tracking-wider">
             // PRODUCTS
