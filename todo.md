@@ -215,3 +215,37 @@
 - [x] Update profit calculations to subtract payout fees
 - [x] Test with different time periods (today, yesterday, this month) - All working!
 - [x] Verify Shopify OAuth access token is stored correctly
+
+## Tiered COGS & Shipping System
+
+- [x] Update products table schema to support tiered pricing (JSON columns)
+- [x] Add cogsTiers field: { "1": price, "2": price, "3": price, "4+": price }
+- [x] Add shippingTiers field: { "EU": { "1": price, "2": price, ... }, "USA": {...}, "Canada": {...} }
+- [ ] Create UI in Products page to configure COGS tiers (deferred)
+- [ ] Create UI in Products page to configure shipping zones and tiers (deferred)
+- [ ] Add region/zone selector (EU, USA, Canada, Rest of World) (deferred)
+- [x] Implement automatic order matching (variant ID → product)
+- [x] Extract quantity from order line items
+- [x] Extract shipping country/region from order data
+- [x] Calculate COGS based on quantity tier
+- [x] Calculate shipping based on quantity tier and region
+- [x] Update metrics endpoint to use calculated COGS and shipping
+- [ ] Configure product tiers manually (next step)
+- [ ] Test with real orders containing different quantities
+- [ ] Test with orders from different regions
+- [ ] Verify dashboard shows accurate COGS and shipping totals
+
+## Products UI Redesign for Tiered Pricing
+
+- [x] Update Shopify product import to use variant ID (not SKU)
+- [x] Store product name from Shopify
+- [x] Update products table to use variantId as primary identifier
+- [x] Make SKU optional in schema
+- [x] Update backend to support variant ID-based products
+- [ ] Create new Products UI with expandable product cards (deferred)
+- [ ] Add COGS tier input fields (1, 2, 3, 4+ items) (deferred)
+- [ ] Add shipping zone tabs (EU, USA, Canada, ROW) (deferred)
+- [ ] Add shipping tier inputs for each zone (1, 2, 3, 4+ items) (deferred)
+- [ ] Implement save functionality for tier configurations (deferred)
+- [ ] Test import from Shopify
+- [ ] Test tier configuration and saving

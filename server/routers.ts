@@ -33,15 +33,17 @@ export const appRouter = router({
 
     create: protectedProcedure
       .input(z.object({
-        sku: z.string().min(1),
+        variantId: z.string().min(1),
+        sku: z.string().optional(),
+        productName: z.string().optional(),
         cogs: z.number().min(0),
         shippingCost: z.number().min(0),
       }))
       .mutation(async ({ input, ctx }) => {
-        const existing = await db.getProductBySku(input.sku);
+        const existing = await db.getProductByVariantId(input.variantId);
         if (existing) {
           // Update existing
-          await db.updateProduct(input.sku, {
+          await db.updateProductByVariantId(input.variantId, {
             cogs: Math.round(input.cogs * 100),
             shippingCost: Math.round(input.shippingCost * 100),
           });
@@ -50,7 +52,9 @@ export const appRouter = router({
           // Create new
           await db.createProduct({
             userId: ctx.user.id,
-            sku: input.sku,
+            variantId: input.variantId,
+            sku: input.sku || null,
+            productName: input.productName || null,
             cogs: Math.round(input.cogs * 100),
             shippingCost: Math.round(input.shippingCost * 100),
           });
@@ -89,19 +93,23 @@ export const appRouter = router({
 
         for (const row of rows) {
           try {
+            const variantId = row.variant_id || row.variantId || row.VARIANT_ID;
             const sku = row.sku || row.SKU;
+            const productName = row.product_name || row.productName || row.PRODUCT_NAME;
             const cogs = parseFloat(row.cogs || row.COGS || '0');
             const shippingCost = parseFloat(row.shipping_cost || row.shipping || '0');
 
-            if (!sku) {
+            if (!variantId) {
               failed++;
-              errors.push("Missing SKU");
+              errors.push("Missing variant_id");
               continue;
             }
 
             await db.createProduct({
               userId: ctx.user.id,
-              sku,
+              variantId,
+              sku: sku || null,
+              productName: productName || null,
               cogs: Math.round(cogs * 100),
               shippingCost: Math.round(shippingCost * 100),
             });
@@ -120,33 +128,33 @@ export const appRouter = router({
         const { getShopifyProducts } = await import("./shopify-products");
         const shopifyProducts = await getShopifyProducts();
         
-        // Get existing products to avoid duplicates
+        // Get existing products to avoid duplicates (by variantId)
         const existingProducts = await db.getAllProducts();
-        const existingSkus = new Set(existingProducts.map(p => p.sku));
+        const existingVariantIds = new Set(existingProducts.map(p => p.variantId));
         
         let imported = 0;
         let skipped = 0;
         
         for (const product of shopifyProducts) {
           try {
-            if (!existingSkus.has(product.sku)) {
+            if (!existingVariantIds.has(product.variantId)) {
               // Create with default COGS (0) - user will need to set these
               await db.createProduct({
                 userId: ctx.user.id,
-                sku: product.sku,
                 variantId: product.variantId,
+                sku: product.sku || null, // Optional SKU
                 productName: product.productName,
                 cogs: 0,
                 shippingCost: 0,
               });
               imported++;
-              console.log(`[Import] Created product: ${product.sku} - ${product.productName}`);
+              console.log(`[Import] Created product: ${product.variantId} - ${product.productName}`);
             } else {
               skipped++;
-              console.log(`[Import] Skipped existing product: ${product.sku}`);
+              console.log(`[Import] Skipped existing product: ${product.variantId}`);
             }
           } catch (error) {
-            console.error(`[Import] Failed to create product ${product.sku}:`, error);
+            console.error(`[Import] Failed to create product ${product.variantId}:`, error);
             skipped++;
           }
         }
@@ -425,22 +433,15 @@ export const appRouter = router({
           revenue += order.totalPrice; // Already in cents
         }
         
-        // Calculate COGS and shipping from line items
-        const allProducts = await db.getAllProducts();
-        const productMap = new Map(allProducts.map(p => [p.variantId, p]));
+        // Calculate COGS and shipping using tiered pricing
+        const { totalCOGS, totalShipping } = await db.calculateOrderCostsForPeriod(
+          startDateObj,
+          endDateObj
+        );
         
-        let cogs = 0;
-        let shipping = 0;
-        
-        for (const item of lineItems) {
-          if (item.variantId) {
-            const product = productMap.get(item.variantId);
-            if (product) {
-              cogs += product.cogs * item.quantity;
-              shipping += product.shippingCost * item.quantity;
-            }
-          }
-        }
+        // Convert to cents for consistency
+        const cogs = Math.round(totalCOGS * 100);
+        const shipping = Math.round(totalShipping * 100);
         
         const shopifyData = {
           revenue,

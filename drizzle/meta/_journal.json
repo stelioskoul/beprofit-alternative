@@ -43,6 +43,20 @@
       "when": 1763989896882,
       "tag": "0005_silent_squirrel_girl",
       "breakpoints": true
+    },
+    {
+      "idx": 6,
+      "version": "5",
+      "when": 1763998387967,
+      "tag": "0006_tiny_veda",
+      "breakpoints": true
+    },
+    {
+      "idx": 7,
+      "version": "5",
+      "when": 1763999657189,
+      "tag": "0007_soft_purple_man",
+      "breakpoints": true
     }
   ]
 }

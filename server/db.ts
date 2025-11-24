@@ -375,3 +375,73 @@ export async function getShopifyAccessToken(): Promise<string | null> {
   const { decrypt } = await import("./utils");
   return decrypt(result[0].accessToken);
 }
+
+/**
+ * Calculate total COGS and shipping for orders in a date range using tiered pricing
+ */
+export async function calculateOrderCostsForPeriod(
+  startDate: Date,
+  endDate: Date
+): Promise<{ totalCOGS: number; totalShipping: number }> {
+  const db = await getDb();
+  if (!db) {
+    return { totalCOGS: 0, totalShipping: 0 };
+  }
+
+  // Import tiered pricing utilities
+  const { calculateOrderCostsAndShipping } = await import("./tiered-pricing");
+
+  // Get all orders in the date range
+  const orders = await getShopifyOrdersFromDb(startDate, endDate);
+
+  let totalCOGS = 0;
+  let totalShipping = 0;
+
+  // Process each order
+  for (const order of orders) {
+    // Get line items for this order with product information
+    const lineItems = await db
+      .select({
+        variantId: shopifyOrderItems.variantId,
+        quantity: shopifyOrderItems.quantity,
+        productId: products.id,
+        cogsTiers: products.cogsTiers,
+        shippingTiers: products.shippingTiers,
+        fallbackCogs: products.cogs,
+        fallbackShipping: products.shippingCost,
+      })
+      .from(shopifyOrderItems)
+      .leftJoin(products, eq(shopifyOrderItems.variantId, products.variantId))
+      .where(eq(shopifyOrderItems.orderId, order.id));
+
+    // Skip if no line items
+    if (lineItems.length === 0) continue;
+
+    // Calculate costs for this order
+    const orderCosts = calculateOrderCostsAndShipping(
+      lineItems as any[],
+      order.shippingCountryCode || "US"
+    );
+
+    totalCOGS += orderCosts.totalCOGS;
+    totalShipping += orderCosts.totalShipping;
+  }
+
+  return {
+    totalCOGS: totalCOGS / 100, // Convert cents to dollars/euros
+    totalShipping: totalShipping / 100,
+  };
+}
+
+export async function getProductByVariantId(variantId: string): Promise<Product | undefined> {
+  const db = await getDb();
+  if (!db) return undefined;
+  const result = await db.select().from(products).where(eq(products.variantId, variantId)).limit(1);
+  return result[0];
+}
+
+export async function updateProductByVariantId(variantId: string, updates: Partial<InsertProduct>): Promise<void> {
+  const db = await getDb();
+  if (!db) throw new Error("Database not available");
+  await db.update(products).set(updates).where(eq(products.variantId, variantId));
+}
