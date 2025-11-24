@@ -96,6 +96,35 @@ export const appRouter = router({
 
         return { success, failed, errors: errors.slice(0, 10) };
       }),
+
+    importShopifyProducts: protectedProcedure
+      .mutation(async () => {
+        const { getShopifyProducts } = await import("./shopify-products");
+        const shopifyProducts = await getShopifyProducts();
+        
+        // Get existing products to avoid duplicates
+        const existingProducts = await db.getAllProducts();
+        const existingSkus = new Set(existingProducts.map(p => p.sku));
+        
+        let imported = 0;
+        let skipped = 0;
+        
+        for (const product of shopifyProducts) {
+          if (!existingSkus.has(product.sku)) {
+            // Create with default COGS (0) - user will need to set these
+            await db.createProduct({
+              sku: product.sku,
+              cogs: 0,
+              shippingCost: 0,
+            });
+            imported++;
+          } else {
+            skipped++;
+          }
+        }
+        
+        return { imported, skipped, total: shopifyProducts.length };
+      }),
   }),
 
   // ============= Expenses =============

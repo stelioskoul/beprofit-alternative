@@ -63,3 +63,11 @@
 - [x] Only count fulfilled orders with confirmed payments
 - [x] Research Bprofit's Shopify filtering methodology
 - [x] Add proper financial_status and fulfillment_status filtering
+
+## Product SKU Sync Feature
+
+- [x] Implement Shopify products API endpoint to fetch all products
+- [x] Add import Shopify products button in Products page
+- [x] Auto-create product entries with SKU from Shopify
+- [x] Allow user to set COGS and shipping costs after import
+- [x] Show which products are missing COGS/shipping data

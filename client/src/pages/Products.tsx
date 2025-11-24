@@ -40,6 +40,15 @@ export default function Products() {
       toast.success(`Imported ${result.success} products, ${result.failed} failed`);
     },
   });
+  const importShopifyMutation = trpc.products.importShopifyProducts.useMutation({
+    onSuccess: (result) => {
+      utils.products.list.invalidate();
+      toast.success(`Imported ${result.imported} new products from Shopify, ${result.skipped} already exist`);
+    },
+    onError: (error) => {
+      toast.error(error.message || "Failed to import from Shopify");
+    },
+  });
 
   const handleSubmit = (e: React.FormEvent) => {
     e.preventDefault();
@@ -125,11 +134,20 @@ export default function Products() {
             </div>
             <div className="flex gap-2">
               <Button type="submit" disabled={createMutation.isPending}>
-                {createMutation.isPending ? "Saving..." : "Add Product"}
+                {createMutation.isPending ? "Adding..." : "Add Product"}
               </Button>
               <Button type="button" variant="outline" onClick={handleImportCSV} disabled={importMutation.isPending}>
                 <Upload className="h-4 w-4 mr-2" />
                 Import CSV
+              </Button>
+              <Button 
+                type="button" 
+                variant="outline" 
+                onClick={() => importShopifyMutation.mutate()} 
+                disabled={importShopifyMutation.isPending}
+              >
+                <Upload className="h-4 w-4 mr-2" />
+                {importShopifyMutation.isPending ? "Importing..." : "Import from Shopify"}
               </Button>
             </div>
           </form>
