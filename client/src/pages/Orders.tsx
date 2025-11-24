@@ -1,4 +1,4 @@
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { trpc } from "@/lib/trpc";
 import { Loader2 } from "lucide-react";
 import { Button } from "@/components/ui/button";
@@ -14,10 +14,23 @@ import {
 export default function Orders() {
   const [page, setPage] = useState(1);
   const limit = 50;
+  const [startDate, setStartDate] = useState("");
+  const [endDate, setEndDate] = useState("");
+  
+  // Set default date range to last 30 days
+  useEffect(() => {
+    const end = new Date();
+    const start = new Date();
+    start.setDate(start.getDate() - 30);
+    setEndDate(end.toISOString().split('T')[0]);
+    setStartDate(start.toISOString().split('T')[0]);
+  }, []);
 
-  const { data: ordersData, isLoading } = trpc.orders.list.useQuery({
+  const { data: ordersData, isLoading, refetch } = trpc.orders.list.useQuery({
     page,
     limit,
+    startDate,
+    endDate,
   });
 
   if (isLoading) {
@@ -42,6 +55,42 @@ export default function Orders() {
           <p className="text-sm text-cyan-400 mt-1">
             ALL SHOPIFY ORDERS
           </p>
+        </div>
+      </div>
+
+      {/* Date Range Filter */}
+      <div className="p-4 border-2 border-primary/30 rounded-lg bg-card/50">
+        <div className="flex items-center gap-4 flex-wrap">
+          <span className="text-sm text-muted-foreground font-bold">DATE RANGE:</span>
+          <div className="flex items-center gap-2">
+            <label className="text-xs text-muted-foreground">START:</label>
+            <input
+              type="date"
+              value={startDate}
+              onChange={(e) => setStartDate(e.target.value)}
+              className="px-3 py-1 bg-background border border-primary/30 rounded text-foreground text-sm"
+            />
+          </div>
+          <div className="flex items-center gap-2">
+            <label className="text-xs text-muted-foreground">END:</label>
+            <input
+              type="date"
+              value={endDate}
+              onChange={(e) => setEndDate(e.target.value)}
+              className="px-3 py-1 bg-background border border-primary/30 rounded text-foreground text-sm"
+            />
+          </div>
+          <Button
+            variant="default"
+            size="sm"
+            onClick={() => refetch()}
+            className="uppercase"
+          >
+            FILTER
+          </Button>
+          <span className="text-xs text-muted-foreground ml-auto">
+            Showing {total} orders
+          </span>
         </div>
       </div>
 

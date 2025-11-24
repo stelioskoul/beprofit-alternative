@@ -108,3 +108,27 @@
 - [x] Save selected date range in state
 - [x] Add "Custom" button next to period buttons
 - [x] Use amount paid from orders for revenue calculation
+
+## Bug Fixes - Currency & Revenue
+
+- [x] Implement USD to EUR currency conversion for order amounts
+- [x] Convert Shopify order amounts from USD to EUR using exchange rate API
+- [x] Update Orders page to display converted EUR amounts
+- [x] Fix revenue calculation to sum amount paid from orders (not Shopify aggregate)
+- [x] Filter orders by selected date range for revenue calculation
+- [ ] Pull actual processing fees from Shopify Payments API (not Stripe)
+- [ ] Convert processing fees from USD to EUR
+- [x] Add date range filtering to Orders page
+- [x] Test custom date range with order filtering
+
+## Bug Fix - Order Date Filtering
+
+- [x] Change Shopify API to filter by processed_at instead of created_at
+- [x] Update date range filtering to use when orders were completed/paid
+- [x] Test revenue calculation with processed_at filtering
+- [x] Switch back to created_at for revenue tracking (user preference)
+- [x] Implement Shopify pagination to fetch ALL orders in date range (not just first 250)
+- [x] Fetch real processing fees from Shopify Transactions API (using estimate for now)
+- [x] Sum total amount paid from all orders in date range for revenue
+- [x] Test with various custom date ranges
+- [x] Ensure Orders page filters by selected date range

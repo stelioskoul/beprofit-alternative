@@ -322,15 +322,29 @@ export const appRouter = router({
       .input(z.object({
         page: z.number().min(1).default(1),
         limit: z.number().min(1).max(100).default(50),
+        startDate: z.string().optional(),
+        endDate: z.string().optional(),
       }))
       .query(async ({ input }) => {
         const shopify = await import('./shopify');
-        const orders = await shopify.getRawOrders();
+        const allOrders = await shopify.getRawOrders();
+        
+        // Filter by date range if provided
+        let filteredOrders = allOrders;
+        if (input.startDate && input.endDate) {
+          const startTime = new Date(input.startDate).getTime();
+          const endTime = new Date(input.endDate).getTime() + 86400000; // Add 1 day to include end date
+          filteredOrders = allOrders.filter(order => {
+            const orderTime = new Date(order.created_at).getTime();
+            return orderTime >= startTime && orderTime < endTime;
+          });
+        }
+        
         const start = (input.page - 1) * input.limit;
         const end = start + input.limit;
         return {
-          orders: orders.slice(start, end),
-          total: orders.length,
+          orders: filteredOrders.slice(start, end),
+          total: filteredOrders.length,
           page: input.page,
           limit: input.limit,
         };
