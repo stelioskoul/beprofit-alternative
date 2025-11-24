@@ -64,6 +64,13 @@
       "when": 1764011992347,
       "tag": "0008_famous_grandmaster",
       "breakpoints": true
+    },
+    {
+      "idx": 9,
+      "version": "5",
+      "when": 1764020437617,
+      "tag": "0009_bent_the_order",
+      "breakpoints": true
     }
   ]
 }

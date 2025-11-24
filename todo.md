@@ -308,6 +308,7 @@
 ### Products Page Layout
 - [x] Add left margin to Products page main content
 - [x] Test Products page displays correctly next to sidebar
+- [x] Fix vertical spacing - reduce top padding so products appear higher on page (changed py-8 to pt-4 pb-8)
 
 ### Manual Product Management
 - [x] Add "Create Product" button and modal form
@@ -317,13 +318,18 @@
 - [x] Test product creation and deletion (UI working correctly)
 
 ### Disputes Auto-Pull
-- [ ] Research Shopify Disputes API endpoint
-- [ ] Add "Pull Disputes" button in Disputes page with date range
+- [x] Research Shopify Disputes API endpoint and authentication (GET /admin/api/latest/shopify_payments/disputes.json)
+- [ ] Add "Pull Disputes" button in Disputes page with date range selector
 - [ ] Implement Shopify Disputes API integration
 - [ ] Create pullDisputes tRPC procedure
-- [ ] Store dispute data in database
+- [x] Store dispute data in database (created shopifyDisputes table)
+- [ ] Display disputes in Disputes page
+- [ ] Integrate disputes into profit calculations
 - [ ] Test disputes auto-pull functionality
 
-### Shopify OAuth
-- [ ] Add "Connect Shopify" button in Settings
-- [ ] Implement OAuth flow for automatic webhook setup
+### Shopify OAuth in Settings
+- [ ] Add "Connect Shopify" button in Settings page
+- [ ] Implement OAuth redirect URL handling
+- [ ] Store Shopify access token securely
+- [ ] Auto-register webhooks after OAuth success
+- [ ] Test OAuth flow and webhook registration

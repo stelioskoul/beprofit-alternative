@@ -1,0 +1,21 @@
+CREATE TABLE `shopifyDisputes` (
+	`id` int AUTO_INCREMENT NOT NULL,
+	`shopifyDisputeId` varchar(255) NOT NULL,
+	`shopifyOrderId` varchar(255),
+	`orderId` int,
+	`disputeType` enum('inquiry','chargeback') NOT NULL,
+	`amount` int NOT NULL,
+	`currency` varchar(10) NOT NULL,
+	`reason` varchar(100),
+	`networkReasonCode` varchar(50),
+	`status` varchar(50) NOT NULL,
+	`evidenceDueBy` timestamp,
+	`evidenceSentOn` timestamp,
+	`finalizedOn` timestamp,
+	`initiatedAt` timestamp NOT NULL,
+	`disputeData` text,
+	`createdAt` timestamp NOT NULL DEFAULT (now()),
+	`updatedAt` timestamp NOT NULL DEFAULT (now()) ON UPDATE CURRENT_TIMESTAMP,
+	CONSTRAINT `shopifyDisputes_id` PRIMARY KEY(`id`),
+	CONSTRAINT `shopifyDisputes_shopifyDisputeId_unique` UNIQUE(`shopifyDisputeId`)
+);

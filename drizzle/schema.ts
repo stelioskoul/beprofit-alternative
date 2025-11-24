@@ -74,6 +74,32 @@ export type Dispute = typeof disputes.$inferSelect;
 export type InsertDispute = typeof disputes.$inferInsert;
 
 /**
+ * Shopify disputes table - stores dispute/chargeback data from Shopify API
+ */
+export const shopifyDisputes = mysqlTable("shopifyDisputes", {
+  id: int("id").autoincrement().primaryKey(),
+  shopifyDisputeId: varchar("shopifyDisputeId", { length: 255 }).notNull().unique(),
+  shopifyOrderId: varchar("shopifyOrderId", { length: 255 }), // Can be null per API
+  orderId: int("orderId"), // References shopifyOrders.id
+  disputeType: mysqlEnum("disputeType", ["inquiry", "chargeback"]).notNull(),
+  amount: int("amount").notNull(), // Store as cents
+  currency: varchar("currency", { length: 10 }).notNull(),
+  reason: varchar("reason", { length: 100 }), // fraudulent, credit_not_processed, etc.
+  networkReasonCode: varchar("networkReasonCode", { length: 50 }),
+  status: varchar("status", { length: 50 }).notNull(), // needs_response, under_review, won, lost, etc.
+  evidenceDueBy: timestamp("evidenceDueBy"),
+  evidenceSentOn: timestamp("evidenceSentOn"),
+  finalizedOn: timestamp("finalizedOn"),
+  initiatedAt: timestamp("initiatedAt").notNull(),
+  disputeData: text("disputeData"), // Full JSON payload
+  createdAt: timestamp("createdAt").defaultNow().notNull(),
+  updatedAt: timestamp("updatedAt").defaultNow().onUpdateNow().notNull(),
+});
+
+export type ShopifyDispute = typeof shopifyDisputes.$inferSelect;
+export type InsertShopifyDispute = typeof shopifyDisputes.$inferInsert;
+
+/**
  * API credentials table - encrypted storage for Facebook and Shopify credentials
  */
 export const apiCredentials = mysqlTable("apiCredentials", {
