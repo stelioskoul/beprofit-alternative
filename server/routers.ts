@@ -5,9 +5,11 @@ import { publicProcedure, protectedProcedure, router } from "./_core/trpc";
 import { z } from "zod";
 import * as db from "./db";
 import * as utils from "./utils";
+import { shopifyOAuthRouter } from "./shopify-oauth-router";
 
 export const appRouter = router({
   system: systemRouter,
+  shopifyOAuth: shopifyOAuthRouter,
   
   auth: router({
     me: publicProcedure.query(opts => opts.ctx.user),

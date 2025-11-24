@@ -6,6 +6,7 @@ import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { toast } from "sonner";
 import { Save } from "lucide-react";
+import { ShopifyConnect } from "@/components/ShopifyConnect";
 
 export default function Settings() {
   const [fbToken, setFbToken] = useState("");
@@ -109,7 +110,10 @@ export default function Settings() {
               {/* Shopify */}
               <form onSubmit={handleSaveShopify} className="border-2 border-primary p-6 bg-card">
                 <h2 className="text-2xl font-bold text-secondary mb-4">// SHOPIFY</h2>
-                <div className="space-y-4">
+                <div className="space-y-6">
+            {/* Shopify OAuth Integration */}
+            <ShopifyConnect />
+
                   <div>
                     <Label htmlFor="shopifyToken" className="text-primary uppercase">Access Token</Label>
                     <Input

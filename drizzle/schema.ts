@@ -99,3 +99,101 @@ export const cache = mysqlTable("cache", {
 
 export type Cache = typeof cache.$inferSelect;
 export type InsertCache = typeof cache.$inferInsert;
+
+/**
+ * Shopify OAuth tokens table - stores access tokens from OAuth flow
+ */
+export const shopifyTokens = mysqlTable("shopifyTokens", {
+  id: int("id").autoincrement().primaryKey(),
+  userId: int("userId").notNull(),
+  shopDomain: varchar("shopDomain", { length: 255 }).notNull(),
+  accessToken: text("accessToken").notNull(),
+  scope: text("scope").notNull(),
+  createdAt: timestamp("createdAt").defaultNow().notNull(),
+  updatedAt: timestamp("updatedAt").defaultNow().onUpdateNow().notNull(),
+});
+
+export type ShopifyToken = typeof shopifyTokens.$inferSelect;
+export type InsertShopifyToken = typeof shopifyTokens.$inferInsert;
+
+/**
+ * Shopify orders table - stores order data from webhooks
+ */
+export const shopifyOrders = mysqlTable("shopifyOrders", {
+  id: int("id").autoincrement().primaryKey(),
+  shopifyOrderId: varchar("shopifyOrderId", { length: 255 }).notNull().unique(),
+  orderNumber: varchar("orderNumber", { length: 255 }),
+  email: varchar("email", { length: 320 }),
+  financialStatus: varchar("financialStatus", { length: 50 }),
+  fulfillmentStatus: varchar("fulfillmentStatus", { length: 50 }),
+  totalPrice: int("totalPrice").notNull(), // Store as cents
+  subtotalPrice: int("subtotalPrice"),
+  totalTax: int("totalTax"),
+  totalShipping: int("totalShipping"),
+  currency: varchar("currency", { length: 10 }),
+  processedAt: timestamp("processedAt"),
+  cancelledAt: timestamp("cancelledAt"),
+  orderData: text("orderData"), // Full JSON payload
+  createdAt: timestamp("createdAt").defaultNow().notNull(),
+  updatedAt: timestamp("updatedAt").defaultNow().onUpdateNow().notNull(),
+});
+
+export type ShopifyOrder = typeof shopifyOrders.$inferSelect;
+export type InsertShopifyOrder = typeof shopifyOrders.$inferInsert;
+
+/**
+ * Shopify order line items table - stores individual items from orders
+ */
+export const shopifyOrderItems = mysqlTable("shopifyOrderItems", {
+  id: int("id").autoincrement().primaryKey(),
+  orderId: int("orderId").notNull(), // References shopifyOrders.id
+  shopifyOrderId: varchar("shopifyOrderId", { length: 255 }).notNull(),
+  lineItemId: varchar("lineItemId", { length: 255 }).notNull(),
+  variantId: varchar("variantId", { length: 255 }),
+  productId: varchar("productId", { length: 255 }),
+  sku: varchar("sku", { length: 255 }),
+  title: text("title"),
+  variantTitle: text("variantTitle"),
+  quantity: int("quantity").notNull(),
+  price: int("price").notNull(), // Store as cents
+  totalDiscount: int("totalDiscount"),
+  createdAt: timestamp("createdAt").defaultNow().notNull(),
+});
+
+export type ShopifyOrderItem = typeof shopifyOrderItems.$inferSelect;
+export type InsertShopifyOrderItem = typeof shopifyOrderItems.$inferInsert;
+
+/**
+ * Shopify refunds table - stores refund data from webhooks
+ */
+export const shopifyRefunds = mysqlTable("shopifyRefunds", {
+  id: int("id").autoincrement().primaryKey(),
+  shopifyRefundId: varchar("shopifyRefundId", { length: 255 }).notNull().unique(),
+  shopifyOrderId: varchar("shopifyOrderId", { length: 255 }).notNull(),
+  orderId: int("orderId"), // References shopifyOrders.id
+  amount: int("amount").notNull(), // Store as cents
+  currency: varchar("currency", { length: 10 }),
+  note: text("note"),
+  processedAt: timestamp("processedAt"),
+  refundData: text("refundData"), // Full JSON payload
+  createdAt: timestamp("createdAt").defaultNow().notNull(),
+});
+
+export type ShopifyRefund = typeof shopifyRefunds.$inferSelect;
+export type InsertShopifyRefund = typeof shopifyRefunds.$inferInsert;
+
+/**
+ * Webhook logs table - tracks all webhook deliveries for debugging
+ */
+export const webhookLogs = mysqlTable("webhookLogs", {
+  id: int("id").autoincrement().primaryKey(),
+  topic: varchar("topic", { length: 100 }).notNull(),
+  shopDomain: varchar("shopDomain", { length: 255 }),
+  payload: text("payload"),
+  status: varchar("status", { length: 50 }).notNull(), // 'success', 'error', 'skipped'
+  errorMessage: text("errorMessage"),
+  createdAt: timestamp("createdAt").defaultNow().notNull(),
+});
+
+export type WebhookLog = typeof webhookLogs.$inferSelect;
+export type InsertWebhookLog = typeof webhookLogs.$inferInsert;

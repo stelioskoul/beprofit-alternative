@@ -6,7 +6,8 @@ import {
   expenses, InsertExpense, Expense,
   disputes, InsertDispute, Dispute,
   apiCredentials, InsertApiCredential, ApiCredential,
-  cache, InsertCache, Cache
+  cache, InsertCache, Cache,
+  shopifyOrders, shopifyOrderItems, shopifyRefunds
 } from "../drizzle/schema";
 import { ENV } from './_core/env';
 
@@ -264,4 +265,90 @@ export async function clearExpiredCache(): Promise<void> {
   await db.delete(cache).where(
     lte(cache.expiresAt, new Date())
   );
+}
+
+// ============= Shopify Webhooks Data =============
+
+/**
+ * Get Shopify orders from webhook data
+ */
+export async function getShopifyOrdersFromDb(startDate?: Date, endDate?: Date) {
+  const db = await getDb();
+  if (!db) return [];
+
+  try {
+    const conditions = [
+      eq(shopifyOrders.financialStatus, "paid"),
+    ];
+    
+    if (startDate) {
+      conditions.push(gte(shopifyOrders.processedAt, startDate));
+    }
+    
+    if (endDate) {
+      conditions.push(lte(shopifyOrders.processedAt, endDate));
+    }
+    
+    const orders = await db
+      .select()
+      .from(shopifyOrders)
+      .where(and(...conditions));
+    
+    return orders;
+  } catch (error) {
+    console.error("[Database] Failed to fetch Shopify orders:", error);
+    return [];
+  }
+}
+
+/**
+ * Get Shopify order items for specific orders
+ */
+export async function getShopifyOrderItems(orderIds: number[]) {
+  const db = await getDb();
+  if (!db || orderIds.length === 0) return [];
+
+  try {
+    const { inArray } = await import("drizzle-orm");
+    
+    const items = await db
+      .select()
+      .from(shopifyOrderItems)
+      .where(inArray(shopifyOrderItems.orderId, orderIds));
+    
+    return items;
+  } catch (error) {
+    console.error("[Database] Failed to fetch order items:", error);
+    return [];
+  }
+}
+
+/**
+ * Get Shopify refunds for date range
+ */
+export async function getShopifyRefunds(startDate?: Date, endDate?: Date) {
+  const db = await getDb();
+  if (!db) return [];
+
+  try {
+    const conditions = [];
+    
+    if (startDate) {
+      conditions.push(gte(shopifyRefunds.processedAt, startDate));
+    }
+    
+    if (endDate) {
+      conditions.push(lte(shopifyRefunds.processedAt, endDate));
+    }
+    
+    const refunds = await db
+      .select()
+      .from(shopifyRefunds)
+      .where(conditions.length > 0 ? and(...conditions) : undefined);
+    
+    return refunds;
+  } catch (error) {
+    console.error("[Database] Failed to fetch refunds:", error);
+    return [];
+  }
 }

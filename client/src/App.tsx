@@ -10,6 +10,7 @@ import Expenses from "./pages/Expenses";
 import Disputes from "./pages/Disputes";
 import Settings from "./pages/Settings";
 import Orders from "./pages/Orders";
+import ShopifyCallback from "./pages/ShopifyCallback";
 
 function Router() {
   return (
@@ -20,6 +21,7 @@ function Router() {
       <Route path={"/disputes"} component={Disputes} />
       <Route path={"/orders"} component={Orders} />
       <Route path={"/settings"} component={Settings} />
+      <Route path={"/shopify-callback"} component={ShopifyCallback} />
       <Route path={"/404"} component={NotFound} />
       <Route component={NotFound} />
     </Switch>

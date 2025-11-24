@@ -132,3 +132,27 @@
 - [x] Sum total amount paid from all orders in date range for revenue
 - [x] Test with various custom date ranges
 - [x] Ensure Orders page filters by selected date range
+
+
+## Shopify OAuth & Webhook Integration
+
+- [x] Store Shopify OAuth credentials in environment variables
+- [x] Implement Shopify OAuth 2.0 authentication flow
+- [x] Create popup window for user to authorize Shopify app
+- [x] Store Shopify access token and shop domain in database
+- [x] Create ShopifyConnect component for Settings page
+- [x] Add OAuth callback route and handler
+- [x] Set up webhook endpoints for order creation, updates, cancellations
+- [x] Set up webhook endpoints for product creation, updates, deletions
+- [x] Set up webhook endpoints for refunds and disputes
+- [x] Store webhook data in database tables
+- [x] Register webhook routes in Express server
+- [x] Add database tables for webhook data (shopifyOrders, shopifyOrderItems, shopifyRefunds, webhookLogs)
+- [x] Implement webhook handlers with HMAC verification
+- [x] Store incoming webhook data in database
+- [x] Add database helpers to query webhook data
+- [ ] Update dashboard to use webhook data instead of API polling
+- [ ] Add Shopify app configuration in Settings page
+- [ ] Test OAuth flow end-to-end
+- [ ] Configure webhooks in Shopify App settings
+- [ ] Test webhook delivery from Shopify
