@@ -294,3 +294,9 @@
 - [x] Verify Products page component renders correctly
 - [x] Fix any runtime errors causing blank screen (added missing useState import)
 - [ ] Test Products page displays correctly for user
+
+## Fix 401 Unauthorized Error on Save Tiers
+
+- [x] Check if updateTiers procedure uses protectedProcedure
+- [x] Verify user authentication is working correctly (added missing ctx parameter)
+- [x] Test save tiers functionality after fix

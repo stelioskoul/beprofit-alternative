@@ -168,7 +168,7 @@ export const appRouter = router({
         cogs: z.number().min(0),
         shippingTiers: z.string().nullable(),
       }))
-      .mutation(async ({ input }) => {
+      .mutation(async ({ input, ctx }) => {
         await db.updateProductTiers(input.variantId, {
           cogs: Math.round(input.cogs * 100), // Convert to cents
           shippingTiers: input.shippingTiers,
