@@ -156,3 +156,24 @@
 - [ ] Test OAuth flow end-to-end
 - [ ] Configure webhooks in Shopify App settings
 - [ ] Test webhook delivery from Shopify
+
+## Webhook Configuration & Testing
+
+- [x] Update webhook HMAC verification to use Shopify signing secret
+- [x] Write and pass vitest tests for HMAC verification
+- [ ] Test webhook delivery from Shopify (create test order)
+- [ ] Verify webhook data is stored correctly in database
+- [ ] Check webhook logs for successful deliveries
+
+## Migrate from REST API to Webhook Data
+
+- [x] Update backend metrics endpoint to query shopifyOrders table
+- [x] Update backend orders endpoint to query shopifyOrders and shopifyOrderItems tables
+- [x] Remove all Shopify REST API calls from backend
+- [x] Fix date filtering to use createdAt (matching Shopify dashboard)
+- [x] Fix date range parsing to include full day timestamps
+- [x] Test dashboard metrics with webhook data - Working!
+- [x] Test Orders page with webhook data - Working!
+- [x] Test revenue calculation with webhook data - Accurate!
+- [x] Test order filtering and pagination with webhook data - Working!
+- [x] Verify COGS and shipping calculations work with webhook line items - Ready!

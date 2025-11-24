@@ -30,14 +30,24 @@ function toCents(amount: string | number): number {
   return Math.round(num * 100);
 }
 
-// Middleware to verify webhook authenticity
+// Middleware to verify webhook authenticity and parse body
 const verifyWebhook = (req: any, res: any, next: any) => {
   const hmac = req.headers["x-shopify-hmac-sha256"];
-  const body = JSON.stringify(req.body);
+  
+  // req.body is a Buffer when using express.raw()
+  const rawBody = req.body.toString('utf8');
 
-  if (!hmac || !verifyWebhookHmac(body, hmac as string)) {
+  if (!hmac || !verifyWebhookHmac(rawBody, hmac as string)) {
     console.error("[Webhook] Invalid HMAC signature");
     return res.status(401).send("Unauthorized");
+  }
+  
+  // Parse the JSON body for handlers
+  try {
+    req.body = JSON.parse(rawBody);
+  } catch (error) {
+    console.error("[Webhook] Failed to parse JSON body:", error);
+    return res.status(400).send("Bad Request");
   }
 
   next();

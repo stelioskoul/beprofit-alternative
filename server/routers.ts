@@ -328,25 +328,56 @@ export const appRouter = router({
         endDate: z.string().optional(),
       }))
       .query(async ({ input }) => {
-        const shopify = await import('./shopify');
-        const allOrders = await shopify.getRawOrders();
+        // Query webhook data from database
+        let startDateObj: Date | undefined;
+        let endDateObj: Date | undefined;
         
-        // Filter by date range if provided
-        let filteredOrders = allOrders;
         if (input.startDate && input.endDate) {
-          const startTime = new Date(input.startDate).getTime();
-          const endTime = new Date(input.endDate).getTime() + 86400000; // Add 1 day to include end date
-          filteredOrders = allOrders.filter(order => {
-            const orderTime = new Date(order.created_at).getTime();
-            return orderTime >= startTime && orderTime < endTime;
-          });
+          // Parse dates and set to start/end of day in local timezone
+          startDateObj = new Date(input.startDate + 'T00:00:00');
+          endDateObj = new Date(input.endDate + 'T23:59:59.999');
         }
         
+        const dbOrders = await db.getShopifyOrdersFromDb(startDateObj, endDateObj);
+        
+        // Get line items for all orders
+        const orderIds = dbOrders.map(o => o.id);
+        const lineItems = await db.getShopifyOrderItems(orderIds);
+        
+        // Convert to format expected by frontend
+        const orders = dbOrders.map(order => {
+          const orderLineItems = lineItems.filter(item => item.orderId === order.id);
+          const orderData = order.orderData ? JSON.parse(order.orderData) : {};
+          
+          return {
+            id: order.shopifyOrderId,
+            name: order.orderNumber,
+            created_at: order.processedAt?.toISOString() || order.createdAt.toISOString(),
+            email: order.email,
+            financial_status: order.financialStatus,
+            fulfillment_status: order.fulfillmentStatus,
+            current_total_price: (order.totalPrice / 100).toFixed(2),
+            currency: order.currency || 'USD',
+            line_items: orderLineItems.map(item => ({
+              id: item.lineItemId,
+              variant_id: item.variantId,
+              product_id: item.productId,
+              sku: item.sku,
+              title: item.title,
+              variant_title: item.variantTitle,
+              quantity: item.quantity,
+              price: (item.price / 100).toFixed(2),
+            })),
+            customer: orderData.customer || { first_name: '', last_name: '' },
+          };
+        });
+        
+        // Pagination
         const start = (input.page - 1) * input.limit;
         const end = start + input.limit;
         return {
-          orders: filteredOrders.slice(start, end),
-          total: filteredOrders.length,
+          orders: orders.slice(start, end),
+          total: orders.length,
           page: input.page,
           limit: input.limit,
         };
@@ -373,14 +404,48 @@ export const appRouter = router({
           endDate = range.endDate;
         }
 
-        // Fetch real data from APIs
+        // Fetch Facebook ad spend (still using API)
         const { getFacebookAdSpend } = await import("./facebook-ads");
-        const { getShopifyOrders } = await import("./shopify");
+        const adSpend = await getFacebookAdSpend(startDate, endDate);
         
-        const [adSpend, shopifyData] = await Promise.all([
-          getFacebookAdSpend(startDate, endDate),
-          getShopifyOrders(startDate, endDate),
-        ]);
+        // Get Shopify data from webhook database
+        // Parse dates and set to start/end of day in local timezone
+        const startDateObj = new Date(startDate + 'T00:00:00');
+        const endDateObj = new Date(endDate + 'T23:59:59.999');
+        
+        const dbOrders = await db.getShopifyOrdersFromDb(startDateObj, endDateObj);
+        const orderIds = dbOrders.map(o => o.id);
+        const lineItems = await db.getShopifyOrderItems(orderIds);
+        
+        // Calculate revenue from webhook data
+        let revenue = 0;
+        for (const order of dbOrders) {
+          revenue += order.totalPrice; // Already in cents
+        }
+        
+        // Calculate COGS and shipping from line items
+        const allProducts = await db.getAllProducts();
+        const productMap = new Map(allProducts.map(p => [p.variantId, p]));
+        
+        let cogs = 0;
+        let shipping = 0;
+        
+        for (const item of lineItems) {
+          if (item.variantId) {
+            const product = productMap.get(item.variantId);
+            if (product) {
+              cogs += product.cogs * item.quantity;
+              shipping += product.shippingCost * item.quantity;
+            }
+          }
+        }
+        
+        const shopifyData = {
+          revenue,
+          cogs,
+          shipping,
+          orderCount: dbOrders.length,
+        };
 
         // Get expenses and disputes from database
         const expenses = await db.getExpensesForPeriod(startDate, endDate);

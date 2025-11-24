@@ -1,0 +1,28 @@
+{
+  "query": "SELECT shopifyOrderId, orderNumber, totalPrice, createdAt FROM shopifyOrders ORDER BY createdAt DESC LIMIT 5;",
+  "command": "mysql --batch --raw --column-names --default-character-set=utf8mb4 --host gateway02.us-east-1.prod.aws.tidbcloud.com --port 4000 --user 2bmgmz1emMhJCnb.bf576383e5e9 --database RjhzmSqRUNWVHnL9UUquHF --execute SELECT shopifyOrderId, orderNumber, totalPrice, createdAt FROM shopifyOrders ORDER BY createdAt DESC LIMIT 5;",
+  "rows": [
+    {
+      "shopifyOrderId": "10286738866468",
+      "orderNumber": "#18221",
+      "totalPrice": "16110",
+      "createdAt": "2025-11-24 13:43:56"
+    },
+    {
+      "shopifyOrderId": "10286735884580",
+      "orderNumber": "#18220",
+      "totalPrice": "0",
+      "createdAt": "2025-11-24 13:42:12"
+    },
+    {
+      "shopifyOrderId": "10286727069988",
+      "orderNumber": "#18219",
+      "totalPrice": "999",
+      "createdAt": "2025-11-24 13:41:02"
+    }
+  ],
+  "messages": [],
+  "stdout": "shopifyOrderId\torderNumber\ttotalPrice\tcreatedAt\n10286738866468\t#18221\t16110\t2025-11-24 13:43:56\n10286735884580\t#18220\t0\t2025-11-24 13:42:12\n10286727069988\t#18219\t999\t2025-11-24 13:41:02\n",
+  "stderr": "",
+  "execution_time_ms": 54
+}

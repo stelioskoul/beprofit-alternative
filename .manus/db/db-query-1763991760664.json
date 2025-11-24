@@ -1,0 +1,30 @@
+{
+  "query": "SELECT id, shopifyOrderId, orderNumber, email, financialStatus, totalPrice, currency, createdAt FROM shopifyOrders ORDER BY createdAt DESC LIMIT 3;",
+  "command": "mysql --batch --raw --column-names --default-character-set=utf8mb4 --host gateway02.us-east-1.prod.aws.tidbcloud.com --port 4000 --user 2bmgmz1emMhJCnb.bf576383e5e9 --database RjhzmSqRUNWVHnL9UUquHF --execute SELECT id, shopifyOrderId, orderNumber, email, financialStatus, totalPrice, currency, createdAt FROM shopifyOrders ORDER BY createdAt DESC LIMIT 3;",
+  "rows": [
+    {
+      "id": "2",
+      "shopifyOrderId": "10286735884580",
+      "orderNumber": "#18220",
+      "email": "NULL",
+      "financialStatus": "paid",
+      "totalPrice": "0",
+      "currency": "USD",
+      "createdAt": "2025-11-24 13:42:12"
+    },
+    {
+      "id": "1",
+      "shopifyOrderId": "10286727069988",
+      "orderNumber": "#18219",
+      "email": "NULL",
+      "financialStatus": "paid",
+      "totalPrice": "999",
+      "currency": "USD",
+      "createdAt": "2025-11-24 13:41:02"
+    }
+  ],
+  "messages": [],
+  "stdout": "id\tshopifyOrderId\torderNumber\temail\tfinancialStatus\ttotalPrice\tcurrency\tcreatedAt\n2\t10286735884580\t#18220\tNULL\tpaid\t0\tUSD\t2025-11-24 13:42:12\n1\t10286727069988\t#18219\tNULL\tpaid\t999\tUSD\t2025-11-24 13:41:02\n",
+  "stderr": "",
+  "execution_time_ms": 54
+}

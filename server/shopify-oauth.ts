@@ -3,6 +3,7 @@ import crypto from "crypto";
 const SHOPIFY_CLIENT_ID = process.env.SHOPIFY_CLIENT_ID!;
 const SHOPIFY_CLIENT_SECRET = process.env.SHOPIFY_CLIENT_SECRET!;
 const SHOPIFY_SHOP_DOMAIN = process.env.SHOPIFY_SHOP_DOMAIN!;
+const SHOPIFY_WEBHOOK_SECRET = process.env.SHOPIFY_WEBHOOK_SECRET!;
 
 // OAuth scopes - requesting all permissions as user specified
 const SCOPES = [
@@ -104,13 +105,24 @@ export async function registerWebhooks(accessToken: string): Promise<void> {
 }
 
 export function verifyWebhookHmac(body: string, hmacHeader: string): boolean {
-  const hash = crypto
-    .createHmac("sha256", SHOPIFY_CLIENT_SECRET)
-    .update(body, "utf8")
-    .digest("base64");
+  try {
+    // Shopify sends HMAC as base64-encoded SHA256 hash
+    const hash = crypto
+      .createHmac("sha256", SHOPIFY_WEBHOOK_SECRET)
+      .update(body, "utf8")
+      .digest("base64");
 
-  return crypto.timingSafeEqual(
-    Buffer.from(hash),
-    Buffer.from(hmacHeader)
-  );
+    // Check if lengths match before using timingSafeEqual
+    const hashBuffer = Buffer.from(hash);
+    const hmacBuffer = Buffer.from(hmacHeader);
+    
+    if (hashBuffer.length !== hmacBuffer.length) {
+      return false;
+    }
+
+    return crypto.timingSafeEqual(hashBuffer, hmacBuffer);
+  } catch (error) {
+    console.error("[Webhook] HMAC verification error:", error);
+    return false;
+  }
 }

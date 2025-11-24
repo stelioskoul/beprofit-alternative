@@ -1,0 +1,30 @@
+{
+  "query": "SELECT id, orderId, shopifyOrderId, variantId, sku, title, quantity, price FROM shopifyOrderItems ORDER BY createdAt DESC LIMIT 5;",
+  "command": "mysql --batch --raw --column-names --default-character-set=utf8mb4 --host gateway02.us-east-1.prod.aws.tidbcloud.com --port 4000 --user 2bmgmz1emMhJCnb.bf576383e5e9 --database RjhzmSqRUNWVHnL9UUquHF --execute SELECT id, orderId, shopifyOrderId, variantId, sku, title, quantity, price FROM shopifyOrderItems ORDER BY createdAt DESC LIMIT 5;",
+  "rows": [
+    {
+      "id": "2",
+      "orderId": "2",
+      "shopifyOrderId": "10286735884580",
+      "variantId": "NULL",
+      "sku": "NULL",
+      "title": "Test",
+      "quantity": "1",
+      "price": "0"
+    },
+    {
+      "id": "1",
+      "orderId": "1",
+      "shopifyOrderId": "10286727069988",
+      "variantId": "50645555642660",
+      "sku": "NULL",
+      "title": "Legendary eBook: 20 Epic Motorcycle Routes Across the USA",
+      "quantity": "1",
+      "price": "999"
+    }
+  ],
+  "messages": [],
+  "stdout": "id\torderId\tshopifyOrderId\tvariantId\tsku\ttitle\tquantity\tprice\n2\t2\t10286735884580\tNULL\tNULL\tTest\t1\t0\n1\t1\t10286727069988\t50645555642660\tNULL\tLegendary eBook: 20 Epic Motorcycle Routes Across the USA\t1\t999\n",
+  "stderr": "",
+  "execution_time_ms": 127
+}

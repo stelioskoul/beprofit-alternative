@@ -281,12 +281,13 @@ export async function getShopifyOrdersFromDb(startDate?: Date, endDate?: Date) {
       eq(shopifyOrders.financialStatus, "paid"),
     ];
     
+    // Use createdAt for filtering since processedAt might be NULL
     if (startDate) {
-      conditions.push(gte(shopifyOrders.processedAt, startDate));
+      conditions.push(gte(shopifyOrders.createdAt, startDate));
     }
     
     if (endDate) {
-      conditions.push(lte(shopifyOrders.processedAt, endDate));
+      conditions.push(lte(shopifyOrders.createdAt, endDate));
     }
     
     const orders = await db

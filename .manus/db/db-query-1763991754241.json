@@ -1,0 +1,50 @@
+{
+  "query": "SELECT id, topic, shopDomain, status, errorMessage, createdAt FROM webhookLogs ORDER BY createdAt DESC LIMIT 5;",
+  "command": "mysql --batch --raw --column-names --default-character-set=utf8mb4 --host gateway02.us-east-1.prod.aws.tidbcloud.com --port 4000 --user 2bmgmz1emMhJCnb.bf576383e5e9 --database RjhzmSqRUNWVHnL9UUquHF --execute SELECT id, topic, shopDomain, status, errorMessage, createdAt FROM webhookLogs ORDER BY createdAt DESC LIMIT 5;",
+  "rows": [
+    {
+      "id": "6",
+      "topic": "orders/create",
+      "shopDomain": "da53d4-2.myshopify.com",
+      "status": "success",
+      "errorMessage": "NULL",
+      "createdAt": "2025-11-24 13:42:12"
+    },
+    {
+      "id": "5",
+      "topic": "orders/updated",
+      "shopDomain": "da53d4-2.myshopify.com",
+      "status": "success",
+      "errorMessage": "NULL",
+      "createdAt": "2025-11-24 13:42:11"
+    },
+    {
+      "id": "4",
+      "topic": "orders/updated",
+      "shopDomain": "da53d4-2.myshopify.com",
+      "status": "success",
+      "errorMessage": "NULL",
+      "createdAt": "2025-11-24 13:41:11"
+    },
+    {
+      "id": "3",
+      "topic": "orders/updated",
+      "shopDomain": "da53d4-2.myshopify.com",
+      "status": "success",
+      "errorMessage": "NULL",
+      "createdAt": "2025-11-24 13:41:08"
+    },
+    {
+      "id": "2",
+      "topic": "orders/updated",
+      "shopDomain": "da53d4-2.myshopify.com",
+      "status": "success",
+      "errorMessage": "NULL",
+      "createdAt": "2025-11-24 13:41:02"
+    }
+  ],
+  "messages": [],
+  "stdout": "id\ttopic\tshopDomain\tstatus\terrorMessage\tcreatedAt\n6\torders/create\tda53d4-2.myshopify.com\tsuccess\tNULL\t2025-11-24 13:42:12\n5\torders/updated\tda53d4-2.myshopify.com\tsuccess\tNULL\t2025-11-24 13:42:11\n4\torders/updated\tda53d4-2.myshopify.com\tsuccess\tNULL\t2025-11-24 13:41:11\n3\torders/updated\tda53d4-2.myshopify.com\tsuccess\tNULL\t2025-11-24 13:41:08\n2\torders/updated\tda53d4-2.myshopify.com\tsuccess\tNULL\t2025-11-24 13:41:02\n",
+  "stderr": "",
+  "execution_time_ms": 52
+}
