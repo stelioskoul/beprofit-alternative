@@ -1,0 +1,16 @@
+{
+  "query": "SELECT \n  COUNT(*) as total_orders,\n  COUNT(CASE WHEN financialStatus = 'paid' THEN 1 END) as paid_orders,\n  MIN(DATE(createdAt)) as oldest_date,\n  MAX(DATE(createdAt)) as newest_date\nFROM shopifyOrders;",
+  "command": "mysql --batch --raw --column-names --default-character-set=utf8mb4 --host gateway02.us-east-1.prod.aws.tidbcloud.com --port 4000 --user 2bmgmz1emMhJCnb.bf576383e5e9 --database RjhzmSqRUNWVHnL9UUquHF --execute SELECT \n  COUNT(*) as total_orders,\n  COUNT(CASE WHEN financialStatus = 'paid' THEN 1 END) as paid_orders,\n  MIN(DATE(createdAt)) as oldest_date,\n  MAX(DATE(createdAt)) as newest_date\nFROM shopifyOrders;",
+  "rows": [
+    {
+      "total_orders": "17210",
+      "paid_orders": "17210",
+      "oldest_date": "2023-08-02",
+      "newest_date": "2025-11-24"
+    }
+  ],
+  "messages": [],
+  "stdout": "total_orders\tpaid_orders\toldest_date\tnewest_date\n17210\t17210\t2023-08-02\t2025-11-24\n",
+  "stderr": "",
+  "execution_time_ms": 137
+}

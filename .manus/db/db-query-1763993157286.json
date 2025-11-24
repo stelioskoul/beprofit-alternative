@@ -1,0 +1,14 @@
+{
+  "query": "SELECT DATE(createdAt) as order_date, COUNT(*) as count FROM shopifyOrders GROUP BY DATE(createdAt) ORDER BY order_date DESC LIMIT 10;",
+  "command": "mysql --batch --raw --column-names --default-character-set=utf8mb4 --host gateway02.us-east-1.prod.aws.tidbcloud.com --port 4000 --user 2bmgmz1emMhJCnb.bf576383e5e9 --database RjhzmSqRUNWVHnL9UUquHF --execute SELECT DATE(createdAt) as order_date, COUNT(*) as count FROM shopifyOrders GROUP BY DATE(createdAt) ORDER BY order_date DESC LIMIT 10;",
+  "rows": [
+    {
+      "order_date": "2025-11-24",
+      "count": "2251"
+    }
+  ],
+  "messages": [],
+  "stdout": "order_date\tcount\n2025-11-24\t2251\n",
+  "stderr": "",
+  "execution_time_ms": 59
+}

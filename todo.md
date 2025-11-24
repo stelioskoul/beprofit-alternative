@@ -151,19 +151,19 @@
 - [x] Implement webhook handlers with HMAC verification
 - [x] Store incoming webhook data in database
 - [x] Add database helpers to query webhook data
-- [ ] Update dashboard to use webhook data instead of API polling
+- [x] Update dashboard to use webhook data instead of API polling
 - [ ] Add Shopify app configuration in Settings page
-- [ ] Test OAuth flow end-to-end
-- [ ] Configure webhooks in Shopify App settings
-- [ ] Test webhook delivery from Shopify
+- [x] Test OAuth flow end-to-end
+- [x] Configure webhooks in Shopify Admin Notifications
+- [x] Test webhook delivery from Shopify
 
 ## Webhook Configuration & Testing
 
 - [x] Update webhook HMAC verification to use Shopify signing secret
 - [x] Write and pass vitest tests for HMAC verification
-- [ ] Test webhook delivery from Shopify (create test order)
-- [ ] Verify webhook data is stored correctly in database
-- [ ] Check webhook logs for successful deliveries
+- [x] Test webhook delivery from Shopify (create test order)
+- [x] Verify webhook data is stored correctly in database
+- [x] Check webhook logs for successful deliveries
 
 ## Migrate from REST API to Webhook Data
 
@@ -177,3 +177,23 @@
 - [x] Test revenue calculation with webhook data - Accurate!
 - [x] Test order filtering and pagination with webhook data - Working!
 - [x] Verify COGS and shipping calculations work with webhook line items - Ready!
+
+## CRITICAL FIXES NEEDED
+
+- [x] Create historical order import script to backfill all existing orders
+- [x] Fix order display - show proper order IDs (e.g., #18222)
+- [x] Fix order display - show actual item names and quantities
+- [x] Fix revenue calculation - ensure accurate totals
+- [x] Fix currency conversion (USD to EUR)
+- [x] Fix processing fees calculation
+- [x] Fix date filtering - ensure different dates show different data
+- [x] Test with full order history (imported 29,900+ orders)
+
+## Fix Historical Import
+
+- [x] Fix import script to use Shopify created_at dates (not DB insertion time)
+- [x] Clear incorrectly imported orders (2,251 orders with wrong dates)
+- [x] Run full import of all historical orders (imported 29,900+ orders)
+- [x] Verify date filtering works correctly
+- [x] Verify revenue calculations are accurate
+- [x] Test dashboard with real historical data

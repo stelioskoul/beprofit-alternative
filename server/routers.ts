@@ -352,6 +352,7 @@ export const appRouter = router({
           return {
             id: order.shopifyOrderId,
             name: order.orderNumber,
+            order_number: order.orderNumber?.replace('#', '') || '', // Remove # for display
             created_at: order.processedAt?.toISOString() || order.createdAt.toISOString(),
             email: order.email,
             financial_status: order.financialStatus,
@@ -363,6 +364,7 @@ export const appRouter = router({
               variant_id: item.variantId,
               product_id: item.productId,
               sku: item.sku,
+              name: item.title, // Frontend expects 'name'
               title: item.title,
               variant_title: item.variantTitle,
               quantity: item.quantity,
