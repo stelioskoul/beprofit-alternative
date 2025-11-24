@@ -6,7 +6,7 @@ import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { toast } from "sonner";
 import { Save } from "lucide-react";
-import { ShopifyConnect } from "@/components/ShopifyConnect";
+
 
 export default function Settings() {
   const [fbToken, setFbToken] = useState("");
@@ -111,9 +111,11 @@ export default function Settings() {
               <form onSubmit={handleSaveShopify} className="border-2 border-primary p-6 bg-card">
                 <h2 className="text-2xl font-bold text-secondary mb-4">// SHOPIFY</h2>
                 <div className="space-y-6">
-            {/* Shopify OAuth Integration */}
-            <ShopifyConnect />
-
+                  <div className="p-4 bg-yellow-50 dark:bg-yellow-950 rounded-lg border border-yellow-200 dark:border-yellow-800">
+                    <p className="text-sm text-yellow-900 dark:text-yellow-100">
+                      Webhooks are configured directly in Shopify Admin → Settings → Notifications. No OAuth connection needed.
+                    </p>
+                  </div>
                   <div>
                     <Label htmlFor="shopifyToken" className="text-primary uppercase">Access Token</Label>
                     <Input

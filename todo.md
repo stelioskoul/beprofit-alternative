@@ -249,3 +249,17 @@
 - [ ] Implement save functionality for tier configurations (deferred)
 - [ ] Test import from Shopify
 - [ ] Test tier configuration and saving
+
+## Remove Shopify OAuth & Build Tiered Pricing UI
+
+- [x] Remove ShopifyConnect component from Settings page
+- [x] Remove unused Shopify OAuth code
+- [x] Design tiered pricing UI with expandable product cards
+- [x] Add COGS tier input fields (1, 2, 3, 4+ items)
+- [x] Add shipping zone tabs (EU, USA, Canada, ROW)
+- [x] Add shipping tier inputs for each zone (1, 2, 3, 4+ items)
+- [x] Implement save functionality for tier configurations
+- [x] Add validation for tier pricing inputs
+- [x] Test tier configuration UI
+- [x] Verify tier data saves to database correctly
+- [x] Write and pass unit tests for updateTiers procedure

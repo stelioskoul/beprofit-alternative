@@ -161,6 +161,20 @@ export const appRouter = router({
         
         return { imported, skipped, total: shopifyProducts.length };
       }),
+
+    updateTiers: protectedProcedure
+      .input(z.object({
+        variantId: z.string().min(1),
+        cogsTiers: z.string().nullable(),
+        shippingTiers: z.string().nullable(),
+      }))
+      .mutation(async ({ input }) => {
+        await db.updateProductTiers(input.variantId, {
+          cogsTiers: input.cogsTiers,
+          shippingTiers: input.shippingTiers,
+        });
+        return { success: true };
+      }),
   }),
 
   // ============= Expenses =============
