@@ -282,9 +282,16 @@ export const appRouter = router({
           endDate = range.endDate;
         }
 
-        // For now, return mock data since we don't have Shopify/Facebook integration yet
-        // In production, this would fetch from APIs
-        const products = await db.getAllProducts();
+        // Fetch real data from APIs
+        const { getFacebookAdSpend } = await import("./facebook-ads");
+        const { getShopifyOrders } = await import("./shopify");
+        
+        const [adSpend, shopifyData] = await Promise.all([
+          getFacebookAdSpend(startDate, endDate),
+          getShopifyOrders(startDate, endDate),
+        ]);
+
+        // Get expenses and disputes from database
         const expenses = await db.getExpensesForPeriod(startDate, endDate);
         const disputes = await db.getDisputesForPeriod(startDate, endDate);
 
@@ -297,21 +304,14 @@ export const appRouter = router({
         // Calculate total disputes
         const totalDisputes = disputes.reduce((sum, d) => sum + d.amount, 0);
 
-        // Mock revenue and ad spend (in production, fetch from APIs)
-        const mockRevenue = 1234567; // cents
-        const mockAdSpend = 345678; // cents
-        const mockCogs = 234567; // cents
-        const mockShipping = 89012; // cents
-        const mockOrders = 42;
-
         const metrics = utils.calculateMetrics({
-          revenue: mockRevenue,
-          adSpend: mockAdSpend,
-          cogs: mockCogs,
-          shipping: mockShipping,
+          revenue: shopifyData.revenue,
+          adSpend: adSpend,
+          cogs: shopifyData.cogs,
+          shipping: shopifyData.shipping,
           operationalExpenses: totalExpenses,
           disputes: totalDisputes,
-          orders: mockOrders,
+          orders: shopifyData.orderCount,
         });
 
         return {

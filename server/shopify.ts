@@ -1,0 +1,118 @@
+/**
+ * Shopify API Integration
+ * Fetches order data from Shopify Admin API
+ */
+
+import { getApiCredential, getCacheValue, setCacheValue, getAllProducts } from "./db";
+import { decrypt } from "./utils";
+
+interface ShopifyOrder {
+  id: number;
+  created_at: string;
+  total_price: string;
+  line_items: Array<{
+    sku: string;
+    quantity: number;
+    price: string;
+  }>;
+  shipping_lines: Array<{
+    price: string;
+  }>;
+}
+
+interface ShopifyOrdersResponse {
+  orders: ShopifyOrder[];
+}
+
+interface OrderMetrics {
+  revenue: number; // in cents
+  cogs: number; // in cents
+  shipping: number; // in cents
+  orderCount: number;
+}
+
+export async function getShopifyOrders(startDate: string, endDate: string): Promise<OrderMetrics> {
+  try {
+    // Get credentials
+    const credential = await getApiCredential("shopify");
+    if (!credential?.accessToken || !credential?.storeDomain) {
+      console.warn("[Shopify] No credentials configured");
+      return { revenue: 0, cogs: 0, shipping: 0, orderCount: 0 };
+    }
+
+    const accessToken = decrypt(credential.accessToken);
+    const storeDomain = credential.storeDomain;
+
+    // Check cache first (cache for 30 minutes)
+    const cacheKey = `shopify_orders_${storeDomain}_${startDate}_${endDate}`;
+    const cached = await getCacheValue(cacheKey);
+    if (cached) {
+      return JSON.parse(cached);
+    }
+
+    // Fetch from Shopify API
+    const startDateTime = `${startDate}T00:00:00Z`;
+    const endDateTime = `${endDate}T23:59:59Z`;
+    
+    const url = `https://${storeDomain}/admin/api/2024-01/orders.json?status=any&created_at_min=${startDateTime}&created_at_max=${endDateTime}&limit=250`;
+    
+    const response = await fetch(url, {
+      headers: {
+        "X-Shopify-Access-Token": accessToken,
+        "Content-Type": "application/json",
+      },
+    });
+
+    if (!response.ok) {
+      const error = await response.text();
+      console.error("[Shopify] API error:", error);
+      throw new Error(`Shopify API error: ${response.status}`);
+    }
+
+    const data: ShopifyOrdersResponse = await response.json();
+    
+    // Get product costs from database
+    const products = await getAllProducts();
+    const productCostMap = new Map(
+      products.map(p => [p.sku, { cogs: p.cogs, shipping: p.shippingCost }])
+    );
+
+    // Calculate metrics
+    let totalRevenue = 0;
+    let totalCogs = 0;
+    let totalShipping = 0;
+    let orderCount = 0;
+
+    for (const order of data.orders || []) {
+      orderCount++;
+      
+      // Revenue (convert from dollars to cents)
+      totalRevenue += Math.round(parseFloat(order.total_price || "0") * 100);
+
+      // Calculate COGS and shipping from line items
+      for (const item of order.line_items || []) {
+        const productCost = productCostMap.get(item.sku);
+        if (productCost) {
+          totalCogs += productCost.cogs * item.quantity;
+          totalShipping += productCost.shipping * item.quantity;
+        }
+      }
+    }
+
+    const metrics: OrderMetrics = {
+      revenue: totalRevenue,
+      cogs: totalCogs,
+      shipping: totalShipping,
+      orderCount,
+    };
+
+    // Cache the result
+    const expiresAt = new Date(Date.now() + 30 * 60 * 1000); // 30 minutes
+    await setCacheValue(cacheKey, JSON.stringify(metrics), expiresAt);
+
+    return metrics;
+  } catch (error) {
+    console.error("[Shopify] Failed to fetch orders:", error);
+    return { revenue: 0, cogs: 0, shipping: 0, orderCount: 0 };
+  }
+}

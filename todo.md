@@ -46,3 +46,11 @@
 - [x] Responsive design
 - [x] Loading states
 - [x] Error handling
+
+## New Tasks - API Integration
+
+- [x] Implement Facebook Ads API client to fetch ad spend data
+- [x] Implement Shopify API client to fetch orders and revenue data
+- [x] Update metrics endpoint to use real API data instead of mock data
+- [x] Add error handling for API failures
+- [x] Cache API responses to avoid rate limits
