@@ -1,43 +1,45 @@
 import { useAuth } from "@/_core/hooks/useAuth";
 import { Button } from "@/components/ui/button";
-import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
+import { Card, CardContent } from "@/components/ui/card";
+import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { getLoginUrl } from "@/const";
 import { trpc } from "@/lib/trpc";
-import { ArrowLeft, Loader2, Settings } from "lucide-react";
-import { useLocation, useParams } from "wouter";
+import { ArrowLeft, Loader2 } from "lucide-react";
+import { Link, useLocation, useParams } from "wouter";
 import { useState } from "react";
-import { toast } from "sonner";
+import Connections from "./Connections";
+import Products from "./Products";
+import Expenses from "./Expenses";
+import Orders from "./Orders";
 
 export default function StoreView() {
   const { id } = useParams();
   const storeId = parseInt(id || "0");
   const [, setLocation] = useLocation();
   const { isAuthenticated, loading } = useAuth();
+  const [activeTab, setActiveTab] = useState("dashboard");
 
-  // Date range state (default to last 30 days)
-  const [fromDate, setFromDate] = useState(() => {
-    const date = new Date();
-    date.setDate(date.getDate() - 30);
-    return date.toISOString().split("T")[0];
-  });
-  const [toDate, setToDate] = useState(() => new Date().toISOString().split("T")[0]);
+  const today = new Date();
+  const thirtyDaysAgo = new Date(today);
+  thirtyDaysAgo.setDate(today.getDate() - 30);
 
-  const { data: metrics, isLoading, error } = trpc.metrics.getProfit.useQuery(
-    {
-      storeId,
-      fromDate,
-      toDate,
-    },
-    {
-      enabled: isAuthenticated && storeId > 0,
-      retry: false,
-    }
+  const [startDate, setStartDate] = useState(thirtyDaysAgo.toISOString().split("T")[0]);
+  const [endDate, setEndDate] = useState(today.toISOString().split("T")[0]);
+
+  const { data: store, isLoading: storeLoading } = trpc.stores.getById.useQuery(
+    { id: storeId },
+    { enabled: isAuthenticated && storeId > 0 }
   );
 
-  if (loading) {
+  const { data: metrics, isLoading: metricsLoading, error } = trpc.metrics.getProfit.useQuery(
+    { storeId, fromDate: startDate, toDate: endDate },
+    { enabled: isAuthenticated && storeId > 0, retry: false }
+  );
+
+  if (loading || storeLoading) {
     return (
       <div className="min-h-screen flex items-center justify-center">
-        <Loader2 className="h-8 w-8 animate-spin" />
+        <Loader2 className="h-8 w-8 animate-spin text-primary" />
       </div>
     );
   }
@@ -45,6 +47,21 @@ export default function StoreView() {
   if (!isAuthenticated) {
     window.location.href = getLoginUrl();
     return null;
+  }
+
+  if (!store) {
+    return (
+      <div className="min-h-screen flex items-center justify-center">
+        <Card className="glass">
+          <CardContent className="p-6">
+            <p className="text-muted-foreground">Store not found</p>
+            <Button onClick={() => setLocation("/dashboard")} className="mt-4">
+              Back to Dashboard
+            </Button>
+          </CardContent>
+        </Card>
+      </div>
+    );
   }
 
   const formatCurrency = (value: number) => {
@@ -56,173 +73,161 @@ export default function StoreView() {
 
   return (
     <div className="min-h-screen bg-background">
-      <div className="border-b">
-        <div className="container flex h-16 items-center justify-between">
-          <div className="flex items-center gap-4">
-            <Button variant="ghost" size="icon" onClick={() => setLocation("/dashboard")}>
+      <div className="container py-8 space-y-6">
+        <div className="flex items-center gap-4">
+          <Link href="/dashboard">
+            <Button variant="ghost" size="icon" className="rounded-full">
               <ArrowLeft className="h-5 w-5" />
             </Button>
-            <h1 className="text-xl font-bold">Store #{storeId}</h1>
-          </div>
-          <Button variant="outline" onClick={() => setLocation(`/store/${storeId}/connections`)}>
-            <Settings className="h-4 w-4 mr-2" />
-            Connections
-          </Button>
-        </div>
-      </div>
-
-      <div className="container py-8">
-        <div className="mb-6 flex items-center gap-4">
-          <div className="flex items-center gap-2">
-            <label className="text-sm font-medium">From:</label>
-            <input
-              type="date"
-              value={fromDate}
-              onChange={(e) => setFromDate(e.target.value)}
-              className="px-3 py-2 border rounded-md"
-            />
-          </div>
-          <div className="flex items-center gap-2">
-            <label className="text-sm font-medium">To:</label>
-            <input
-              type="date"
-              value={toDate}
-              onChange={(e) => setToDate(e.target.value)}
-              className="px-3 py-2 border rounded-md"
-            />
+          </Link>
+          <div>
+            <h1 className="text-4xl font-bold gold-text">{store.name}</h1>
+            <p className="text-muted-foreground mt-1">Track your store's profitability</p>
           </div>
         </div>
 
-        {isLoading ? (
-          <div className="flex items-center justify-center py-12">
-            <Loader2 className="h-8 w-8 animate-spin" />
-          </div>
-        ) : error ? (
-          <Card>
-            <CardContent className="flex flex-col items-center justify-center py-12">
-              <p className="text-destructive mb-4">{error.message}</p>
-              <Button onClick={() => setLocation(`/store/${storeId}/connections`)}>
-                Set Up Connections
-              </Button>
-            </CardContent>
-          </Card>
-        ) : metrics ? (
-          <div className="space-y-6">
-            <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-4">
-              <Card>
-                <CardHeader className="pb-2">
-                  <CardDescription>Revenue</CardDescription>
-                  <CardTitle className="text-2xl">{formatCurrency(metrics.revenue)}</CardTitle>
-                </CardHeader>
-                <CardContent>
-                  <p className="text-xs text-muted-foreground">{metrics.orders} orders</p>
+        <Tabs value={activeTab} onValueChange={setActiveTab} className="space-y-6">
+          <TabsList className="glass-strong">
+            <TabsTrigger value="dashboard" className="data-[state=active]:gold-gradient">
+              Dashboard
+            </TabsTrigger>
+            <TabsTrigger value="products" className="data-[state=active]:gold-gradient">
+              Products
+            </TabsTrigger>
+            <TabsTrigger value="expenses" className="data-[state=active]:gold-gradient">
+              Expenses
+            </TabsTrigger>
+            <TabsTrigger value="orders" className="data-[state=active]:gold-gradient">
+              Orders
+            </TabsTrigger>
+            <TabsTrigger value="connections" className="data-[state=active]:gold-gradient">
+              Connections
+            </TabsTrigger>
+          </TabsList>
+
+          <TabsContent value="dashboard" className="space-y-6">
+            {metricsLoading ? (
+              <div className="flex items-center justify-center py-12">
+                <Loader2 className="h-8 w-8 animate-spin text-primary" />
+              </div>
+            ) : error ? (
+              <Card className="glass">
+                <CardContent className="flex flex-col items-center justify-center py-12">
+                  <p className="text-destructive mb-2">Error loading metrics</p>
+                  <p className="text-sm text-muted-foreground text-center max-w-md">
+                    {error.message}
+                  </p>
                 </CardContent>
               </Card>
+            ) : metrics ? (
+              <>
+                <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4">
+                  <Card className="card-glow">
+                    <CardContent className="p-6">
+                      <p className="text-sm text-muted-foreground mb-2">Total Revenue</p>
+                      <p className="text-3xl font-bold gold-text">
+                        {formatCurrency(metrics.revenue)}
+                      </p>
+                    </CardContent>
+                  </Card>
 
-              <Card>
-                <CardHeader className="pb-2">
-                  <CardDescription>COGS</CardDescription>
-                  <CardTitle className="text-2xl text-destructive">
-                    -{formatCurrency(metrics.cogs)}
-                  </CardTitle>
-                </CardHeader>
-              </Card>
+                  <Card className="card-glow">
+                    <CardContent className="p-6">
+                      <p className="text-sm text-muted-foreground mb-2">Total Costs</p>
+                      <p className="text-3xl font-bold text-red-500">
+                        {formatCurrency(metrics.cogs + metrics.shipping + metrics.processingFees + metrics.adSpend + metrics.operationalExpenses)}
+                      </p>
+                    </CardContent>
+                  </Card>
 
-              <Card>
-                <CardHeader className="pb-2">
-                  <CardDescription>Shipping</CardDescription>
-                  <CardTitle className="text-2xl text-destructive">
-                    -{formatCurrency(metrics.shipping)}
-                  </CardTitle>
-                </CardHeader>
-              </Card>
+                  <Card className="card-glow">
+                    <CardContent className="p-6">
+                      <p className="text-sm text-muted-foreground mb-2">Net Profit</p>
+                      <p className={`text-3xl font-bold ${metrics.netProfit >= 0 ? "text-green-500" : "text-red-500"}`}>
+                        {formatCurrency(metrics.netProfit)}
+                      </p>
+                    </CardContent>
+                  </Card>
 
-              <Card>
-                <CardHeader className="pb-2">
-                  <CardDescription>Processing Fees</CardDescription>
-                  <CardTitle className="text-2xl text-destructive">
-                    -{formatCurrency(metrics.processingFees)}
-                  </CardTitle>
-                </CardHeader>
-              </Card>
+                  <Card className="card-glow">
+                    <CardContent className="p-6">
+                      <p className="text-sm text-muted-foreground mb-2">Profit Margin</p>
+                      <p className={`text-3xl font-bold ${(metrics.revenue > 0 ? (metrics.netProfit / metrics.revenue * 100) : 0) >= 0 ? "text-green-500" : "text-red-500"}`}>
+                        {(metrics.revenue > 0 ? (metrics.netProfit / metrics.revenue * 100) : 0).toFixed(1)}%
+                      </p>
+                    </CardContent>
+                  </Card>
+                </div>
 
-              <Card>
-                <CardHeader className="pb-2">
-                  <CardDescription>Ad Spend</CardDescription>
-                  <CardTitle className="text-2xl text-destructive">
-                    -{formatCurrency(metrics.adSpend)}
-                  </CardTitle>
-                </CardHeader>
-              </Card>
+                <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                  <Card className="glass">
+                    <CardContent className="p-6 space-y-3">
+                      <h3 className="font-semibold text-lg mb-4">Cost Breakdown</h3>
+                      <div className="flex items-center justify-between">
+                        <span className="text-muted-foreground">COGS</span>
+                        <span className="font-semibold">{formatCurrency(metrics.cogs)}</span>
+                      </div>
+                      <div className="flex items-center justify-between">
+                        <span className="text-muted-foreground">Shipping</span>
+                        <span className="font-semibold">{formatCurrency(metrics.shipping)}</span>
+                      </div>
+                      <div className="flex items-center justify-between">
+                        <span className="text-muted-foreground">Processing Fees</span>
+                        <span className="font-semibold">{formatCurrency(metrics.processingFees)}</span>
+                      </div>
+                      <div className="flex items-center justify-between">
+                        <span className="text-muted-foreground">Ad Spend</span>
+                        <span className="font-semibold">{formatCurrency(metrics.adSpend)}</span>
+                      </div>
+                      <div className="flex items-center justify-between">
+                        <span className="text-muted-foreground">Operational Expenses</span>
+                        <span className="font-semibold">{formatCurrency(metrics.operationalExpenses)}</span>
+                      </div>
+                    </CardContent>
+                  </Card>
 
-              <Card>
-                <CardHeader className="pb-2">
-                  <CardDescription>Disputes</CardDescription>
-                  <CardTitle className="text-2xl text-destructive">
-                    -{formatCurrency(metrics.disputes)}
-                  </CardTitle>
-                </CardHeader>
-              </Card>
+                  <Card className="glass">
+                    <CardContent className="p-6 space-y-3">
+                      <h3 className="font-semibold text-lg mb-4">Order Statistics</h3>
+                      <div className="flex items-center justify-between">
+                        <span className="text-muted-foreground">Total Orders</span>
+                        <span className="font-semibold">{metrics.orders}</span>
+                      </div>
+                      <div className="flex items-center justify-between">
+                        <span className="text-muted-foreground">Average Order Value</span>
+                        <span className="font-semibold">
+                          {formatCurrency(metrics.orders > 0 ? metrics.revenue / metrics.orders : 0)}
+                        </span>
+                      </div>
+                      <div className="flex items-center justify-between">
+                        <span className="text-muted-foreground">Average Profit per Order</span>
+                        <span className="font-semibold">
+                          {formatCurrency(metrics.orders > 0 ? metrics.netProfit / metrics.orders : 0)}
+                        </span>
+                      </div>
+                    </CardContent>
+                  </Card>
+                </div>
+              </>
+            ) : null}
+          </TabsContent>
 
-              <Card>
-                <CardHeader className="pb-2">
-                  <CardDescription>Operational Expenses</CardDescription>
-                  <CardTitle className="text-2xl text-destructive">
-                    -{formatCurrency(metrics.operationalExpenses)}
-                  </CardTitle>
-                </CardHeader>
-              </Card>
+          <TabsContent value="products">
+            <Products />
+          </TabsContent>
 
-              <Card className="border-primary">
-                <CardHeader className="pb-2">
-                  <CardDescription>Net Profit</CardDescription>
-                  <CardTitle
-                    className={`text-2xl ${metrics.netProfit >= 0 ? "text-green-500" : "text-destructive"}`}
-                  >
-                    {formatCurrency(metrics.netProfit)}
-                  </CardTitle>
-                </CardHeader>
-              </Card>
-            </div>
+          <TabsContent value="expenses">
+            <Expenses />
+          </TabsContent>
 
-            {metrics.processedOrders && metrics.processedOrders.length > 0 && (
-              <Card>
-                <CardHeader>
-                  <CardTitle>Recent Orders</CardTitle>
-                  <CardDescription>Detailed breakdown of orders in this period</CardDescription>
-                </CardHeader>
-                <CardContent>
-                  <div className="overflow-x-auto">
-                    <table className="w-full text-sm">
-                      <thead>
-                        <tr className="border-b">
-                          <th className="text-left py-2">Order</th>
-                          <th className="text-left py-2">Customer</th>
-                          <th className="text-right py-2">Total</th>
-                          <th className="text-right py-2">COGS</th>
-                          <th className="text-right py-2">Shipping</th>
-                          <th className="text-left py-2">Country</th>
-                        </tr>
-                      </thead>
-                      <tbody>
-                        {metrics.processedOrders.slice(0, 20).map((order: any) => (
-                          <tr key={order.id} className="border-b">
-                            <td className="py-2">{order.id}</td>
-                            <td className="py-2">{order.customer}</td>
-                            <td className="text-right py-2">{formatCurrency(order.total)}</td>
-                            <td className="text-right py-2">{formatCurrency(order.cogs)}</td>
-                            <td className="text-right py-2">{formatCurrency(order.shippingCost)}</td>
-                            <td className="py-2">{order.country || "N/A"}</td>
-                          </tr>
-                        ))}
-                      </tbody>
-                    </table>
-                  </div>
-                </CardContent>
-              </Card>
-            )}
-          </div>
-        ) : null}
+          <TabsContent value="orders">
+            <Orders />
+          </TabsContent>
+
+          <TabsContent value="connections">
+            <Connections />
+          </TabsContent>
+        </Tabs>
       </div>
     </div>
   );

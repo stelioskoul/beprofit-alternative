@@ -109,3 +109,49 @@
 - [ ] Show revenue when only Shopify is connected
 - [ ] Handle zero values gracefully in UI
 - [ ] Remove requirement for both connections to be present
+
+## Beautiful Dark Theme Redesign
+- [ ] Implement glass morphism effects on cards
+- [ ] Add gold shiny texture for highlights/buttons/accents
+- [ ] Update color scheme to dark theme with gold accents
+- [ ] Add smooth animations and transitions
+- [ ] Implement gradient backgrounds
+- [ ] Polish typography and spacing
+
+## Products Tab (COGS & Shipping Configuration)
+- [ ] Create Products page that fetches all Shopify products
+- [ ] Display products in a searchable/filterable table
+- [ ] Add inline editing for COGS per variant
+- [ ] Add shipping configuration per variant (like original app)
+- [ ] Support country-based shipping rules
+- [ ] Save configurations to database
+- [ ] Show which products have/haven't been configured
+
+## Operational Expenses Tab
+- [ ] Create Expenses page with list view
+- [ ] Add form to create new expense
+- [ ] Support expense types: one-time, monthly, quarterly, yearly
+- [ ] Add date range for recurring expenses
+- [ ] Edit/delete existing expenses
+- [ ] Show total expenses for current period
+- [ ] Filter expenses by type/date range
+
+## Orders Tab (Profit Breakdown)
+- [ ] Create Orders page that fetches Shopify orders
+- [ ] Display orders in table with date range filter
+- [ ] Show line items for each order
+- [ ] Calculate and display per-order metrics:
+  * Total selling price
+  * Total COGS
+  * Total shipping cost
+  * Processing fees
+  * Net profit per order
+- [ ] Color-code profitable vs unprofitable orders
+- [ ] Add export functionality (CSV)
+- [ ] Show order-level insights
+
+## Navigation & Layout
+- [ ] Update store view to have tabbed navigation
+- [ ] Tabs: Dashboard, Products, Expenses, Orders, Connections
+- [ ] Consistent layout across all tabs
+- [ ] Breadcrumb navigation

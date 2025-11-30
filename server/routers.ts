@@ -32,6 +32,19 @@ export const appRouter = router({
       return await db.getStoresByUserId(ctx.user.id);
     }),
 
+    getById: protectedProcedure
+      .input(z.object({ id: z.number() }))
+      .query(async ({ ctx, input }) => {
+        const store = await db.getStoreById(input.id);
+        if (!store || store.userId !== ctx.user.id) {
+          throw new TRPCError({
+            code: "NOT_FOUND",
+            message: "Store not found or access denied",
+          });
+        }
+        return store;
+      }),
+
     create: protectedProcedure
       .input(
         z.object({
@@ -395,40 +408,177 @@ export const appRouter = router({
       .input(
         z.object({
           storeId: z.number(),
-          type: z.enum(["one_time", "monthly", "yearly"]),
-          title: z.string(),
-          amount: z.number(),
-          currency: z.string().default("EUR"),
-          date: z.string().optional(),
-          startDate: z.string().optional(),
-          endDate: z.string().optional(),
+          name: z.string(),
+          amount: z.string(),
+          type: z.enum(["one-time", "monthly", "quarterly", "yearly"]),
+          date: z.string(),
         })
       )
       .mutation(async ({ ctx, input }) => {
         const store = await db.getStoreById(input.storeId);
         if (!store || store.userId !== ctx.user.id) {
-          throw new Error("Store not found or access denied");
+          throw new TRPCError({
+            code: "NOT_FOUND",
+            message: "Store not found or access denied",
+          });
+        }
+
+        // Map UI type to DB type
+        let dbType: "one_time" | "monthly" | "yearly" = "one_time";
+        if (input.type === "monthly" || input.type === "quarterly") {
+          dbType = "monthly";
+        } else if (input.type === "yearly") {
+          dbType = "yearly";
         }
 
         await db.createOperationalExpense({
           storeId: input.storeId,
-          type: input.type,
-          title: input.title,
-          amount: input.amount.toString(),
-          currency: input.currency,
-          date: input.date ? new Date(input.date) : undefined,
-          startDate: input.startDate ? new Date(input.startDate) : undefined,
-          endDate: input.endDate ? new Date(input.endDate) : undefined,
+          type: dbType,
+          title: input.name,
+          amount: input.amount,
+          currency: "EUR",
+          date: new Date(input.date),
+          startDate: input.type !== "one-time" ? new Date(input.date) : undefined,
+          endDate: undefined,
         });
 
         return { success: true };
       }),
 
     delete: protectedProcedure
-      .input(z.object({ expenseId: z.number() }))
+      .input(z.object({ id: z.number() }))
       .mutation(async ({ input }) => {
-        await db.deleteOperationalExpense(input.expenseId);
+        await db.deleteOperationalExpense(input.id);
         return { success: true };
+      }),
+  }),
+
+  products: router({
+    list: protectedProcedure
+      .input(z.object({ storeId: z.number() }))
+      .query(async ({ ctx, input }) => {
+        const store = await db.getStoreById(input.storeId);
+        if (!store || store.userId !== ctx.user.id) {
+          throw new TRPCError({
+            code: "NOT_FOUND",
+            message: "Store not found or access denied",
+          });
+        }
+
+        const shopifyConn = await db.getShopifyConnectionByStoreId(input.storeId);
+        if (!shopifyConn) {
+          return [];
+        }
+
+        // Fetch products from Shopify
+        const url = `https://${shopifyConn.shopDomain}/admin/api/${shopifyConn.apiVersion || "2025-10"}/products.json?limit=250`;
+        const response = await fetch(url, {
+          headers: {
+            "X-Shopify-Access-Token": shopifyConn.accessToken,
+          },
+        });
+
+        if (!response.ok) {
+          throw new TRPCError({
+            code: "INTERNAL_SERVER_ERROR",
+            message: "Failed to fetch products from Shopify",
+          });
+        }
+
+        const data = await response.json();
+        return data.products || [];
+      }),
+  }),
+
+  orders: router({
+    listWithProfit: protectedProcedure
+      .input(
+        z.object({
+          storeId: z.number(),
+          startDate: z.string(),
+          endDate: z.string(),
+        })
+      )
+      .query(async ({ ctx, input }) => {
+        const store = await db.getStoreById(input.storeId);
+        if (!store || store.userId !== ctx.user.id) {
+          throw new TRPCError({
+            code: "NOT_FOUND",
+            message: "Store not found or access denied",
+          });
+        }
+
+        const shopifyConn = await db.getShopifyConnectionByStoreId(input.storeId);
+        if (!shopifyConn) {
+          return [];
+        }
+
+        const orders = await fetchShopifyOrders(
+          shopifyConn.shopDomain,
+          shopifyConn.accessToken,
+          { fromDate: input.startDate, toDate: input.endDate },
+          store.timezoneOffset || -300,
+          shopifyConn.apiVersion || "2025-10"
+        );
+
+        const cogsConfigList = await db.getCogsConfigByStoreId(input.storeId);
+        const shippingConfigList = await db.getShippingConfigByStoreId(input.storeId);
+        const processingFeesConfig = await db.getProcessingFeesConfigByStoreId(input.storeId);
+
+        const cogsMap: Record<string, number> = {};
+        for (const config of cogsConfigList) {
+          const val = parseFloat(config.cogsValue);
+          if (!isNaN(val)) {
+            cogsMap[config.variantId] = val;
+          }
+        }
+
+        const shippingMap: Record<string, any> = {};
+        for (const config of shippingConfigList) {
+          try {
+            shippingMap[config.variantId] = JSON.parse(config.configJson);
+          } catch {}
+        }
+
+        const processed = processOrders(orders, cogsMap, shippingMap);
+        const processingFees = calculateProcessingFees(
+          processed.revenue,
+          processed.ordersCount,
+          parseFloat(processingFeesConfig?.percentFee || "0.028"),
+          parseFloat(processingFeesConfig?.fixedFee || "0.29")
+        );
+
+        // Calculate per-order profit
+        const ordersWithProfit = processed.processedOrders.map((order: any) => {
+          const orderTotal = order.total;
+          const orderCogs = order.cogs;
+          const orderShipping = order.shippingCost;
+          const orderProcessingFee = (orderTotal * parseFloat(processingFeesConfig?.percentFee || "0.028")) + parseFloat(processingFeesConfig?.fixedFee || "0.29");
+          const orderProfit = orderTotal - orderCogs - orderShipping - orderProcessingFee;
+
+          return {
+            id: order.id,
+            orderNumber: order.orderNumber || order.id,
+            createdAt: order.createdAt,
+            totalRevenue: orderTotal,
+            totalCogs: orderCogs,
+            totalShipping: orderShipping,
+            totalProcessingFees: orderProcessingFee,
+            allocatedAdSpend: 0, // TODO: Allocate ad spend proportionally
+            profit: orderProfit,
+            lineItems: order.lineItems.map((item: any) => ({
+              name: item.name,
+              quantity: item.quantity,
+              price: item.price,
+              cogs: item.cogs || 0,
+              shipping: item.shippingCost || 0,
+              processingFee: (item.price * item.quantity * parseFloat(processingFeesConfig?.percentFee || "0.028")),
+              profit: (item.price * item.quantity) - (item.cogs || 0) - (item.shippingCost || 0) - (item.price * item.quantity * parseFloat(processingFeesConfig?.percentFee || "0.028")),
+            })),
+          };
+        });
+
+        return ordersWithProfit;
       }),
   }),
 
@@ -442,6 +592,61 @@ export const appRouter = router({
         }
 
         return await db.getCogsConfigByStoreId(input.storeId);
+      }),
+
+    setCogs: protectedProcedure
+      .input(
+        z.object({
+          storeId: z.number(),
+          variantId: z.string(),
+          cogsValue: z.string(),
+        })
+      )
+      .mutation(async ({ ctx, input }) => {
+        const store = await db.getStoreById(input.storeId);
+        if (!store || store.userId !== ctx.user.id) {
+          throw new TRPCError({
+            code: "NOT_FOUND",
+            message: "Store not found or access denied",
+          });
+        }
+
+        await db.upsertCogsConfig({
+          storeId: input.storeId,
+          variantId: input.variantId,
+          productTitle: null,
+          cogsValue: input.cogsValue,
+          currency: "EUR",
+        });
+
+        return { success: true };
+      }),
+
+    setShipping: protectedProcedure
+      .input(
+        z.object({
+          storeId: z.number(),
+          variantId: z.string(),
+          configJson: z.string(),
+        })
+      )
+      .mutation(async ({ ctx, input }) => {
+        const store = await db.getStoreById(input.storeId);
+        if (!store || store.userId !== ctx.user.id) {
+          throw new TRPCError({
+            code: "NOT_FOUND",
+            message: "Store not found or access denied",
+          });
+        }
+
+        await db.upsertShippingConfig({
+          storeId: input.storeId,
+          variantId: input.variantId,
+          productTitle: null,
+          configJson: input.configJson,
+        });
+
+        return { success: true };
       }),
 
     upsertCogs: protectedProcedure
