@@ -16,6 +16,8 @@ export default function Connections() {
   const [, setLocation] = useLocation();
   const { isAuthenticated, loading } = useAuth();
   const [shopDomain, setShopDomain] = useState("");
+  const [showManualShopify, setShowManualShopify] = useState(false);
+  const [shopifyToken, setShopifyToken] = useState("");
   const [showManualFacebook, setShowManualFacebook] = useState(false);
   const [facebookToken, setFacebookToken] = useState("");
   const [facebookAdAccountId, setFacebookAdAccountId] = useState("");
@@ -52,6 +54,19 @@ export default function Connections() {
     onSuccess: () => {
       toast.success("Shopify disconnected");
       refetchShopify();
+    },
+  });
+
+  const shopifyManualMutation = trpc.shopify.connectManual.useMutation({
+    onSuccess: () => {
+      toast.success("Shopify connected successfully");
+      setShopDomain("");
+      setShopifyToken("");
+      setShowManualShopify(false);
+      refetchShopify();
+    },
+    onError: (error) => {
+      toast.error(error.message);
     },
   });
 
@@ -149,22 +164,63 @@ export default function Connections() {
                 </div>
               ) : (
                 <div className="space-y-4">
-                  <div className="grid gap-2">
-                    <Label htmlFor="shop">Shopify Store Domain</Label>
-                    <Input
-                      id="shop"
-                      placeholder="mystore.myshopify.com"
-                      value={shopDomain}
-                      onChange={(e) => setShopDomain(e.target.value)}
-                    />
-                    <p className="text-xs text-muted-foreground">
-                      Enter your Shopify store domain (e.g., mystore.myshopify.com)
-                    </p>
-                  </div>
-                  <Button onClick={handleShopifyConnect} disabled={shopifyAuthMutation.isPending}>
-                    {shopifyAuthMutation.isPending && <Loader2 className="h-4 w-4 mr-2 animate-spin" />}
-                    Connect Shopify
-                  </Button>
+                  {!showManualShopify ? (
+                    <div className="space-y-2">
+                      <p className="text-sm text-muted-foreground">
+                        Connect your Shopify store to track orders, products, and revenue.
+                      </p>
+                      <Button variant="outline" onClick={() => setShowManualShopify(true)} className="w-full">
+                        Enter Admin API Token
+                      </Button>
+                    </div>
+                  ) : (
+                    <div className="space-y-4">
+                      <div className="grid gap-2">
+                        <Label htmlFor="shopDomain">Shopify Store Domain</Label>
+                        <Input
+                          id="shopDomain"
+                          placeholder="mystore.myshopify.com"
+                          value={shopDomain}
+                          onChange={(e) => setShopDomain(e.target.value)}
+                        />
+                      </div>
+                      <div className="grid gap-2">
+                        <Label htmlFor="shopifyToken">Admin API Access Token</Label>
+                        <Input
+                          id="shopifyToken"
+                          type="password"
+                          placeholder="shpat_xxxxx"
+                          value={shopifyToken}
+                          onChange={(e) => setShopifyToken(e.target.value)}
+                        />
+                        <p className="text-xs text-muted-foreground">
+                          Create a custom app in your Shopify admin to get an access token
+                        </p>
+                      </div>
+                      <div className="flex gap-2">
+                        <Button
+                          onClick={() => {
+                            if (!shopDomain || !shopifyToken) {
+                              toast.error("Please fill in all fields");
+                              return;
+                            }
+                            shopifyManualMutation.mutate({
+                              storeId,
+                              shopDomain,
+                              accessToken: shopifyToken,
+                            });
+                          }}
+                          disabled={shopifyManualMutation.isPending}
+                        >
+                          {shopifyManualMutation.isPending && <Loader2 className="h-4 w-4 mr-2 animate-spin" />}
+                          Connect
+                        </Button>
+                        <Button variant="outline" onClick={() => setShowManualShopify(false)}>
+                          Cancel
+                        </Button>
+                      </div>
+                    </div>
+                  )}
                 </div>
               )}
             </CardContent>

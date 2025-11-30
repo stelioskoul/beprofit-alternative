@@ -101,3 +101,11 @@
 - [ ] Add ad account ID input field
 - [ ] Test manual connection with user's existing token
 - [ ] Keep OAuth button for future use (after app approval)
+
+## Shopify Manual Token & Partial Data Support
+- [ ] Add manual Shopify token entry (like Facebook)
+- [ ] Update dashboard to show partial data when only some connections exist
+- [ ] Show ad spend when only Facebook is connected
+- [ ] Show revenue when only Shopify is connected
+- [ ] Handle zero values gracefully in UI
+- [ ] Remove requirement for both connections to be present

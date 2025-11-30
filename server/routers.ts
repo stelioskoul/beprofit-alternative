@@ -76,13 +76,48 @@ export const appRouter = router({
 
   shopify: router({
     getAuthUrl: protectedProcedure
-      .input(z.object({ shop: z.string(), storeId: z.number() }))
+      .input(z.object({ storeId: z.number(), shop: z.string() }))
       .mutation(({ input }) => {
         const baseUrl = process.env.APP_URL || "http://localhost:3000";
         const redirectUri = `${baseUrl}/api/oauth/shopify/callback`;
         const state = JSON.stringify({ storeId: input.storeId });
-        const authUrl = getShopifyAuthUrl(input.shop, state, redirectUri);
+        const authUrl = getShopifyAuthUrl(input.shop, redirectUri, state);
         return { authUrl };
+      }),
+
+    connectManual: protectedProcedure
+      .input(
+        z.object({
+          storeId: z.number(),
+          shopDomain: z.string(),
+          accessToken: z.string(),
+        })
+      )
+      .mutation(async ({ input }) => {
+        // Verify token works by making a test API call
+        const testUrl = `https://${input.shopDomain}/admin/api/2025-10/shop.json`;
+        const response = await fetch(testUrl, {
+          headers: {
+            "X-Shopify-Access-Token": input.accessToken,
+          },
+        });
+
+        if (!response.ok) {
+          throw new TRPCError({
+            code: "BAD_REQUEST",
+            message: "Invalid Shopify credentials or store domain",
+          });
+        }
+
+        await db.upsertShopifyConnection({
+          storeId: input.storeId,
+          shopDomain: input.shopDomain,
+          accessToken: input.accessToken,
+          scopes: "read_orders,read_products,read_customers,read_shopify_payments_disputes",
+          apiVersion: "2025-10",
+        });
+
+        return { success: true };
       }),
 
     handleCallback: publicProcedure
@@ -227,55 +262,61 @@ export const appRouter = router({
         }
 
         const shopifyConn = await db.getShopifyConnectionByStoreId(input.storeId);
-        if (!shopifyConn) {
-          throw new Error("Shopify not connected");
-        }
-
         const facebookConns = await db.getFacebookConnectionsByStoreId(input.storeId);
 
-        const orders = await fetchShopifyOrders(
-          shopifyConn.shopDomain,
-          shopifyConn.accessToken,
-          { fromDate: input.fromDate, toDate: input.toDate },
-          store.timezoneOffset || -300,
-          shopifyConn.apiVersion || "2025-10"
-        );
+        // Initialize with zero values
+        let orders: any[] = [];
+        let disputes = { totalAmount: 0, count: 0 };
+        let processed: any = { revenue: 0, totalCogs: 0, totalShipping: 0, ordersCount: 0, processedOrders: [] };
+        let processingFees = 0;
 
-        const disputes = await fetchShopifyDisputes(
-          shopifyConn.shopDomain,
-          shopifyConn.accessToken,
-          { fromDate: input.fromDate, toDate: input.toDate },
-          store.timezoneOffset || -300,
-          shopifyConn.apiVersion || "2025-10"
-        );
+        // Fetch Shopify data if connected
+        if (shopifyConn) {
+          orders = await fetchShopifyOrders(
+            shopifyConn.shopDomain,
+            shopifyConn.accessToken,
+            { fromDate: input.fromDate, toDate: input.toDate },
+            store.timezoneOffset || -300,
+            shopifyConn.apiVersion || "2025-10"
+          );
 
-        const cogsConfigList = await db.getCogsConfigByStoreId(input.storeId);
-        const shippingConfigList = await db.getShippingConfigByStoreId(input.storeId);
+          disputes = await fetchShopifyDisputes(
+            shopifyConn.shopDomain,
+            shopifyConn.accessToken,
+            { fromDate: input.fromDate, toDate: input.toDate },
+            store.timezoneOffset || -300,
+            shopifyConn.apiVersion || "2025-10"
+          );
 
-        const cogsMap: Record<string, number> = {};
-        for (const config of cogsConfigList) {
-          const val = parseFloat(config.cogsValue);
-          if (!isNaN(val)) {
-            cogsMap[config.variantId] = val;
+          const cogsConfigList = await db.getCogsConfigByStoreId(input.storeId);
+          const shippingConfigList = await db.getShippingConfigByStoreId(input.storeId);
+
+          const cogsMap: Record<string, number> = {};
+          for (const config of cogsConfigList) {
+            const val = parseFloat(config.cogsValue);
+            if (!isNaN(val)) {
+              cogsMap[config.variantId] = val;
+            }
           }
+
+          const shippingMap: Record<string, any> = {};
+          for (const config of shippingConfigList) {
+            try {
+              shippingMap[config.variantId] = JSON.parse(config.configJson || "{}");
+            } catch (e) {
+              console.error("Failed to parse shipping config:", e);
+            }
+          }
+
+          processed = processOrders(orders, cogsMap, shippingMap);
+
+          const processingFeesConfig = await db.getProcessingFeesConfigByStoreId(input.storeId);
+          const percentFee = processingFeesConfig ? parseFloat(processingFeesConfig.percentFee || "0.028") : 0.028;
+          const fixedFee = processingFeesConfig ? parseFloat(processingFeesConfig.fixedFee || "0.29") : 0.29;
+          processingFees = calculateProcessingFees(processed.revenue, processed.ordersCount, percentFee, fixedFee);
         }
 
-        const shippingMap: Record<string, any> = {};
-        for (const config of shippingConfigList) {
-          try {
-            shippingMap[config.variantId] = JSON.parse(config.configJson || "{}");
-          } catch (e) {
-            console.error("Failed to parse shipping config:", e);
-          }
-        }
-
-        const processed = processOrders(orders, cogsMap, shippingMap);
-
-        const processingFeesConfig = await db.getProcessingFeesConfigByStoreId(input.storeId);
-        const percentFee = processingFeesConfig ? parseFloat(processingFeesConfig.percentFee || "0.028") : 0.028;
-        const fixedFee = processingFeesConfig ? parseFloat(processingFeesConfig.fixedFee || "0.29") : 0.29;
-        const processingFees = calculateProcessingFees(processed.revenue, processed.ordersCount, percentFee, fixedFee);
-
+        // Fetch Facebook ad spend if connected
         let totalAdSpend = 0;
         for (const fbConn of facebookConns) {
           const { spend, currency } = await fetchFacebookAdSpend(
