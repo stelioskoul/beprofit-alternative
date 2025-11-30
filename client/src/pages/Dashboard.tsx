@@ -95,12 +95,11 @@ export default function Dashboard() {
   };
 
   return (
-    <div className="min-h-screen bg-background">
+    <div className="min-h-screen">
       <div className="border-b">
         <div className="container flex h-16 items-center justify-between">
           <div className="flex items-center gap-2">
-            <Store className="h-6 w-6" />
-            <h1 className="text-xl font-bold">BeProfit</h1>
+            <img src="/profit-tracker-logo.png" alt="Profit Tracker" className="h-10" />
           </div>
           <div className="flex items-center gap-4">
             <span className="text-sm text-muted-foreground">{user?.name || user?.email}</span>

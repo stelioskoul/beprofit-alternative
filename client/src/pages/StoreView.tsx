@@ -73,7 +73,7 @@ export default function StoreView() {
   };
 
   return (
-    <div className="min-h-screen bg-background">
+    <div className="min-h-screen">
       <div className="container py-8 space-y-6">
         <div className="flex items-center gap-4">
           <Link href="/dashboard">
@@ -119,7 +119,7 @@ export default function StoreView() {
                   id="start-date"
                   value={startDate}
                   onChange={(e) => setStartDate(e.target.value)}
-                  className="px-3 py-2 rounded-md border border-border bg-background text-foreground date-input-gold"
+                  className="px-3 py-2 rounded-md border border-border bg-black/30 text-foreground date-input-gold"
                   style={{ colorScheme: 'dark' }}
                 />
               </div>
@@ -132,7 +132,7 @@ export default function StoreView() {
                   id="end-date"
                   value={endDate}
                   onChange={(e) => setEndDate(e.target.value)}
-                  className="px-3 py-2 rounded-md border border-border bg-background text-foreground date-input-gold"
+                  className="px-3 py-2 rounded-md border border-border bg-black/30 text-foreground date-input-gold"
                   style={{ colorScheme: 'dark' }}
                 />
               </div>

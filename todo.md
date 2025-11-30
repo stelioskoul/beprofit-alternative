@@ -253,3 +253,16 @@
 - [x] Pass exchange rate to shipping calculation
 - [x] Add currency support (USD/EUR) to shipping configs
 - [x] Test with real orders to verify accuracy (7/7 tests passed)
+
+## Logo Update (User Requested) - COMPLETED ✅
+- [x] Copy new Profit Tracker logo to project
+- [x] Replace BeProfit text/logo with new logo image
+- [x] Update logo in header/navigation (Dashboard and Home pages)
+- [x] Ensure logo is responsive and looks good on all screen sizes
+
+## Gradient Background Fix (User Reported - CRITICAL) - COMPLETED ✅
+- [x] Fix gradient not visible in main app (removed bg-background from all pages)
+- [x] Make gradient visible throughout entire app
+- [x] Add stunning dark gold gradient effect (increased opacity to 25%, 22%, 20%)
+- [x] Implement slow breathing animation for gradient (8s ease-in-out)
+- [x] Ensure gradient doesn't get covered by app containers

@@ -119,7 +119,7 @@ export default function Connections() {
   };
 
   return (
-    <div className="min-h-screen bg-background">
+    <div className="min-h-screen">
       <div className="border-b">
         <div className="container flex h-16 items-center">
           <Button variant="ghost" size="icon" onClick={() => setLocation(`/store/${storeId}`)}>
