@@ -84,7 +84,7 @@ export default function Orders() {
               type="date"
               value={startDate}
               onChange={(e) => setStartDate(e.target.value)}
-              className="w-40"
+              className="w-40 date-input-gold"
             />
           </div>
           <div className="space-y-1">
@@ -94,7 +94,7 @@ export default function Orders() {
               type="date"
               value={endDate}
               onChange={(e) => setEndDate(e.target.value)}
-              className="w-40"
+              className="w-40 date-input-gold"
             />
           </div>
         </div>

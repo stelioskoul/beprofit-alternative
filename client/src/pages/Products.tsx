@@ -5,9 +5,11 @@ import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { getLoginUrl } from "@/const";
 import { trpc } from "@/lib/trpc";
-import { Loader2, Save, Search } from "lucide-react";
+import { Loader2, Save, Search, Settings } from "lucide-react";
 import { useParams } from "wouter";
 import { useState } from "react";
+import { ShippingConfigEditor } from "@/components/ShippingConfigEditor";
+import { Dialog, DialogContent, DialogTrigger } from "@/components/ui/dialog";
 import { toast } from "sonner";
 
 export default function Products() {
@@ -196,38 +198,32 @@ export default function Products() {
                         </div>
 
                         <div className="space-y-2">
-                          <Label>Shipping Cost (Default)</Label>
-                          <div className="flex gap-2">
-                            <Input
-                              type="number"
-                              step="0.01"
-                              placeholder="0.00"
-                              value={getShippingConfig(variant.id).default || ""}
-                              onChange={(e) =>
-                                setEditingShipping({
-                                  ...editingShipping,
-                                  [variant.id]: {
-                                    ...getShippingConfig(variant.id),
-                                    default: e.target.value,
-                                  },
-                                })
-                              }
-                            />
-                            <Button
-                              size="icon"
-                              onClick={() => handleSaveShipping(variant.id)}
-                              disabled={saveShippingMutation.isPending}
-                              className="gold-gradient"
-                            >
-                              {saveShippingMutation.isPending ? (
-                                <Loader2 className="h-4 w-4 animate-spin" />
-                              ) : (
-                                <Save className="h-4 w-4" />
-                              )}
-                            </Button>
-                          </div>
+                          <Label>Shipping Configuration</Label>
+                          <Dialog>
+                            <DialogTrigger asChild>
+                              <Button variant="outline" className="w-full">
+                                <Settings className="h-4 w-4 mr-2" />
+                                Configure Shipping Matrix
+                              </Button>
+                            </DialogTrigger>
+                            <DialogContent className="max-w-4xl max-h-[90vh] overflow-y-auto">
+                              <ShippingConfigEditor
+                                variantId={variant.id}
+                                productTitle={`${product.title} - ${variant.title}`}
+                                initialConfig={getShippingConfig(variant.id)}
+                                onSave={(config) => {
+                                  saveShippingMutation.mutate({
+                                    storeId,
+                                    variantId: variant.id,
+                                    configJson: JSON.stringify(config),
+                                  });
+                                }}
+                                isSaving={saveShippingMutation.isPending}
+                              />
+                            </DialogContent>
+                          </Dialog>
                           <p className="text-xs text-muted-foreground">
-                            Advanced shipping rules can be configured per country
+                            Configure shipping by country (US/EU/CA), method (Standard/Express), and quantity
                           </p>
                         </div>
                       </div>

@@ -224,3 +224,24 @@
 - [ ] Update database schema for complex shipping configuration
 - [ ] Update profit calculator to use country/method/quantity shipping logic
 - [ ] Create UI for managing shipping matrix per product
+
+## UI Gradient Enhancement (User Feedback) - COMPLETED ✅
+- [x] Make background gradient more stunning and visible
+- [x] Add more prominent gold texture and shine effects
+- [x] Reduce pure black, add more gold/amber tones
+- [x] Create radial gradients with gold highlights
+
+## Calendar Icon Styling Fix (User Reported) - COMPLETED ✅
+- [x] Fix Orders tab calendar icons to be gold like Dashboard
+- [x] Ensure all date pickers have consistent gold icon styling
+
+## Advanced Product Shipping Configuration (Priority Feature) - IN PROGRESS 🚧
+- [x] Design shipping matrix data structure (country x method x quantity)
+- [x] Support three countries: US, EU, CA
+- [x] Support two shipping methods per country: Standard, Express
+- [x] Support quantity-based pricing (1pc, 2pcs, 3pcs, 4pcs, etc.)
+- [x] Allow USD input for shipping costs (convert to EUR for display)
+- [x] Build comprehensive shipping configuration UI
+- [ ] Integrate shipping cost calculation into order profit logic (requires refactoring)
+- [ ] Match order shipping method and destination to correct rate
+- [ ] Calculate per-product shipping based on quantity in order
