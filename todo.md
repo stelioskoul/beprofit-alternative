@@ -319,3 +319,14 @@
 - [x] Change "Free" shipping method display to "Standard" in Orders UI
 - [x] Keep backend logic unchanged (still returns "free" internally)
 - [x] Update UI display only for better clarity
+
+## Dashboard Currency Display Update (User Requested) - COMPLETED ✅
+- [x] Change Dashboard to show USD as primary currency (large text)
+- [x] Show EUR conversion below each value in smaller text
+- [x] Update all metric cards: Total Revenue, Total Costs, Net Profit, Profit Margin
+- [x] Update Cost Breakdown section values
+- [x] Update Order Statistics section values
+- [x] Keep exchange rate display in header
+- [x] Updated backend to return USD values instead of EUR
+- [x] Fixed React hooks order error
+- [ ] Push changes to GitHub repository

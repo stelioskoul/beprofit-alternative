@@ -37,6 +37,9 @@ export default function StoreView() {
     { enabled: isAuthenticated && storeId > 0, retry: false }
   );
 
+  const { data: exchangeRateData } = trpc.exchangeRate.getCurrent.useQuery();
+  const exchangeRate = exchangeRateData?.rate || 1.1588;
+
   if (loading || storeLoading) {
     return (
       <div className="min-h-screen flex items-center justify-center">
@@ -65,7 +68,14 @@ export default function StoreView() {
     );
   }
 
-  const formatCurrency = (value: number) => {
+  const formatCurrencyUSD = (value: number) => {
+    return new Intl.NumberFormat("en-US", {
+      style: "currency",
+      currency: "USD",
+    }).format(value);
+  };
+
+  const formatCurrencyEUR = (value: number) => {
     return new Intl.NumberFormat("en-US", {
       style: "currency",
       currency: "EUR",
@@ -160,7 +170,10 @@ export default function StoreView() {
                     <CardContent className="p-6">
                       <p className="text-sm text-muted-foreground mb-2">Total Revenue</p>
                       <p className="text-3xl font-bold gold-text">
-                        {formatCurrency(metrics.revenue)}
+                        {formatCurrencyUSD(metrics.revenue)}
+                      </p>
+                      <p className="text-xs text-muted-foreground mt-1">
+                        {formatCurrencyEUR(metrics.revenue / exchangeRate)}
                       </p>
                     </CardContent>
                   </Card>
@@ -169,7 +182,10 @@ export default function StoreView() {
                     <CardContent className="p-6">
                       <p className="text-sm text-muted-foreground mb-2">Total Costs</p>
                       <p className="text-3xl font-bold text-red-500">
-                        {formatCurrency(metrics.cogs + metrics.shipping + metrics.processingFees + metrics.adSpend + metrics.operationalExpenses)}
+                        {formatCurrencyUSD(metrics.cogs + metrics.shipping + metrics.processingFees + metrics.adSpend + metrics.operationalExpenses)}
+                      </p>
+                      <p className="text-xs text-muted-foreground mt-1">
+                        {formatCurrencyEUR((metrics.cogs + metrics.shipping + metrics.processingFees + metrics.adSpend + metrics.operationalExpenses) / exchangeRate)}
                       </p>
                     </CardContent>
                   </Card>
@@ -178,7 +194,10 @@ export default function StoreView() {
                     <CardContent className="p-6">
                       <p className="text-sm text-muted-foreground mb-2">Net Profit</p>
                       <p className={`text-3xl font-bold ${metrics.netProfit >= 0 ? "text-green-500" : "text-red-500"}`}>
-                        {formatCurrency(metrics.netProfit)}
+                        {formatCurrencyUSD(metrics.netProfit)}
+                      </p>
+                      <p className="text-xs text-muted-foreground mt-1">
+                        {formatCurrencyEUR(metrics.netProfit / exchangeRate)}
                       </p>
                     </CardContent>
                   </Card>
@@ -199,23 +218,38 @@ export default function StoreView() {
                       <h3 className="font-semibold text-lg mb-4">Cost Breakdown</h3>
                       <div className="flex items-center justify-between">
                         <span className="text-muted-foreground">COGS</span>
-                        <span className="font-semibold">{formatCurrency(metrics.cogs)}</span>
+                        <div className="text-right">
+                          <div className="font-semibold">{formatCurrencyUSD(metrics.cogs)}</div>
+                          <div className="text-xs text-muted-foreground">{formatCurrencyEUR(metrics.cogs / exchangeRate)}</div>
+                        </div>
                       </div>
                       <div className="flex items-center justify-between">
                         <span className="text-muted-foreground">Shipping</span>
-                        <span className="font-semibold">{formatCurrency(metrics.shipping)}</span>
+                        <div className="text-right">
+                          <div className="font-semibold">{formatCurrencyUSD(metrics.shipping)}</div>
+                          <div className="text-xs text-muted-foreground">{formatCurrencyEUR(metrics.shipping / exchangeRate)}</div>
+                        </div>
                       </div>
                       <div className="flex items-center justify-between">
                         <span className="text-muted-foreground">Processing Fees</span>
-                        <span className="font-semibold">{formatCurrency(metrics.processingFees)}</span>
+                        <div className="text-right">
+                          <div className="font-semibold">{formatCurrencyUSD(metrics.processingFees)}</div>
+                          <div className="text-xs text-muted-foreground">{formatCurrencyEUR(metrics.processingFees / exchangeRate)}</div>
+                        </div>
                       </div>
                       <div className="flex items-center justify-between">
                         <span className="text-muted-foreground">Ad Spend</span>
-                        <span className="font-semibold">{formatCurrency(metrics.adSpend)}</span>
+                        <div className="text-right">
+                          <div className="font-semibold">{formatCurrencyUSD(metrics.adSpend)}</div>
+                          <div className="text-xs text-muted-foreground">{formatCurrencyEUR(metrics.adSpend / exchangeRate)}</div>
+                        </div>
                       </div>
                       <div className="flex items-center justify-between">
                         <span className="text-muted-foreground">Operational Expenses</span>
-                        <span className="font-semibold">{formatCurrency(metrics.operationalExpenses)}</span>
+                        <div className="text-right">
+                          <div className="font-semibold">{formatCurrencyUSD(metrics.operationalExpenses)}</div>
+                          <div className="text-xs text-muted-foreground">{formatCurrencyEUR(metrics.operationalExpenses / exchangeRate)}</div>
+                        </div>
                       </div>
                     </CardContent>
                   </Card>
@@ -229,15 +263,25 @@ export default function StoreView() {
                       </div>
                       <div className="flex items-center justify-between">
                         <span className="text-muted-foreground">Average Order Value</span>
-                        <span className="font-semibold">
-                          {formatCurrency(metrics.orders > 0 ? metrics.revenue / metrics.orders : 0)}
-                        </span>
+                        <div className="text-right">
+                          <div className="font-semibold">
+                            {formatCurrencyUSD(metrics.orders > 0 ? metrics.revenue / metrics.orders : 0)}
+                          </div>
+                          <div className="text-xs text-muted-foreground">
+                            {formatCurrencyEUR((metrics.orders > 0 ? metrics.revenue / metrics.orders : 0) / exchangeRate)}
+                          </div>
+                        </div>
                       </div>
                       <div className="flex items-center justify-between">
                         <span className="text-muted-foreground">Average Profit per Order</span>
-                        <span className="font-semibold">
-                          {formatCurrency(metrics.orders > 0 ? metrics.netProfit / metrics.orders : 0)}
-                        </span>
+                        <div className="text-right">
+                          <div className="font-semibold">
+                            {formatCurrencyUSD(metrics.orders > 0 ? metrics.netProfit / metrics.orders : 0)}
+                          </div>
+                          <div className="text-xs text-muted-foreground">
+                            {formatCurrencyEUR((metrics.orders > 0 ? metrics.netProfit / metrics.orders : 0) / exchangeRate)}
+                          </div>
+                        </div>
                       </div>
                     </CardContent>
                   </Card>

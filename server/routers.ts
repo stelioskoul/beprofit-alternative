@@ -398,32 +398,38 @@ export const appRouter = router({
           toDateObj
         );
 
-        const revenueEUR = processed.revenue / EXCHANGE_RATE_EUR_USD;
-        const cogsEUR = processed.totalCogs / EXCHANGE_RATE_EUR_USD;
-        const shippingEUR = processed.totalShipping / EXCHANGE_RATE_EUR_USD;
-        const processingFeesEUR = processingFees / EXCHANGE_RATE_EUR_USD;
-        const disputesEUR = disputes.totalAmount / EXCHANGE_RATE_EUR_USD;
-        const operationalExpensesEUR = operationalExpensesTotal / EXCHANGE_RATE_EUR_USD;
+        // Keep values in USD
+        const revenueUSD = processed.revenue;
+        const cogsUSD = processed.totalCogs;
+        const shippingUSD = processed.totalShipping;
+        const processingFeesUSD = processingFees;
+        const disputesUSD = disputes.totalAmount;
+        
+        // Convert ad spend to USD if it was in EUR
+        const adSpendUSD = totalAdSpend * EXCHANGE_RATE_EUR_USD;
+        
+        // Convert operational expenses to USD
+        const operationalExpensesUSD = operationalExpensesTotal * EXCHANGE_RATE_EUR_USD;
 
-        const netProfit =
-          revenueEUR -
-          cogsEUR -
-          shippingEUR -
-          processingFeesEUR -
-          totalAdSpend -
-          disputesEUR -
-          operationalExpensesEUR;
+        const netProfitUSD =
+          revenueUSD -
+          cogsUSD -
+          shippingUSD -
+          processingFeesUSD -
+          adSpendUSD -
+          disputesUSD -
+          operationalExpensesUSD;
 
         return {
-          revenue: revenueEUR,
+          revenue: revenueUSD,
           orders: processed.ordersCount,
-          cogs: cogsEUR,
-          shipping: shippingEUR,
-          processingFees: processingFeesEUR,
-          adSpend: totalAdSpend,
-          disputes: disputesEUR,
-          operationalExpenses: operationalExpensesEUR,
-          netProfit,
+          cogs: cogsUSD,
+          shipping: shippingUSD,
+          processingFees: processingFeesUSD,
+          adSpend: adSpendUSD,
+          disputes: disputesUSD,
+          operationalExpenses: operationalExpensesUSD,
+          netProfit: netProfitUSD,
           processedOrders: processed.processedOrders,
         };
       }),
