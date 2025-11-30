@@ -21,6 +21,12 @@ export default function Dashboard() {
   const [confirmDeleteDialogOpen, setConfirmDeleteDialogOpen] = useState(false);
   const [storeToDelete, setStoreToDelete] = useState<number | null>(null);
 
+  const logoutMutation = trpc.auth.logout.useMutation({
+    onSuccess: () => {
+      window.location.href = "/";
+    },
+  });
+
   const { data: stores, isLoading, refetch } = trpc.stores.list.useQuery(undefined, {
     enabled: isAuthenticated,
   });
@@ -99,10 +105,19 @@ export default function Dashboard() {
       <div className="border-b">
         <div className="container flex h-16 items-center justify-between">
           <div className="flex items-center gap-2">
-            <img src="/profit-tracker-logo.png" alt="Profit Tracker" className="h-10" />
+            <img src="/profit-tracker-logo.png" alt="Profit Tracker" className="h-14" />
           </div>
           <div className="flex items-center gap-4">
             <span className="text-sm text-muted-foreground">{user?.name || user?.email}</span>
+            <Button 
+              variant="outline" 
+              size="sm"
+              onClick={() => logoutMutation.mutate()}
+              disabled={logoutMutation.isPending}
+            >
+              {logoutMutation.isPending && <Loader2 className="h-4 w-4 mr-2 animate-spin" />}
+              Logout
+            </Button>
           </div>
         </div>
       </div>

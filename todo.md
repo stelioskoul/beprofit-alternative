@@ -266,3 +266,19 @@
 - [x] Add stunning dark gold gradient effect (increased opacity to 25%, 22%, 20%)
 - [x] Implement slow breathing animation for gradient (8s ease-in-out)
 - [x] Ensure gradient doesn't get covered by app containers
+
+## Logo Size Increase (User Requested) - COMPLETED ✅
+- [x] Make logo bigger in header (increased from h-10 to h-14)
+- [x] Ensure logo looks good at larger size on all screen sizes
+
+## Gold Button Texture Enhancement (User Requested) - COMPLETED ✅
+- [x] Replace flat dark yellow buttons with realistic gold texture
+- [x] Add metallic shine effect to gold buttons (inset shadows, multi-layer gradient)
+- [x] Implement animated shine/shimmer effect (3s infinite animation)
+- [x] Apply to all gold buttons throughout the app (gold-gradient class)
+
+## Logout Button (User Requested) - COMPLETED ✅
+- [x] Add logout button to header/navigation
+- [x] Implement logout functionality using trpc.auth.logout
+- [x] Position near user name in header
+- [x] Style consistently with app design (outline variant)

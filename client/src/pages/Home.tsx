@@ -23,7 +23,7 @@ export default function Home() {
     <div className="min-h-screen flex flex-col">
       <div className="border-b">
         <div className="container flex h-16 items-center justify-between">
-          <img src="/profit-tracker-logo.png" alt="Profit Tracker" className="h-10" />
+          <img src="/profit-tracker-logo.png" alt="Profit Tracker" className="h-14" />
           <Button onClick={() => (window.location.href = getLoginUrl())}>Sign In</Button>
         </div>
       </div>
