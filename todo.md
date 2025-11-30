@@ -294,3 +294,15 @@
 - [x] Fix type conversion in Products page COGS/shipping save (added .toString())
 - [x] Ensure all variantId values are converted to strings before API calls
 - [x] Test COGS and shipping configuration saves
+
+## Product## Product Price Currency Display (User Reported - CRITICAL) - FIXED ✅
+- [x] Fix Products tab showing USD prices as EUR
+- [x] Change € symbol to $ symbol for product prices
+- [x] Prices from Shopify are in USD and should display as USD
+
+## Currency Handling Restructure (User Requested - CRITICAL) - COMPLETED ✅
+- [x] Add USD ($) label to COGS input in Products tab
+- [x] Change Orders tab to display all values in USD ($)
+- [x] Remove EUR conversion from Orders tab backend
+- [x] Keep Dashboard metrics in EUR (already correct)
+- [x] Ensure all calculations use USD until final Dashboard conversion

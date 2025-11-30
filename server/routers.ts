@@ -584,13 +584,13 @@ export const appRouter = router({
           parseFloat(processingFeesConfig?.fixedFee || "0.29")
         );
 
-        // Calculate per-order profit and convert to EUR
+        // Calculate per-order profit in USD
         const ordersWithProfit = processed.processedOrders.map((order: any) => {
-          // Convert USD values to EUR
-          const orderTotal = order.total / EXCHANGE_RATE_EUR_USD;
-          const orderCogs = order.cogs / EXCHANGE_RATE_EUR_USD;
-          const orderShipping = order.shippingCost / EXCHANGE_RATE_EUR_USD;
-          const orderProcessingFee = ((order.total * parseFloat(processingFeesConfig?.percentFee || "0.028")) + parseFloat(processingFeesConfig?.fixedFee || "0.29")) / EXCHANGE_RATE_EUR_USD;
+          // Keep values in USD
+          const orderTotal = order.total;
+          const orderCogs = order.cogs;
+          const orderShipping = order.shippingCost;
+          const orderProcessingFee = (order.total * parseFloat(processingFeesConfig?.percentFee || "0.028")) + parseFloat(processingFeesConfig?.fixedFee || "0.29");
           const orderProfit = orderTotal - orderCogs - orderShipping - orderProcessingFee;
 
           return {
@@ -604,19 +604,20 @@ export const appRouter = router({
             allocatedAdSpend: 0, // TODO: Allocate ad spend proportionally
             profit: orderProfit,
             lineItems: (order.items || []).map((item: any) => {
-              const itemPriceEUR = item.price / EXCHANGE_RATE_EUR_USD;
-              const itemCogsEUR = (item.cogs || 0) / EXCHANGE_RATE_EUR_USD;
-              const itemShippingEUR = (item.shippingCost || 0) / EXCHANGE_RATE_EUR_USD;
-              const itemProcessingFeeEUR = (item.price * item.quantity * parseFloat(processingFeesConfig?.percentFee || "0.028")) / EXCHANGE_RATE_EUR_USD;
+              // Keep values in USD
+              const itemPrice = item.price;
+              const itemCogs = item.cogs || 0;
+              const itemShipping = item.shippingCost || 0;
+              const itemProcessingFee = item.price * item.quantity * parseFloat(processingFeesConfig?.percentFee || "0.028");
               
               return {
                 name: item.name,
                 quantity: item.quantity,
-                price: itemPriceEUR,
-                cogs: itemCogsEUR,
-                shipping: itemShippingEUR,
-                processingFee: itemProcessingFeeEUR,
-                profit: (itemPriceEUR * item.quantity) - itemCogsEUR - itemShippingEUR - itemProcessingFeeEUR,
+                price: itemPrice,
+                cogs: itemCogs,
+                shipping: itemShipping,
+                processingFee: itemProcessingFee,
+                profit: (itemPrice * item.quantity) - itemCogs - itemShipping - itemProcessingFee,
               };
             }),
           };

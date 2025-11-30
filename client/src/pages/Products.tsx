@@ -165,18 +165,18 @@ export default function Products() {
                           <p className="text-sm text-muted-foreground">SKU: {variant.sku || "N/A"}</p>
                         </div>
                         <p className="text-lg font-semibold text-primary">
-                          €{parseFloat(variant.price).toFixed(2)}
+                          ${parseFloat(variant.price).toFixed(2)}
                         </p>
                       </div>
 
                       <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                         <div className="space-y-2">
-                          <Label>COGS (Cost of Goods Sold)</Label>
+                          <Label>COGS (Cost of Goods Sold) - USD ($)</Label>
                           <div className="flex gap-2">
                             <Input
                               type="number"
                               step="0.01"
-                              placeholder="0.00"
+                              placeholder="0.00 USD"
                               value={getCogsValue(variant.id.toString())}
                               onChange={(e) =>
                                 setEditingCogs({ ...editingCogs, [variant.id.toString()]: e.target.value })
