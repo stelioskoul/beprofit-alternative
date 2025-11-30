@@ -68,3 +68,19 @@
 - [ ] Create admin guide for managing users
 - [ ] Prepare deployment instructions
 - [ ] Deliver final application to user
+
+
+## Urgent Fixes (User Reported Issues)
+- [ ] Fix Shopify OAuth connection - currently redirects to error page
+- [ ] Fix Facebook OAuth connection - currently redirects to error page
+- [ ] Clean up test stores from database (Test Store, Test Store 2)
+- [ ] Investigate OAuth redirect URL configuration
+- [ ] Compare OAuth flow with original working app
+- [ ] Test OAuth with real credentials
+- [ ] Consider implementing custom auth system instead of Manus OAuth (user preference)
+
+## Critical OAuth Fix
+- [ ] Fix OAuth redirect URL - currently using forge.manus.ai instead of production domain
+- [ ] Add APP_URL environment variable for production domain
+- [ ] Update OAuth URL generation to use APP_URL
+- [ ] Test OAuth with production domain

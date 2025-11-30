@@ -77,7 +77,8 @@ export const appRouter = router({
     getAuthUrl: protectedProcedure
       .input(z.object({ shop: z.string(), storeId: z.number() }))
       .mutation(({ input }) => {
-        const redirectUri = `${process.env.VITE_FRONTEND_FORGE_API_URL || "http://localhost:3000"}/api/oauth/shopify/callback`;
+        const baseUrl = process.env.APP_URL || "http://localhost:3000";
+        const redirectUri = `${baseUrl}/api/oauth/shopify/callback`;
         const state = JSON.stringify({ storeId: input.storeId });
         const authUrl = getShopifyAuthUrl(input.shop, state, redirectUri);
         return { authUrl };
@@ -142,7 +143,8 @@ export const appRouter = router({
     getAuthUrl: protectedProcedure
       .input(z.object({ storeId: z.number() }))
       .mutation(({ input }) => {
-        const redirectUri = `${process.env.VITE_FRONTEND_FORGE_API_URL || "http://localhost:3000"}/api/oauth/facebook/callback`;
+        const baseUrl = process.env.APP_URL || "http://localhost:3000";
+        const redirectUri = `${baseUrl}/api/oauth/facebook/callback`;
         const state = JSON.stringify({ storeId: input.storeId });
         const authUrl = getFacebookAuthUrl(redirectUri, state);
         return { authUrl };
