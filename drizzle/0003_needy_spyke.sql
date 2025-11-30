@@ -1,0 +1,1 @@
+ALTER TABLE `stores` ADD `timezone` varchar(50) DEFAULT 'America/New_York';

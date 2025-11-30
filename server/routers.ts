@@ -61,13 +61,22 @@ export const appRouter = router({
           name: z.string().min(1),
           platform: z.string().default("shopify"),
           currency: z.string().default("USD"),
-          timezoneOffset: z.number().default(-300),
+          timezone: z.string().default("America/New_York"),
         })
       )
       .mutation(async ({ ctx, input }) => {
+        // Calculate timezoneOffset from timezone for backward compatibility
+        const timezoneOffsets: Record<string, number> = {
+          "America/New_York": -300,    // EST: UTC-5
+          "America/Los_Angeles": -480, // PST: UTC-8
+          "Europe/Athens": 120,        // EET: UTC+2
+        };
+        const timezoneOffset = timezoneOffsets[input.timezone] || -300;
+
         await db.createStore({
           userId: ctx.user.id,
           ...input,
+          timezoneOffset,
         });
 
         const stores = await db.getStoresByUserId(ctx.user.id);

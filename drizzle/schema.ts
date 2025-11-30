@@ -27,7 +27,8 @@ export const stores = mysqlTable("stores", {
   name: varchar("name", { length: 255 }).notNull(),
   platform: varchar("platform", { length: 50 }).notNull(), // 'shopify', 'woocommerce', etc.
   currency: varchar("currency", { length: 3 }).default("USD"),
-  timezoneOffset: int("timezoneOffset").default(-300), // Store timezone in minutes from UTC
+  timezone: varchar("timezone", { length: 50 }).default("America/New_York"), // IANA timezone: America/New_York, America/Los_Angeles, Europe/Athens
+  timezoneOffset: int("timezoneOffset").default(-300), // Deprecated: kept for backward compatibility
   createdAt: timestamp("createdAt").defaultNow().notNull(),
   updatedAt: timestamp("updatedAt").defaultNow().onUpdateNow().notNull(),
 });

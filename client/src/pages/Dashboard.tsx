@@ -4,6 +4,7 @@ import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/com
 import { Dialog, DialogContent, DialogDescription, DialogFooter, DialogHeader, DialogTitle, DialogTrigger } from "@/components/ui/dialog";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { getLoginUrl } from "@/const";
 import { trpc } from "@/lib/trpc";
 import { Loader2, Plus, Store } from "lucide-react";
@@ -17,6 +18,7 @@ export default function Dashboard() {
   const [, setLocation] = useLocation();
   const [dialogOpen, setDialogOpen] = useState(false);
   const [storeName, setStoreName] = useState("");
+  const [timezone, setTimezone] = useState("America/New_York");
   const [deleteDialogOpen, setDeleteDialogOpen] = useState(false);
   const [confirmDeleteDialogOpen, setConfirmDeleteDialogOpen] = useState(false);
   const [storeToDelete, setStoreToDelete] = useState<number | null>(null);
@@ -36,6 +38,7 @@ export default function Dashboard() {
       toast.success("Store created successfully");
       setDialogOpen(false);
       setStoreName("");
+      setTimezone("America/New_York");
       refetch();
     },
     onError: (error) => {
@@ -96,7 +99,7 @@ export default function Dashboard() {
       name: storeName,
       platform: "shopify",
       currency: "USD",
-      timezoneOffset: -300,
+      timezone,
     });
   };
 
@@ -151,6 +154,20 @@ export default function Dashboard() {
                     value={storeName}
                     onChange={(e) => setStoreName(e.target.value)}
                   />
+                </div>
+                <div className="grid gap-2">
+                  <Label htmlFor="timezone">Timezone</Label>
+                  <Select value={timezone} onValueChange={setTimezone}>
+                    <SelectTrigger id="timezone">
+                      <SelectValue placeholder="Select timezone" />
+                    </SelectTrigger>
+                    <SelectContent>
+                      <SelectItem value="America/New_York">New York (EST/EDT)</SelectItem>
+                      <SelectItem value="America/Los_Angeles">Los Angeles (PST/PDT)</SelectItem>
+                      <SelectItem value="Europe/Athens">Greece (EET/EEST)</SelectItem>
+                    </SelectContent>
+                  </Select>
+                  <p className="text-xs text-muted-foreground">Dashboard resets daily based on this timezone</p>
                 </div>
               </div>
               <DialogFooter>

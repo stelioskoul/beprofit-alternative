@@ -329,4 +329,16 @@
 - [x] Keep exchange rate display in header
 - [x] Updated backend to return USD values instead of EUR
 - [x] Fixed React hooks order error
-- [ ] Push changes to GitHub repository
+- [x] Push changes to GitHub repository
+
+## Timezone Selection Feature (User Requested) - COMPLETED ✅
+- [x] Add timezone field to stores table (store as IANA timezone string)
+- [x] Support three timezones: New York (America/New_York), Los Angeles (America/Los_Angeles), Greece (Europe/Athens)
+- [x] Add timezone selector to store creation/edit UI
+- [x] Update backend date calculations to use store timezone
+- [x] Dashboard daily reset based on selected timezone
+- [x] Update Shopify order fetching to respect store timezone
+- [x] Display timezone in store header
+- [x] Test timezone selector UI with all three options
+- [x] Update existing stores to have default timezone
+- [x] Calculate timezoneOffset from timezone for backward compatibility

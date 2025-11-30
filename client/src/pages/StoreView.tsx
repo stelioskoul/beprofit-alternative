@@ -93,7 +93,9 @@ export default function StoreView() {
           </Link>
           <div>
             <h1 className="text-4xl font-bold gold-text">{store.name}</h1>
-            <p className="text-muted-foreground mt-1">Track your store's profitability</p>
+            <p className="text-muted-foreground mt-1">
+              Track your store's profitability • Timezone: {store.timezone || "America/New_York"}
+            </p>
           </div>
         </div>
 
