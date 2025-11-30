@@ -150,12 +150,12 @@ export default function Products() {
               <CardHeader>
                 <CardTitle className="text-lg">{product.title}</CardTitle>
                 <CardDescription>
-                  {product.variants.length} variant{product.variants.length !== 1 ? "s" : ""}
+                  {(product.variants || []).length} variant{(product.variants || []).length !== 1 ? "s" : ""}
                 </CardDescription>
               </CardHeader>
               <CardContent>
                 <div className="space-y-4">
-                  {product.variants.map((variant: any) => (
+                  {(product.variants || []).map((variant: any) => (
                     <div key={variant.id} className="glass p-4 rounded-lg space-y-3">
                       <div className="flex items-center justify-between">
                         <div>

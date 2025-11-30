@@ -155,3 +155,9 @@
 - [ ] Tabs: Dashboard, Products, Expenses, Orders, Connections
 - [ ] Consistent layout across all tabs
 - [ ] Breadcrumb navigation
+
+## Map Error Fix (User Reported)
+- [x] Fix "Cannot read properties of undefined (reading 'map')" error on /store/3
+- [x] Check products.list procedure - ensure it returns array or empty array
+- [x] Check orders.listWithProfit procedure - ensure it returns array or empty array
+- [x] Add proper error handling and default values in frontend
