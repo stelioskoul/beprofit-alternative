@@ -23,11 +23,13 @@ interface LineItem {
   title?: string;
   name?: string;
   quantity: number;
+  price?: string | number;
 }
 
 interface ShopifyOrder {
   id: string;
   order_number: number;
+  created_at: string;
   total_price: string;
   currency: string;
   customer?: {
@@ -169,6 +171,7 @@ export function computeShippingForLineItem(
 export interface ProcessedOrder {
   id: string;
   orderNumber: number;
+  createdAt: string;
   customer: string;
   total: number;
   currency: string;
@@ -215,11 +218,23 @@ export function processOrders(
     let orderShipping = 0;
 
     const lineItems = order.line_items || [];
+    const enrichedLineItems = [];
+    
     for (const item of lineItems) {
-      orderCogs += computeCogsForLineItem(item, cogsConfig);
-      if (region) {
-        orderShipping += computeShippingForLineItem(item, region, shippingType, shippingConfig);
-      }
+      const itemCogs = computeCogsForLineItem(item, cogsConfig);
+      const itemShipping = region ? computeShippingForLineItem(item, region, shippingType, shippingConfig) : 0;
+      
+      orderCogs += itemCogs;
+      orderShipping += itemShipping;
+      
+      // Create enriched line item with calculated values
+      const itemPrice = parseFloat(String(item.price || "0"));
+      enrichedLineItems.push({
+        ...item,
+        price: itemPrice,
+        cogs: itemCogs,
+        shippingCost: itemShipping,
+      });
     }
 
     totalCogs += orderCogs;
@@ -228,6 +243,7 @@ export function processOrders(
     processedOrders.push({
       id: "#" + (order.order_number || order.id),
       orderNumber: order.order_number,
+      createdAt: order.created_at,
       customer: customerName,
       total: val,
       currency: order.currency || "USD",
@@ -236,7 +252,7 @@ export function processOrders(
       shippingCost: orderShipping,
       shippingType,
       region,
-      items: lineItems,
+      items: enrichedLineItems,
     });
   }
 

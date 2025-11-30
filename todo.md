@@ -167,3 +167,9 @@
 - [x] Add missing useAuth import
 - [x] Improve date formatting with error handling
 - [x] Product details already display (name, quantity, price, COGS, shipping, profit)
+
+## Orders Page Issues (User Reported) - FIXED
+- [x] Fix "Invalid date" display - added createdAt to ProcessedOrder interface
+- [x] Show product line items in each order (product name, quantity)
+- [x] Verify lineItems data is being fetched from Shopify correctly - enriched with calculated values
+- [x] Update UI to display line items prominently - fixed field name mismatch (items vs lineItems)

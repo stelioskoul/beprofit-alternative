@@ -566,7 +566,7 @@ export const appRouter = router({
             totalProcessingFees: orderProcessingFee,
             allocatedAdSpend: 0, // TODO: Allocate ad spend proportionally
             profit: orderProfit,
-            lineItems: (order.lineItems || []).map((item: any) => ({
+            lineItems: (order.items || []).map((item: any) => ({
               name: item.name,
               quantity: item.quantity,
               price: item.price,
