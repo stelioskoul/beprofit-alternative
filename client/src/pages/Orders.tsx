@@ -113,6 +113,18 @@ export default function Orders() {
                   <div>
                     <p className="font-semibold text-lg">Order #{order.orderNumber}</p>
                     <p className="text-sm text-muted-foreground">{formatDate(order.createdAt)}</p>
+                    <div className="flex items-center gap-3 mt-1">
+                      {order.country && (
+                        <span className="text-xs px-2 py-0.5 rounded-full bg-blue-500/20 text-blue-300 border border-blue-500/30">
+                          📍 {order.country}
+                        </span>
+                      )}
+                      {order.shippingType && (
+                        <span className="text-xs px-2 py-0.5 rounded-full bg-purple-500/20 text-purple-300 border border-purple-500/30">
+                          🚚 {order.shippingType.charAt(0).toUpperCase() + order.shippingType.slice(1)}
+                        </span>
+                      )}
+                    </div>
                   </div>
                   <div className="text-right">
                     <p className="text-sm text-muted-foreground">Net Profit</p>

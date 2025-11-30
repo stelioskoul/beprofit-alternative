@@ -306,3 +306,11 @@
 - [x] Remove EUR conversion from Orders tab backend
 - [x] Keep Dashboard metrics in EUR (already correct)
 - [x] Ensure all calculations use USD until final Dashboard conversion
+
+## Orders Tab Enhancement - Shipping Information Display (User Requested) - COMPLETED ✅
+- [x] Display shipping country for each order
+- [x] Display shipping method chosen for each order
+- [x] Extract shipping information from Shopify order data
+- [x] Update Orders UI to show country and method prominently
+- [x] Add country and shippingType fields to orders.listWithProfit backend response
+- [x] Display as styled badges (blue for country, purple for shipping method)

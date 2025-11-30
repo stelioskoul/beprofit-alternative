@@ -597,6 +597,8 @@ export const appRouter = router({
             id: order.id,
             orderNumber: order.orderNumber || order.id,
             createdAt: order.createdAt,
+            country: order.country,
+            shippingType: order.shippingType,
             totalRevenue: orderTotal,
             totalCogs: orderCogs,
             totalShipping: orderShipping,
