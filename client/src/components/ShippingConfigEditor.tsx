@@ -115,7 +115,13 @@ export function ShippingConfigEditor({
       return;
     }
 
-    onSave(config);
+    // Include currency in the saved config
+    const configWithCurrency: any = {
+      currency,
+      rates: config,
+    };
+
+    onSave(configWithCurrency);
   };
 
   return (

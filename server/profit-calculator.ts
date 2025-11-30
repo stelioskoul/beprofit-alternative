@@ -108,7 +108,8 @@ export function computeShippingForLineItem(
   item: LineItem,
   region: string | null,
   shippingType: string,
-  shippingConfig: ShippingConfigMap
+  shippingConfig: ShippingConfigMap,
+  exchangeRate: number = 1.0
 ): number {
   if (!item || !region || !shippingType) return 0;
 
@@ -118,16 +119,35 @@ export function computeShippingForLineItem(
   const key = getItemConfigKey(item);
   if (!key) return 0;
 
-  const productConfig = shippingConfig[key];
+  let productConfig: any = shippingConfig[key];
   if (!productConfig) return 0;
 
-  const typeConfig = productConfig[shippingType];
-  if (!typeConfig) return 0;
+  // Check if config has the new format with currency
+  let configCurrency = "USD"; // default
+  let rates: any = productConfig;
+  
+  if (productConfig.currency && productConfig.rates) {
+    configCurrency = productConfig.currency;
+    rates = productConfig.rates;
+  }
 
-  const regionConfig = typeConfig[region];
-  if (!regionConfig) return 0;
+  // Map region names to match new UI format (US, EU, CA)
+  let countryKey = region;
+  if (region === "USA") countryKey = "US";
+  if (region === "CANADA") countryKey = "CA";
+  
+  // Map shipping type to method name (Standard, Express)
+  let methodKey = "Standard";
+  if (shippingType === "express") methodKey = "Express";
+  
+  // New format: rates[country][method][quantity]
+  const countryConfig = rates[countryKey];
+  if (!countryConfig) return 0;
 
-  const keys = Object.keys(regionConfig)
+  const methodConfig = countryConfig[methodKey];
+  if (!methodConfig) return 0;
+
+  const keys = Object.keys(methodConfig)
     .map((k) => parseInt(k, 10))
     .filter((n) => !isNaN(n) && n > 0)
     .sort((a, b) => a - b);
@@ -139,30 +159,35 @@ export function computeShippingForLineItem(
 
   // If within table range, treat as a single tier lookup.
   if (quantity <= maxKey) {
-    const v = regionConfig[String(quantity)];
+    const v = methodConfig[String(quantity)];
     const num = parseFloat(String(v));
-    return isNaN(num) ? 0 : num;
+    total = isNaN(num) ? 0 : num;
+  } else {
+    // If above table range, break into largest-available tiers greedily.
+    while (quantity > 0) {
+      let tier = keys[0];
+      for (let i = 0; i < keys.length; i++) {
+        const k = keys[i];
+        const next = keys[i + 1];
+        if (k <= quantity && (!next || next > quantity)) {
+          tier = k;
+          break;
+        }
+      }
+
+      const v = methodConfig[String(tier)];
+      const num = parseFloat(String(v));
+      if (!isNaN(num)) {
+        total += num;
+      }
+
+      quantity -= tier;
+    }
   }
 
-  // If above table range, break into largest-available tiers greedily.
-  while (quantity > 0) {
-    let tier = keys[0];
-    for (let i = 0; i < keys.length; i++) {
-      const k = keys[i];
-      const next = keys[i + 1];
-      if (k <= quantity && (!next || next > quantity)) {
-        tier = k;
-        break;
-      }
-    }
-
-    const v = regionConfig[String(tier)];
-    const num = parseFloat(String(v));
-    if (!isNaN(num)) {
-      total += num;
-    }
-
-    quantity -= tier;
+  // Convert to USD if config is in EUR (for consistency, all costs returned in USD)
+  if (configCurrency === "EUR" && exchangeRate > 0) {
+    total = total * exchangeRate;
   }
 
   return total;
@@ -186,7 +211,8 @@ export interface ProcessedOrder {
 export function processOrders(
   orders: ShopifyOrder[],
   cogsConfig: CogsConfigMap,
-  shippingConfig: ShippingConfigMap
+  shippingConfig: ShippingConfigMap,
+  exchangeRate: number = 1.0
 ): {
   revenue: number;
   ordersCount: number;
@@ -222,7 +248,7 @@ export function processOrders(
     
     for (const item of lineItems) {
       const itemCogs = computeCogsForLineItem(item, cogsConfig);
-      const itemShipping = region ? computeShippingForLineItem(item, region, shippingType, shippingConfig) : 0;
+      const itemShipping = region ? computeShippingForLineItem(item, region, shippingType, shippingConfig, exchangeRate) : 0;
       
       orderCogs += itemCogs;
       orderShipping += itemShipping;

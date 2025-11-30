@@ -245,3 +245,11 @@
 - [ ] Integrate shipping cost calculation into order profit logic (requires refactoring)
 - [ ] Match order shipping method and destination to correct rate
 - [ ] Calculate per-product shipping based on quantity in order
+
+## Shipping Calculation Integration - COMPLETED ✅
+- [x] Refactor profit calculator to use new shipping matrix logic
+- [x] Load shipping configs from database for all variants
+- [x] Update computeShippingForLineItem to support new config format (country/method/quantity)
+- [x] Pass exchange rate to shipping calculation
+- [x] Add currency support (USD/EUR) to shipping configs
+- [x] Test with real orders to verify accuracy (7/7 tests passed)

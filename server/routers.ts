@@ -356,7 +356,9 @@ export const appRouter = router({
             }
           }
 
-          processed = processOrders(orders, cogsMap, shippingMap);
+          // Get exchange rate for shipping cost conversion
+          const EXCHANGE_RATE_EUR_USD = await getEurUsdRate();
+          processed = processOrders(orders, cogsMap, shippingMap, EXCHANGE_RATE_EUR_USD);
 
           const processingFeesConfig = await db.getProcessingFeesConfigByStoreId(input.storeId);
           const percentFee = processingFeesConfig ? parseFloat(processingFeesConfig.percentFee || "0.028") : 0.028;
@@ -572,16 +574,15 @@ export const appRouter = router({
           } catch {}
         }
 
-        const processed = processOrders(orders, cogsMap, shippingMap);
+        // Get exchange rate for shipping cost conversion and currency conversion
+        const EXCHANGE_RATE_EUR_USD = await getEurUsdRate();
+        const processed = processOrders(orders, cogsMap, shippingMap, EXCHANGE_RATE_EUR_USD);
         const processingFees = calculateProcessingFees(
           processed.revenue,
           processed.ordersCount,
           parseFloat(processingFeesConfig?.percentFee || "0.028"),
           parseFloat(processingFeesConfig?.fixedFee || "0.29")
         );
-
-        // Get live exchange rate for currency conversion
-        const EXCHANGE_RATE_EUR_USD = await getEurUsdRate();
 
         // Calculate per-order profit and convert to EUR
         const ordersWithProfit = processed.processedOrders.map((order: any) => {
