@@ -1,6 +1,8 @@
 import { COOKIE_NAME, ONE_YEAR_MS } from "@shared/const";
 import type { Express, Request, Response } from "express";
 import * as db from "../db";
+import { exchangeShopifyCode } from "../shopify-oauth";
+import { exchangeFacebookCode, exchangeForLongLivedToken, getFacebookAdAccounts } from "../facebook-oauth";
 import { getSessionCookieOptions } from "./cookies";
 import { sdk } from "./sdk";
 
@@ -48,6 +50,75 @@ export function registerOAuthRoutes(app: Express) {
     } catch (error) {
       console.error("[OAuth] Callback failed", error);
       res.status(500).json({ error: "OAuth callback failed" });
+    }
+  });
+
+  // Shopify OAuth callback
+  app.get("/api/oauth/shopify/callback", async (req: Request, res: Response) => {
+    const shop = getQueryParam(req, "shop");
+    const code = getQueryParam(req, "code");
+    const state = getQueryParam(req, "state");
+
+    if (!shop || !code || !state) {
+      res.status(400).json({ error: "Missing required parameters" });
+      return;
+    }
+
+    try {
+      const { storeId } = JSON.parse(state);
+      const tokenData = await exchangeShopifyCode(shop, code);
+
+      await db.upsertShopifyConnection({
+        storeId,
+        shopDomain: shop,
+        accessToken: tokenData.access_token,
+        scopes: tokenData.scope,
+        apiVersion: "2025-10",
+      });
+
+      res.redirect(302, `/store/${storeId}/connections`);
+    } catch (error) {
+      console.error("[Shopify OAuth] Callback failed", error);
+      res.status(500).json({ error: "Shopify OAuth callback failed" });
+    }
+  });
+
+  // Facebook OAuth callback
+  app.get("/api/oauth/facebook/callback", async (req: Request, res: Response) => {
+    const code = getQueryParam(req, "code");
+    const state = getQueryParam(req, "state");
+
+    if (!code || !state) {
+      res.status(400).json({ error: "Missing required parameters" });
+      return;
+    }
+
+    try {
+      const { storeId } = JSON.parse(state);
+      const redirectUri = `${req.protocol}://${req.get("host")}/api/oauth/facebook/callback`;
+
+      const shortToken = await exchangeFacebookCode(code, redirectUri);
+      const longToken = await exchangeForLongLivedToken(shortToken.access_token);
+      const adAccounts = await getFacebookAdAccounts(longToken.access_token);
+
+      if (adAccounts.length > 0) {
+        const account = adAccounts[0];
+        const expiresAt = new Date(Date.now() + (longToken.expires_in || 5184000) * 1000);
+
+        await db.upsertFacebookConnection({
+          storeId,
+          adAccountId: account.id,
+          accessToken: longToken.access_token,
+          tokenExpiresAt: expiresAt,
+          apiVersion: "v21.0",
+          timezoneOffset: -300,
+        });
+      }
+
+      res.redirect(302, `/store/${storeId}/connections`);
+    } catch (error) {
+      console.error("[Facebook OAuth] Callback failed", error);
+      res.status(500).json({ error: "Facebook OAuth callback failed" });
     }
   });
 }
