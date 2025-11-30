@@ -173,3 +173,26 @@
 - [x] Show product line items in each order (product name, quantity)
 - [x] Verify lineItems data is being fetched from Shopify correctly - enriched with calculated values
 - [x] Update UI to display line items prominently - fixed field name mismatch (items vs lineItems)
+
+## Currency Conversion Issues (User Reported - CRITICAL) - FIXED ✅
+- [x] Investigate what currency Shopify returns prices in (confirmed: USD)
+- [x] Investigate what currency Facebook returns ad spend in (confirmed: USD)
+- [x] Fix Orders page - now converts USD prices to EUR correctly
+- [x] Fix processing fees calculation - now in correct EUR currency
+- [x] Implement live EUR/USD exchange rate fetching (using ExchangeRate-API)
+- [x] Display current exchange rate in UI (top-right of Dashboard)
+- [x] Convert all USD values to EUR before display
+- [x] Ensure COGS and shipping costs are in correct currency
+
+## Dashboard Date Range Picker (User Reported) - COMPLETED ✅
+- [x] Add date range picker to Dashboard tab
+- [x] Match the date picker style from Orders/Products tabs
+- [x] Update metrics when date range changes (already working)
+- [x] Set default to last 30 days (already set)
+
+## Timezone Settings (User Requested) - COMPLETED ✅
+- [x] Add timezone selector to Connections page
+- [x] Store user's preferred timezone in database (timezoneOffset field)
+- [x] Create update procedure for timezone changes
+- [x] Show timezone selector with 25+ common timezones
+- [x] Add helpful description for timezone usage

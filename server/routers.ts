@@ -10,8 +10,7 @@ import { getFacebookAuthUrl, exchangeFacebookCode, exchangeForLongLivedToken, ge
 import { fetchShopifyOrders, fetchShopifyDisputes } from "./shopify-data";
 import { fetchFacebookAdSpend } from "./facebook-data";
 import { processOrders, calculateProcessingFees, calculateOperationalExpensesForPeriod } from "./profit-calculator";
-
-const EXCHANGE_RATE_EUR_USD = parseFloat(process.env.EXCHANGE_RATE_EUR_USD || "1.08");
+import { getEurUsdRate, getCachedRate } from "./exchange-rate";
 
 export const appRouter = router({
     // if you need to use socket.io, read and register route in server/_core/index.ts, all api should start with '/api/' so that the gateway can route correctly
@@ -24,6 +23,17 @@ export const appRouter = router({
       return {
         success: true,
       } as const;
+    }),
+  }),
+
+  exchangeRate: router({
+    getCurrent: publicProcedure.query(async () => {
+      const rate = await getEurUsdRate();
+      const cached = getCachedRate();
+      return {
+        rate,
+        expiresAt: cached?.expiresAt || null,
+      };
     }),
   }),
 
@@ -83,6 +93,28 @@ export const appRouter = router({
         }
 
         await db.deleteStore(input.storeId);
+        return { success: true };
+      }),
+
+    update: protectedProcedure
+      .input(
+        z.object({
+          id: z.number(),
+          name: z.string().optional(),
+          timezoneOffset: z.number().optional(),
+        })
+      )
+      .mutation(async ({ ctx, input }) => {
+        const store = await db.getStoreById(input.id);
+        if (!store || store.userId !== ctx.user.id) {
+          throw new Error("Store not found or access denied");
+        }
+
+        await db.updateStore(input.id, {
+          name: input.name,
+          timezoneOffset: input.timezoneOffset,
+        });
+
         return { success: true };
       }),
   }),
@@ -273,6 +305,9 @@ export const appRouter = router({
         if (!store || store.userId !== ctx.user.id) {
           throw new Error("Store not found or access denied");
         }
+
+        // Get live exchange rate
+        const EXCHANGE_RATE_EUR_USD = await getEurUsdRate();
 
         const shopifyConn = await db.getShopifyConnectionByStoreId(input.storeId);
         const facebookConns = await db.getFacebookConnectionsByStoreId(input.storeId);
@@ -548,12 +583,16 @@ export const appRouter = router({
           parseFloat(processingFeesConfig?.fixedFee || "0.29")
         );
 
-        // Calculate per-order profit
+        // Get live exchange rate for currency conversion
+        const EXCHANGE_RATE_EUR_USD = await getEurUsdRate();
+
+        // Calculate per-order profit and convert to EUR
         const ordersWithProfit = processed.processedOrders.map((order: any) => {
-          const orderTotal = order.total;
-          const orderCogs = order.cogs;
-          const orderShipping = order.shippingCost;
-          const orderProcessingFee = (orderTotal * parseFloat(processingFeesConfig?.percentFee || "0.028")) + parseFloat(processingFeesConfig?.fixedFee || "0.29");
+          // Convert USD values to EUR
+          const orderTotal = order.total / EXCHANGE_RATE_EUR_USD;
+          const orderCogs = order.cogs / EXCHANGE_RATE_EUR_USD;
+          const orderShipping = order.shippingCost / EXCHANGE_RATE_EUR_USD;
+          const orderProcessingFee = ((order.total * parseFloat(processingFeesConfig?.percentFee || "0.028")) + parseFloat(processingFeesConfig?.fixedFee || "0.29")) / EXCHANGE_RATE_EUR_USD;
           const orderProfit = orderTotal - orderCogs - orderShipping - orderProcessingFee;
 
           return {
@@ -566,15 +605,22 @@ export const appRouter = router({
             totalProcessingFees: orderProcessingFee,
             allocatedAdSpend: 0, // TODO: Allocate ad spend proportionally
             profit: orderProfit,
-            lineItems: (order.items || []).map((item: any) => ({
-              name: item.name,
-              quantity: item.quantity,
-              price: item.price,
-              cogs: item.cogs || 0,
-              shipping: item.shippingCost || 0,
-              processingFee: (item.price * item.quantity * parseFloat(processingFeesConfig?.percentFee || "0.028")),
-              profit: (item.price * item.quantity) - (item.cogs || 0) - (item.shippingCost || 0) - (item.price * item.quantity * parseFloat(processingFeesConfig?.percentFee || "0.028")),
-            })),
+            lineItems: (order.items || []).map((item: any) => {
+              const itemPriceEUR = item.price / EXCHANGE_RATE_EUR_USD;
+              const itemCogsEUR = (item.cogs || 0) / EXCHANGE_RATE_EUR_USD;
+              const itemShippingEUR = (item.shippingCost || 0) / EXCHANGE_RATE_EUR_USD;
+              const itemProcessingFeeEUR = (item.price * item.quantity * parseFloat(processingFeesConfig?.percentFee || "0.028")) / EXCHANGE_RATE_EUR_USD;
+              
+              return {
+                name: item.name,
+                quantity: item.quantity,
+                price: itemPriceEUR,
+                cogs: itemCogsEUR,
+                shipping: itemShippingEUR,
+                processingFee: itemProcessingFeeEUR,
+                profit: (itemPriceEUR * item.quantity) - itemCogsEUR - itemShippingEUR - itemProcessingFeeEUR,
+              };
+            }),
           };
         });
 

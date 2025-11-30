@@ -11,6 +11,7 @@ import Connections from "./Connections";
 import Products from "./Products";
 import Expenses from "./Expenses";
 import Orders from "./Orders";
+import ExchangeRateDisplay from "@/components/ExchangeRateDisplay";
 
 export default function StoreView() {
   const { id } = useParams();
@@ -106,6 +107,37 @@ export default function StoreView() {
           </TabsList>
 
           <TabsContent value="dashboard" className="space-y-6">
+            {/* Date Range Picker */}
+            <div className="flex items-center justify-between gap-4 glass p-4 rounded-lg">
+              <div className="flex items-center gap-4">
+              <div className="flex items-center gap-2">
+                <label htmlFor="start-date" className="text-sm font-medium">
+                  From
+                </label>
+                <input
+                  type="date"
+                  id="start-date"
+                  value={startDate}
+                  onChange={(e) => setStartDate(e.target.value)}
+                  className="px-3 py-2 rounded-md border border-border bg-background text-foreground"
+                />
+              </div>
+              <div className="flex items-center gap-2">
+                <label htmlFor="end-date" className="text-sm font-medium">
+                  To
+                </label>
+                <input
+                  type="date"
+                  id="end-date"
+                  value={endDate}
+                  onChange={(e) => setEndDate(e.target.value)}
+                  className="px-3 py-2 rounded-md border border-border bg-background text-foreground"
+                />
+              </div>
+              </div>
+              <ExchangeRateDisplay />
+            </div>
+
             {metricsLoading ? (
               <div className="flex items-center justify-center py-12">
                 <Loader2 className="h-8 w-8 animate-spin text-primary" />
