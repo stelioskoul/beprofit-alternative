@@ -9,7 +9,7 @@ import { Loader2, Save, Search, Settings } from "lucide-react";
 import { useParams } from "wouter";
 import { useState } from "react";
 import { ShippingConfigEditor } from "@/components/ShippingConfigEditor";
-import { Dialog, DialogContent, DialogTrigger } from "@/components/ui/dialog";
+import { Dialog, DialogContent, DialogTitle, DialogTrigger } from "@/components/ui/dialog";
 import { toast } from "sonner";
 
 export default function Products() {
@@ -207,6 +207,7 @@ export default function Products() {
                               </Button>
                             </DialogTrigger>
                             <DialogContent className="max-w-4xl max-h-[90vh] overflow-y-auto">
+                              <DialogTitle className="sr-only">Configure Shipping Matrix</DialogTitle>
                               <ShippingConfigEditor
                                 variantId={variant.id.toString()}
                                 productTitle={`${product.title} - ${variant.title}`}
