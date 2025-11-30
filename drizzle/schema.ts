@@ -1,4 +1,4 @@
-import { int, mysqlEnum, mysqlTable, text, timestamp, varchar, decimal, date, unique } from "drizzle-orm/mysql-core";
+import { int, mysqlEnum, mysqlTable, text, timestamp, varchar, decimal, date, unique, tinyint } from "drizzle-orm/mysql-core";
 
 /**
  * Core user table backing auth flow.
@@ -121,7 +121,8 @@ export const operationalExpenses = mysqlTable("operational_expenses", {
   currency: varchar("currency", { length: 3 }).default("USD"),
   date: date("date"), // For one_time expenses
   startDate: date("startDate"), // For recurring expenses
-  endDate: date("endDate"), // Optional end date for recurring
+  endDate: date("endDate"), // Optional end date for recurring (null means still active)
+  isActive: int("isActive").default(1), // 1 = active, 0 = inactive (for recurring only)
   createdAt: timestamp("createdAt").defaultNow().notNull(),
   updatedAt: timestamp("updatedAt").defaultNow().onUpdateNow().notNull(),
 });

@@ -443,10 +443,14 @@ export const appRouter = router({
       .input(
         z.object({
           storeId: z.number(),
-          name: z.string(),
+          title: z.string(),
           amount: z.string(),
-          type: z.enum(["one-time", "monthly", "quarterly", "yearly"]),
-          date: z.string(),
+          currency: z.enum(["USD", "EUR"]),
+          type: z.enum(["one_time", "monthly", "yearly"]),
+          date: z.string().optional(),
+          startDate: z.string().optional(),
+          endDate: z.string().optional(),
+          isActive: z.number().optional(),
         })
       )
       .mutation(async ({ ctx, input }) => {
@@ -458,23 +462,16 @@ export const appRouter = router({
           });
         }
 
-        // Map UI type to DB type
-        let dbType: "one_time" | "monthly" | "yearly" = "one_time";
-        if (input.type === "monthly" || input.type === "quarterly") {
-          dbType = "monthly";
-        } else if (input.type === "yearly") {
-          dbType = "yearly";
-        }
-
         await db.createOperationalExpense({
           storeId: input.storeId,
-          type: dbType,
-          title: input.name,
+          type: input.type,
+          title: input.title,
           amount: input.amount,
-          currency: "EUR",
-          date: new Date(input.date),
-          startDate: input.type !== "one-time" ? new Date(input.date) : undefined,
-          endDate: undefined,
+          currency: input.currency,
+          date: input.date ? new Date(input.date) : undefined,
+          startDate: input.startDate ? new Date(input.startDate) : undefined,
+          endDate: input.endDate ? new Date(input.endDate) : undefined,
+          isActive: input.isActive,
         });
 
         return { success: true };

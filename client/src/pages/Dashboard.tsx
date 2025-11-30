@@ -10,12 +10,16 @@ import { Loader2, Plus, Store } from "lucide-react";
 import { useState } from "react";
 import { useLocation } from "wouter";
 import { toast } from "sonner";
+import { Trash2 } from "lucide-react";
 
 export default function Dashboard() {
   const { user, loading, isAuthenticated } = useAuth();
   const [, setLocation] = useLocation();
   const [dialogOpen, setDialogOpen] = useState(false);
   const [storeName, setStoreName] = useState("");
+  const [deleteDialogOpen, setDeleteDialogOpen] = useState(false);
+  const [confirmDeleteDialogOpen, setConfirmDeleteDialogOpen] = useState(false);
+  const [storeToDelete, setStoreToDelete] = useState<number | null>(null);
 
   const { data: stores, isLoading, refetch } = trpc.stores.list.useQuery(undefined, {
     enabled: isAuthenticated,
@@ -32,6 +36,36 @@ export default function Dashboard() {
       toast.error(error.message);
     },
   });
+
+  const deleteStoreMutation = trpc.stores.delete.useMutation({
+    onSuccess: () => {
+      toast.success("Store deleted successfully");
+      setDeleteDialogOpen(false);
+      setConfirmDeleteDialogOpen(false);
+      setStoreToDelete(null);
+      refetch();
+    },
+    onError: (error) => {
+      toast.error(error.message);
+    },
+  });
+
+  const handleDeleteClick = (storeId: number, e: React.MouseEvent) => {
+    e.stopPropagation();
+    setStoreToDelete(storeId);
+    setDeleteDialogOpen(true);
+  };
+
+  const handleFirstConfirm = () => {
+    setDeleteDialogOpen(false);
+    setConfirmDeleteDialogOpen(true);
+  };
+
+  const handleFinalDelete = () => {
+    if (storeToDelete) {
+      deleteStoreMutation.mutate({ storeId: storeToDelete });
+    }
+  };
 
   if (loading) {
     return (
@@ -127,9 +161,17 @@ export default function Dashboard() {
             {stores.map((store) => (
               <Card
                 key={store.id}
-                className="cursor-pointer hover:border-primary transition-colors"
+                className="cursor-pointer hover:border-primary transition-colors relative"
                 onClick={() => setLocation(`/store/${store.id}`)}
               >
+                <Button
+                  variant="ghost"
+                  size="icon"
+                  className="absolute top-2 right-2 h-8 w-8 text-destructive hover:text-destructive hover:bg-destructive/10"
+                  onClick={(e) => handleDeleteClick(store.id, e)}
+                >
+                  <Trash2 className="h-4 w-4" />
+                </Button>
                 <CardHeader>
                   <CardTitle>{store.name}</CardTitle>
                   <CardDescription>
@@ -159,6 +201,51 @@ export default function Dashboard() {
             </CardContent>
           </Card>
         )}
+
+        {/* First Delete Confirmation Dialog */}
+        <Dialog open={deleteDialogOpen} onOpenChange={setDeleteDialogOpen}>
+          <DialogContent>
+            <DialogHeader>
+              <DialogTitle>Delete Store?</DialogTitle>
+              <DialogDescription>
+                Are you sure you want to delete this store? This action cannot be undone.
+              </DialogDescription>
+            </DialogHeader>
+            <DialogFooter>
+              <Button variant="outline" onClick={() => setDeleteDialogOpen(false)}>
+                Cancel
+              </Button>
+              <Button variant="destructive" onClick={handleFirstConfirm}>
+                Yes, Delete
+              </Button>
+            </DialogFooter>
+          </DialogContent>
+        </Dialog>
+
+        {/* Second Delete Confirmation Dialog */}
+        <Dialog open={confirmDeleteDialogOpen} onOpenChange={setConfirmDeleteDialogOpen}>
+          <DialogContent>
+            <DialogHeader>
+              <DialogTitle>Final Confirmation</DialogTitle>
+              <DialogDescription>
+                This is your final warning. Deleting this store will remove all associated data including orders, products, and configurations. This action is permanent and cannot be undone.
+              </DialogDescription>
+            </DialogHeader>
+            <DialogFooter>
+              <Button variant="outline" onClick={() => setConfirmDeleteDialogOpen(false)}>
+                Cancel
+              </Button>
+              <Button 
+                variant="destructive" 
+                onClick={handleFinalDelete}
+                disabled={deleteStoreMutation.isPending}
+              >
+                {deleteStoreMutation.isPending && <Loader2 className="h-4 w-4 mr-2 animate-spin" />}
+                Permanently Delete
+              </Button>
+            </DialogFooter>
+          </DialogContent>
+        </Dialog>
       </div>
     </div>
   );

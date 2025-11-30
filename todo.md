@@ -196,3 +196,31 @@
 - [x] Create update procedure for timezone changes
 - [x] Show timezone selector with 25+ common timezones
 - [x] Add helpful description for timezone usage
+
+## UI Design Improvements (User Requested) - COMPLETED ✅
+- [x] Add gradient background with gold texture effect and black
+- [x] Make calendar icons gold color for visibility (showing as cyan, may need adjustment)
+- [x] Improve overall visual aesthetics with gold accents
+
+## Store Deletion Feature (User Requested) - COMPLETED ✅
+- [x] Add delete button to store cards on home page
+- [x] Implement double confirmation (two popups) to prevent accidental deletion
+- [x] Test deletion flow end-to-end
+
+## Advanced Operational Expenses (User Requested) - COMPLETED ✅
+- [x] Add active/inactive status toggle for recurring expenses
+- [x] For inactive expenses: add date range selector (from/to dates)
+- [x] Calculate monthly/yearly expenses based on date range (backend logic ready)
+- [x] For active expenses: only require start date, auto-calculate ongoing
+- [x] Support both USD and EUR input (display in EUR)
+- [x] Update expense calculation logic to handle active/inactive status
+
+## Enhanced Product Configuration (User Requested)
+- [ ] Support USD input for COGS (convert to EUR for display)
+- [ ] Support USD input for shipping costs (convert to EUR for display)
+- [ ] Add country-specific shipping: US, EU, CA
+- [ ] Add shipping method variants: Standard, Express
+- [ ] Add quantity-based shipping pricing (1pcs, 2pcs, 3pcs, 4pcs, etc.)
+- [ ] Update database schema for complex shipping configuration
+- [ ] Update profit calculator to use country/method/quantity shipping logic
+- [ ] Create UI for managing shipping matrix per product

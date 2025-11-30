@@ -119,7 +119,8 @@ export default function StoreView() {
                   id="start-date"
                   value={startDate}
                   onChange={(e) => setStartDate(e.target.value)}
-                  className="px-3 py-2 rounded-md border border-border bg-background text-foreground"
+                  className="px-3 py-2 rounded-md border border-border bg-background text-foreground date-input-gold"
+                  style={{ colorScheme: 'dark' }}
                 />
               </div>
               <div className="flex items-center gap-2">
@@ -131,7 +132,8 @@ export default function StoreView() {
                   id="end-date"
                   value={endDate}
                   onChange={(e) => setEndDate(e.target.value)}
-                  className="px-3 py-2 rounded-md border border-border bg-background text-foreground"
+                  className="px-3 py-2 rounded-md border border-border bg-background text-foreground date-input-gold"
+                  style={{ colorScheme: 'dark' }}
                 />
               </div>
               </div>

@@ -26,8 +26,12 @@ export default function Expenses() {
   const [open, setOpen] = useState(false);
   const [name, setName] = useState("");
   const [amount, setAmount] = useState("");
-  const [type, setType] = useState<"one-time" | "monthly" | "quarterly" | "yearly">("one-time");
+  const [currency, setCurrency] = useState<"USD" | "EUR">("USD");
+  const [type, setType] = useState<"one_time" | "monthly" | "yearly">("one_time");
   const [date, setDate] = useState(new Date().toISOString().split("T")[0]);
+  const [isActive, setIsActive] = useState(true);
+  const [startDate, setStartDate] = useState(new Date().toISOString().split("T")[0]);
+  const [endDate, setEndDate] = useState("");
 
   const { data: expenses, isLoading, refetch } = trpc.expenses.list.useQuery(
     { storeId },
@@ -40,8 +44,12 @@ export default function Expenses() {
       setOpen(false);
       setName("");
       setAmount("");
-      setType("one-time");
+      setCurrency("USD");
+      setType("one_time");
       setDate(new Date().toISOString().split("T")[0]);
+      setIsActive(true);
+      setStartDate(new Date().toISOString().split("T")[0]);
+      setEndDate("");
       refetch();
     },
     onError: (error: any) => {
@@ -78,12 +86,24 @@ export default function Expenses() {
       return;
     }
 
+    // Validate dates for recurring expenses
+    if (type !== "one_time") {
+      if (!isActive && !endDate) {
+        toast.error("Please provide an end date for inactive recurring expenses");
+        return;
+      }
+    }
+
     createMutation.mutate({
       storeId,
-      name,
+      title: name,
       amount,
+      currency,
       type,
-      date,
+      date: type === "one_time" ? date : undefined,
+      startDate: type !== "one_time" ? startDate : undefined,
+      endDate: type !== "one_time" && !isActive ? endDate : undefined,
+      isActive: type !== "one_time" ? (isActive ? 1 : 0) : undefined,
     });
   };
 
@@ -96,12 +116,10 @@ export default function Expenses() {
 
   const getTypeLabel = (type: string) => {
     switch (type) {
-      case "one-time":
+      case "one_time":
         return "One-time";
       case "monthly":
         return "Monthly";
-      case "quarterly":
-        return "Quarterly";
       case "yearly":
         return "Yearly";
       default:
@@ -145,16 +163,30 @@ export default function Expenses() {
                 />
               </div>
 
-              <div className="space-y-2">
-                <Label htmlFor="amount">Amount (EUR)</Label>
-                <Input
-                  id="amount"
-                  type="number"
-                  step="0.01"
-                  placeholder="0.00"
-                  value={amount}
-                  onChange={(e) => setAmount(e.target.value)}
-                />
+              <div className="grid grid-cols-2 gap-4">
+                <div className="space-y-2">
+                  <Label htmlFor="amount">Amount</Label>
+                  <Input
+                    id="amount"
+                    type="number"
+                    step="0.01"
+                    placeholder="0.00"
+                    value={amount}
+                    onChange={(e) => setAmount(e.target.value)}
+                  />
+                </div>
+                <div className="space-y-2">
+                  <Label htmlFor="currency">Currency</Label>
+                  <Select value={currency} onValueChange={(v: any) => setCurrency(v)}>
+                    <SelectTrigger id="currency">
+                      <SelectValue />
+                    </SelectTrigger>
+                    <SelectContent>
+                      <SelectItem value="USD">USD</SelectItem>
+                      <SelectItem value="EUR">EUR</SelectItem>
+                    </SelectContent>
+                  </Select>
+                </div>
               </div>
 
               <div className="space-y-2">
@@ -164,20 +196,65 @@ export default function Expenses() {
                     <SelectValue />
                   </SelectTrigger>
                   <SelectContent>
-                    <SelectItem value="one-time">One-time</SelectItem>
+                    <SelectItem value="one_time">One-time</SelectItem>
                     <SelectItem value="monthly">Monthly</SelectItem>
-                    <SelectItem value="quarterly">Quarterly (every 3 months)</SelectItem>
                     <SelectItem value="yearly">Yearly</SelectItem>
                   </SelectContent>
                 </Select>
               </div>
 
-              <div className="space-y-2">
-                <Label htmlFor="date">
-                  {type === "one-time" ? "Date" : "Start Date"}
-                </Label>
+              {type === "one_time" ? (
+                <div className="space-y-2">
+                  <Label htmlFor="date">Date</Label>
+                  <Input
+                    id="date"
+                    type="date"
+                    value={date}
+                    onChange={(e) => setDate(e.target.value)}
+                  />
+                </div>
+              ) : (
+                <>
+                  <div className="space-y-2">
+                    <Label>Status</Label>
+                    <Select value={isActive ? "active" : "inactive"} onValueChange={(v) => setIsActive(v === "active")}>
+                      <SelectTrigger>
+                        <SelectValue />
+                      </SelectTrigger>
+                      <SelectContent>
+                        <SelectItem value="active">Still Active</SelectItem>
+                        <SelectItem value="inactive">No Longer Active</SelectItem>
+                      </SelectContent>
+                    </Select>
+                  </div>
+
+                  <div className="space-y-2">
+                    <Label htmlFor="startDate">Start Date</Label>
+                    <Input
+                      id="startDate"
+                      type="date"
+                      value={startDate}
+                      onChange={(e) => setStartDate(e.target.value)}
+                    />
+                  </div>
+
+                  {!isActive && (
+                    <div className="space-y-2">
+                      <Label htmlFor="endDate">End Date</Label>
+                      <Input
+                        id="endDate"
+                        type="date"
+                        value={endDate}
+                        onChange={(e) => setEndDate(e.target.value)}
+                      />
+                    </div>
+                  )}
+                </>
+              )}
+
+              <div className="hidden">
                 <Input
-                  id="date"
+                  id="date-hidden"
                   type="date"
                   value={date}
                   onChange={(e) => setDate(e.target.value)}

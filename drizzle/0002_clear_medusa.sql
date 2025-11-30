@@ -1,0 +1,1 @@
+ALTER TABLE `operational_expenses` ADD `isActive` int DEFAULT 1;
