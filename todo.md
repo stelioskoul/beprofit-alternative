@@ -161,3 +161,9 @@
 - [x] Check products.list procedure - ensure it returns array or empty array
 - [x] Check orders.listWithProfit procedure - ensure it returns array or empty array
 - [x] Add proper error handling and default values in frontend
+
+## Orders Page Fixes (User Reported)
+- [x] Fix invalid date display in Orders page
+- [x] Add missing useAuth import
+- [x] Improve date formatting with error handling
+- [x] Product details already display (name, quantity, price, COGS, shipping, profit)

@@ -46,12 +46,19 @@ export default function Orders() {
     }).format(value);
   };
 
-  const formatDate = (dateString: string) => {
-    return new Date(dateString).toLocaleDateString("en-US", {
-      year: "numeric",
-      month: "short",
-      day: "numeric",
-    });
+  const formatDate = (dateInput: string | Date | null | undefined) => {
+    if (!dateInput) return "Invalid date";
+    try {
+      const date = typeof dateInput === "string" ? new Date(dateInput) : dateInput;
+      if (isNaN(date.getTime())) return "Invalid date";
+      return date.toLocaleDateString("en-US", {
+        year: "numeric",
+        month: "short",
+        day: "numeric",
+      });
+    } catch {
+      return "Invalid date";
+    }
   };
 
   const getProfitColor = (profit: number) => {
