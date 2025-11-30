@@ -282,3 +282,9 @@
 - [x] Implement logout functionality using trpc.auth.logout
 - [x] Position near user name in header
 - [x] Style consistently with app design (outline variant)
+
+## Apply Gold Gradient to Buttons (User Reported - Missing) - COMPLETED ✅
+- [x] Apply gold-gradient class to "Add Store" button in Dashboard
+- [x] Apply gold-gradient class to "Get Started" button in Home page
+- [x] Apply gold-gradient class to "Sign In" button in Home page
+- [x] Other action buttons already have gold-gradient applied

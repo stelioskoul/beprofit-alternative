@@ -24,7 +24,7 @@ export default function Home() {
       <div className="border-b">
         <div className="container flex h-16 items-center justify-between">
           <img src="/profit-tracker-logo.png" alt="Profit Tracker" className="h-14" />
-          <Button onClick={() => (window.location.href = getLoginUrl())}>Sign In</Button>
+          <Button className="gold-gradient" onClick={() => (window.location.href = getLoginUrl())}>Sign In</Button>
         </div>
       </div>
 
@@ -38,7 +38,7 @@ export default function Home() {
             detailed cost breakdowns including COGS, shipping, ad spend, and more.
           </p>
           <div className="flex items-center justify-center gap-4">
-            <Button size="lg" onClick={() => (window.location.href = getLoginUrl())}>
+            <Button size="lg" className="gold-gradient" onClick={() => (window.location.href = getLoginUrl())}>
               Get Started
             </Button>
           </div>
