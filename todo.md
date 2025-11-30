@@ -288,3 +288,9 @@
 - [x] Apply gold-gradient class to "Get Started" button in Home page
 - [x] Apply gold-gradient class to "Sign In" button in Home page
 - [x] Other action buttons already have gold-gradient applied
+
+## VariantId Type Mismatch Error (User Reported - CRITICAL) - FIXED ✅
+- [x] Find where variantId is being passed as number instead of string (Products.tsx line 180, 187, 211, 213, 217)
+- [x] Fix type conversion in Products page COGS/shipping save (added .toString())
+- [x] Ensure all variantId values are converted to strings before API calls
+- [x] Test COGS and shipping configuration saves

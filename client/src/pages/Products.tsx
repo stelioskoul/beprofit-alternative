@@ -177,14 +177,14 @@ export default function Products() {
                               type="number"
                               step="0.01"
                               placeholder="0.00"
-                              value={getCogsValue(variant.id)}
+                              value={getCogsValue(variant.id.toString())}
                               onChange={(e) =>
-                                setEditingCogs({ ...editingCogs, [variant.id]: e.target.value })
+                                setEditingCogs({ ...editingCogs, [variant.id.toString()]: e.target.value })
                               }
                             />
                             <Button
                               size="icon"
-                              onClick={() => handleSaveCogs(variant.id)}
+                              onClick={() => handleSaveCogs(variant.id.toString())}
                               disabled={saveCogsMutation.isPending}
                               className="gold-gradient"
                             >
@@ -208,13 +208,13 @@ export default function Products() {
                             </DialogTrigger>
                             <DialogContent className="max-w-4xl max-h-[90vh] overflow-y-auto">
                               <ShippingConfigEditor
-                                variantId={variant.id}
+                                variantId={variant.id.toString()}
                                 productTitle={`${product.title} - ${variant.title}`}
-                                initialConfig={getShippingConfig(variant.id)}
+                                initialConfig={getShippingConfig(variant.id.toString())}
                                 onSave={(config) => {
                                   saveShippingMutation.mutate({
                                     storeId,
-                                    variantId: variant.id,
+                                    variantId: variant.id.toString(),
                                     configJson: JSON.stringify(config),
                                   });
                                 }}
