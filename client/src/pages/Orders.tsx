@@ -121,7 +121,7 @@ export default function Orders() {
                       )}
                       {order.shippingType && (
                         <span className="text-xs px-2 py-0.5 rounded-full bg-purple-500/20 text-purple-300 border border-purple-500/30">
-                          🚚 {order.shippingType.charAt(0).toUpperCase() + order.shippingType.slice(1)}
+                          🚚 {order.shippingType === 'free' ? 'Standard' : order.shippingType.charAt(0).toUpperCase() + order.shippingType.slice(1)}
                         </span>
                       )}
                     </div>

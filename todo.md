@@ -314,3 +314,8 @@
 - [x] Update Orders UI to show country and method prominently
 - [x] Add country and shippingType fields to orders.listWithProfit backend response
 - [x] Display as styled badges (blue for country, purple for shipping method)
+
+## Shipping Method Label Update (User Requested) - COMPLETED ✅
+- [x] Change "Free" shipping method display to "Standard" in Orders UI
+- [x] Keep backend logic unchanged (still returns "free" internally)
+- [x] Update UI display only for better clarity
