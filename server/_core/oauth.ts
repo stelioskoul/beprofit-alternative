@@ -95,7 +95,8 @@ export function registerOAuthRoutes(app: Express) {
 
     try {
       const { storeId } = JSON.parse(state);
-      const redirectUri = `${req.protocol}://${req.get("host")}/api/oauth/facebook/callback`;
+      const baseUrl = process.env.APP_URL || "http://localhost:3000";
+      const redirectUri = `${baseUrl}/api/oauth/facebook/callback`;
 
       const shortToken = await exchangeFacebookCode(code, redirectUri);
       const longToken = await exchangeForLongLivedToken(shortToken.access_token);
@@ -117,7 +118,8 @@ export function registerOAuthRoutes(app: Express) {
 
       res.redirect(302, `/store/${storeId}/connections`);
     } catch (error) {
-      console.error("[Facebook OAuth] Callback failed", error);
+      console.error("[Facebook OAuth] Callback failed:", error);
+      console.error("[Facebook OAuth] Error details:", error instanceof Error ? error.message : String(error));
       res.status(500).json({ error: "Facebook OAuth callback failed" });
     }
   });

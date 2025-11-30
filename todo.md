@@ -84,3 +84,20 @@
 - [ ] Add APP_URL environment variable for production domain
 - [ ] Update OAuth URL generation to use APP_URL
 - [ ] Test OAuth with production domain
+
+## Store Access Error
+- [ ] Fix "Store not found or access denied" error on connections page
+- [ ] Check store-user associations in database
+- [ ] Verify store access control logic in getById procedure
+
+## Facebook OAuth Callback Error
+- [ ] Fix "Facebook OAuth callback failed" error
+- [ ] Check server logs for specific Facebook API error
+- [ ] Verify Facebook app permissions and token exchange
+
+## Hybrid Facebook Auth Implementation
+- [ ] Add manual token entry UI to Connections page
+- [ ] Create tRPC procedure for manual Facebook connection
+- [ ] Add ad account ID input field
+- [ ] Test manual connection with user's existing token
+- [ ] Keep OAuth button for future use (after app approval)

@@ -1,7 +1,8 @@
 import { COOKIE_NAME } from "@shared/const";
 import { getSessionCookieOptions } from "./_core/cookies";
 import { systemRouter } from "./_core/systemRouter";
-import { publicProcedure, protectedProcedure, router } from "./_core/trpc";
+import { publicProcedure, router, protectedProcedure } from "./_core/trpc";
+import { TRPCError } from "@trpc/server";
 import { z } from "zod";
 import * as db from "./db";
 import { getShopifyAuthUrl, exchangeShopifyCode } from "./shopify-oauth";
@@ -138,7 +139,6 @@ export const appRouter = router({
         return { success: true };
       }),
   }),
-
   facebook: router({
     getAuthUrl: protectedProcedure
       .input(z.object({ storeId: z.number() }))
@@ -149,39 +149,41 @@ export const appRouter = router({
         const authUrl = getFacebookAuthUrl(redirectUri, state);
         return { authUrl };
       }),
-
-    handleCallback: publicProcedure
+    
+    connectManual: protectedProcedure
       .input(
         z.object({
-          code: z.string(),
-          state: z.string(),
+          storeId: z.number(),
+          accessToken: z.string(),
+          adAccountId: z.string(),
         })
       )
       .mutation(async ({ input }) => {
-        const { storeId } = JSON.parse(input.state);
-        const redirectUri = `${process.env.VITE_FRONTEND_FORGE_API_URL || "http://localhost:3000"}/api/oauth/facebook/callback`;
-
-        const shortToken = await exchangeFacebookCode(input.code, redirectUri);
-        const longToken = await exchangeForLongLivedToken(shortToken.access_token);
-        const adAccounts = await getFacebookAdAccounts(longToken.access_token);
-
-        if (adAccounts.length > 0) {
-          const account = adAccounts[0];
-          const expiresAt = new Date(Date.now() + (longToken.expires_in || 5184000) * 1000);
-
-          await db.upsertFacebookConnection({
-            storeId,
-            adAccountId: account.id,
-            accessToken: longToken.access_token,
-            tokenExpiresAt: expiresAt,
-            apiVersion: "v21.0",
-            timezoneOffset: -300,
+        // Verify token works by fetching ad account info
+        const adAccounts = await getFacebookAdAccounts(input.accessToken);
+        const account = adAccounts.find((acc: any) => acc.id === input.adAccountId);
+        
+        if (!account) {
+          throw new TRPCError({
+            code: "BAD_REQUEST",
+            message: "Ad account not found or token invalid",
           });
         }
 
-        return { success: true, adAccounts };
-      }),
+        // Save connection with a far-future expiry (manual tokens don't expire easily)
+        const expiresAt = new Date(Date.now() + 365 * 24 * 60 * 60 * 1000); // 1 year
 
+        await db.upsertFacebookConnection({
+          storeId: input.storeId,
+          adAccountId: input.adAccountId,
+          accessToken: input.accessToken,
+          tokenExpiresAt: expiresAt,
+          apiVersion: "v21.0",
+          timezoneOffset: -300,
+        });
+
+        return { success: true };
+      }),
     getConnections: protectedProcedure
       .input(z.object({ storeId: z.number() }))
       .query(async ({ ctx, input }) => {

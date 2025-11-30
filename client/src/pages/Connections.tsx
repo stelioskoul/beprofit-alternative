@@ -16,6 +16,9 @@ export default function Connections() {
   const [, setLocation] = useLocation();
   const { isAuthenticated, loading } = useAuth();
   const [shopDomain, setShopDomain] = useState("");
+  const [showManualFacebook, setShowManualFacebook] = useState(false);
+  const [facebookToken, setFacebookToken] = useState("");
+  const [facebookAdAccountId, setFacebookAdAccountId] = useState("");
 
   const { data: shopifyConn, refetch: refetchShopify } = trpc.shopify.getConnection.useQuery(
     { storeId },
@@ -56,6 +59,19 @@ export default function Connections() {
     onSuccess: () => {
       toast.success("Facebook disconnected");
       refetchFacebook();
+    },
+  });
+
+  const facebookManualMutation = trpc.facebook.connectManual.useMutation({
+    onSuccess: () => {
+      toast.success("Facebook connected successfully");
+      setFacebookToken("");
+      setFacebookAdAccountId("");
+      setShowManualFacebook(false);
+      refetchFacebook();
+    },
+    onError: (error) => {
+      toast.error(error.message);
     },
   });
 
@@ -199,10 +215,65 @@ export default function Connections() {
                   <p className="text-sm text-muted-foreground">
                     Connect your Facebook ad account to automatically track ad spend and calculate profit.
                   </p>
-                  <Button onClick={handleFacebookConnect} disabled={facebookAuthMutation.isPending}>
-                    {facebookAuthMutation.isPending && <Loader2 className="h-4 w-4 mr-2 animate-spin" />}
-                    Connect Facebook Ads
-                  </Button>
+                  
+                  {!showManualFacebook ? (
+                    <div className="space-y-2">
+                      <Button onClick={handleFacebookConnect} disabled={facebookAuthMutation.isPending}>
+                        {facebookAuthMutation.isPending && <Loader2 className="h-4 w-4 mr-2 animate-spin" />}
+                        Connect with Facebook OAuth
+                      </Button>
+                      <Button variant="outline" onClick={() => setShowManualFacebook(true)} className="w-full">
+                        Or enter access token manually
+                      </Button>
+                    </div>
+                  ) : (
+                    <div className="space-y-4">
+                      <div className="grid gap-2">
+                        <Label htmlFor="fbToken">Facebook Access Token</Label>
+                        <Input
+                          id="fbToken"
+                          type="password"
+                          placeholder="Enter your long-lived access token"
+                          value={facebookToken}
+                          onChange={(e) => setFacebookToken(e.target.value)}
+                        />
+                      </div>
+                      <div className="grid gap-2">
+                        <Label htmlFor="adAccountId">Ad Account ID</Label>
+                        <Input
+                          id="adAccountId"
+                          placeholder="act_123456789"
+                          value={facebookAdAccountId}
+                          onChange={(e) => setFacebookAdAccountId(e.target.value)}
+                        />
+                        <p className="text-xs text-muted-foreground">
+                          Find your ad account ID in Facebook Ads Manager
+                        </p>
+                      </div>
+                      <div className="flex gap-2">
+                        <Button 
+                          onClick={() => {
+                            if (!facebookToken || !facebookAdAccountId) {
+                              toast.error("Please fill in all fields");
+                              return;
+                            }
+                            facebookManualMutation.mutate({
+                              storeId,
+                              accessToken: facebookToken,
+                              adAccountId: facebookAdAccountId,
+                            });
+                          }}
+                          disabled={facebookManualMutation.isPending}
+                        >
+                          {facebookManualMutation.isPending && <Loader2 className="h-4 w-4 mr-2 animate-spin" />}
+                          Connect
+                        </Button>
+                        <Button variant="outline" onClick={() => setShowManualFacebook(false)}>
+                          Cancel
+                        </Button>
+                      </div>
+                    </div>
+                  )}
                 </div>
               )}
             </CardContent>
