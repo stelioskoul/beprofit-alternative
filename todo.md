@@ -349,6 +349,15 @@
 - [x] Removed TimezoneSelector component from Connections tab
 - [x] Timezone is now only managed at store creation level
 
+## Feature: Settings Tab with Timezone Management (User Requested) - COMPLETED ✅
+- [x] Create Settings tab in store view
+- [x] Add timezone selector showing current store timezone
+- [x] Allow changing timezone from Settings tab
+- [x] Update store timezone via backend when changed
+- [x] Dashboard automatically updates when timezone is changed (page reload)
+- [x] Show three timezone options: New York, Los Angeles, Greece
+- [x] Display store information (name, platform, currency, created date)
+
 ## Bug Fix: Shipping Configuration Visibility (User Reported) - COMPLETED ✅
 - [x] Fix issue where existing shipping configuration is not visible when editing product
 - [x] Display current shipping settings when returning to product tab
@@ -356,13 +365,15 @@
 - [x] Added refetch for shippingConfigs query after saving
 - [x] Shipping configurations now properly reload when dialog is reopened
 
-## Feature: Reusable Shipping Profiles (User Requested) - IN PROGRESS 🚧
+## Feature: Reusable Shipping Profiles (User Requested) - COMPLETED ✅
 - [x] Create Shipping Profiles system (separate from per-product config)
 - [x] Add database tables for shipping profiles and product assignments
 - [x] Add backend database helpers for CRUD operations
 - [x] Add tRPC procedures for shipping profiles
-- [ ] Add UI to create/edit/delete shipping profiles
-- [ ] Update Products page to assign shipping profiles to products
-- [ ] Allow assigning one profile to multiple products
-- [ ] Show which products are using each profile
-- [ ] Migrate existing per-product shipping configs to profiles (optional)
+- [x] Add UI to create/edit/delete shipping profiles
+- [x] Update Products page to assign shipping profiles to products
+- [x] Allow assigning one profile to multiple products
+- [x] Show which products are using each profile
+- [x] Added Shipping Profiles tab in store view
+- [x] Replaced individual product shipping config with profile dropdown
+- [x] Products can now select from existing profiles or have no profile

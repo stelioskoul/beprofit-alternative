@@ -3,6 +3,7 @@ import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { getLoginUrl } from "@/const";
 import { trpc } from "@/lib/trpc";
 import { Loader2, Save, Search, Settings } from "lucide-react";
@@ -35,6 +36,16 @@ export default function Products() {
     { enabled: isAuthenticated && storeId > 0 }
   );
 
+  const { data: shippingProfiles } = trpc.shippingProfiles.list.useQuery(
+    { storeId },
+    { enabled: isAuthenticated && storeId > 0 }
+  );
+
+  const { data: profileAssignments, refetch: refetchAssignments } = trpc.shippingProfiles.getProductAssignments.useQuery(
+    { storeId },
+    { enabled: isAuthenticated && storeId > 0 }
+  );
+
   const saveCogsMutation = trpc.config.setCogs.useMutation({
     onSuccess: () => {
       toast.success("COGS saved successfully");
@@ -50,6 +61,26 @@ export default function Products() {
       toast.success("Shipping config saved successfully");
       refetch();
       refetchShippingConfigs();
+    },
+    onError: (error) => {
+      toast.error(error.message);
+    },
+  });
+
+  const assignProfileMutation = trpc.shippingProfiles.assignToProduct.useMutation({
+    onSuccess: () => {
+      toast.success("Shipping profile assigned successfully");
+      refetchAssignments();
+    },
+    onError: (error) => {
+      toast.error(error.message);
+    },
+  });
+
+  const removeProfileMutation = trpc.shippingProfiles.removeProductAssignment.useMutation({
+    onSuccess: () => {
+      toast.success("Shipping profile removed");
+      refetchAssignments();
     },
     onError: (error) => {
       toast.error(error.message);
@@ -199,33 +230,41 @@ export default function Products() {
                         </div>
 
                         <div className="space-y-2">
-                          <Label>Shipping Configuration</Label>
-                          <Dialog>
-                            <DialogTrigger asChild>
-                              <Button variant="outline" className="w-full">
-                                <Settings className="h-4 w-4 mr-2" />
-                                Configure Shipping Matrix
-                              </Button>
-                            </DialogTrigger>
-                            <DialogContent className="max-w-4xl max-h-[90vh] overflow-y-auto">
-                              <DialogTitle className="sr-only">Configure Shipping Matrix</DialogTitle>
-                              <ShippingConfigEditor
-                                variantId={variant.id.toString()}
-                                productTitle={`${product.title} - ${variant.title}`}
-                                initialConfig={getShippingConfig(variant.id.toString())}
-                                onSave={(config) => {
-                                  saveShippingMutation.mutate({
-                                    storeId,
-                                    variantId: variant.id.toString(),
-                                    configJson: JSON.stringify(config),
-                                  });
-                                }}
-                                isSaving={saveShippingMutation.isPending}
-                              />
-                            </DialogContent>
-                          </Dialog>
+                          <Label>Shipping Profile</Label>
+                          <Select
+                            value={profileAssignments?.find((a) => a.variantId === variant.id.toString())?.profileId?.toString() || "none"}
+                            onValueChange={(value) => {
+                              if (value === "none") {
+                                removeProfileMutation.mutate({
+                                  storeId,
+                                  variantId: variant.id.toString(),
+                                });
+                              } else {
+                                assignProfileMutation.mutate({
+                                  storeId,
+                                  variantId: variant.id.toString(),
+                                  profileId: parseInt(value),
+                                  productTitle: `${product.title} - ${variant.title}`,
+                                });
+                              }
+                            }}
+                          >
+                            <SelectTrigger>
+                              <SelectValue placeholder="Select shipping profile" />
+                            </SelectTrigger>
+                            <SelectContent>
+                              <SelectItem value="none">No profile assigned</SelectItem>
+                              {shippingProfiles?.map((profile) => (
+                                <SelectItem key={profile.id} value={profile.id.toString()}>
+                                  {profile.name}
+                                </SelectItem>
+                              ))}
+                            </SelectContent>
+                          </Select>
                           <p className="text-xs text-muted-foreground">
-                            Configure shipping by country (US/EU/CA), method (Standard/Express), and quantity
+                            {shippingProfiles && shippingProfiles.length > 0
+                              ? "Assign a shipping profile to this product"
+                              : "Create shipping profiles in the Shipping Profiles tab first"}
                           </p>
                         </div>
                       </div>

@@ -11,6 +11,8 @@ import Connections from "./Connections";
 import Products from "./Products";
 import Expenses from "./Expenses";
 import Orders from "./Orders";
+import Settings from "./Settings";
+import ShippingProfiles from "./ShippingProfiles";
 import ExchangeRateDisplay from "@/components/ExchangeRateDisplay";
 
 export default function StoreView() {
@@ -104,6 +106,9 @@ export default function StoreView() {
             <TabsTrigger value="dashboard" className="data-[state=active]:gold-gradient">
               Dashboard
             </TabsTrigger>
+            <TabsTrigger value="shipping-profiles" className="data-[state=active]:gold-gradient">
+              Shipping Profiles
+            </TabsTrigger>
             <TabsTrigger value="products" className="data-[state=active]:gold-gradient">
               Products
             </TabsTrigger>
@@ -115,6 +120,9 @@ export default function StoreView() {
             </TabsTrigger>
             <TabsTrigger value="connections" className="data-[state=active]:gold-gradient">
               Connections
+            </TabsTrigger>
+            <TabsTrigger value="settings" className="data-[state=active]:gold-gradient">
+              Settings
             </TabsTrigger>
           </TabsList>
 
@@ -292,6 +300,10 @@ export default function StoreView() {
             ) : null}
           </TabsContent>
 
+          <TabsContent value="shipping-profiles">
+            <ShippingProfiles />
+          </TabsContent>
+
           <TabsContent value="products">
             <Products />
           </TabsContent>
@@ -306,6 +318,10 @@ export default function StoreView() {
 
           <TabsContent value="connections">
             <Connections />
+          </TabsContent>
+
+          <TabsContent value="settings">
+            <Settings />
           </TabsContent>
         </Tabs>
       </div>
