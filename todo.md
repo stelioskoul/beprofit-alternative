@@ -43,3 +43,11 @@
 - [x] Temporarily disabled - requires Shopify Payments permissions (404/403)
 - [x] Fallback to calculated fees (2.8% + $0.29) works correctly
 - [x] Test with real order data - all calculations verified correct (Order #18305 and #18306)
+
+## RE-ENABLE BALANCE TRANSACTIONS API ✅
+- [x] Re-enable balance transactions API calls in dashboard.calculate procedure
+- [x] Re-enable balance transactions API calls in orders.listWithProfit procedure
+- [x] Test with real order data - dashboard loaded successfully after ~30 seconds
+- [x] Added pagination limit (10 pages max = 2500 transactions) to prevent timeouts
+- [x] Balance transactions API is working but takes 20-30 seconds per request
+- [x] Note: Consider implementing as background job for better UX

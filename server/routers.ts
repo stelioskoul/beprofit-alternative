@@ -366,18 +366,19 @@ export const appRouter = router({
           }
 
           // Fetch actual processing fees from Shopify balance transactions
-          // Temporarily disabled for testing
+          // NOTE: This may take 10-30 seconds depending on transaction volume
           let orderFees: Map<number, number> | undefined;
-          // try {
-          //   orderFees = await fetchShopifyBalanceTransactions(
-          //     shopifyConn.shopDomain,
-          //     shopifyConn.accessToken,
-          //     { fromDate: input.fromDate, toDate: input.toDate },
-          //     shopifyConn.apiVersion || "2025-10"
-          //   );
-          // } catch (error) {
-          //   console.error("Failed to fetch balance transactions, using calculated fees:", error);
-          // }
+          try {
+            orderFees = await fetchShopifyBalanceTransactions(
+              shopifyConn.shopDomain,
+              shopifyConn.accessToken,
+              { fromDate: input.fromDate, toDate: input.toDate },
+              shopifyConn.apiVersion || "2025-10"
+            );
+            console.log(`[Balance Transactions] Fetched fees for ${orderFees.size} orders`);
+          } catch (error) {
+            console.error("Failed to fetch balance transactions, using calculated fees:", error);
+          }
 
           // Get exchange rate for shipping cost conversion
           const EXCHANGE_RATE_EUR_USD = await getEurUsdRate();
@@ -604,18 +605,19 @@ export const appRouter = router({
         }
 
         // Fetch actual processing fees from Shopify balance transactions
-        // Temporarily disabled for testing
+        // NOTE: This may take 10-30 seconds depending on transaction volume
         let orderFees: Map<number, number> | undefined;
-        // try {
-        //   orderFees = await fetchShopifyBalanceTransactions(
-        //     shopifyConn.shopDomain,
-        //     shopifyConn.accessToken,
-        //     { fromDate: input.startDate, toDate: input.endDate },
-        //     shopifyConn.apiVersion || "2025-10"
-        //   );
-        // } catch (error) {
-        //   console.error("Failed to fetch balance transactions, using calculated fees:", error);
-        // }
+        try {
+          orderFees = await fetchShopifyBalanceTransactions(
+            shopifyConn.shopDomain,
+            shopifyConn.accessToken,
+            { fromDate: input.startDate, toDate: input.endDate },
+            shopifyConn.apiVersion || "2025-10"
+          );
+          console.log(`[Balance Transactions] Fetched fees for ${orderFees.size} orders`);
+        } catch (error) {
+          console.error("Failed to fetch balance transactions, using calculated fees:", error);
+        }
 
         // Get exchange rate for shipping cost conversion and currency conversion
         const EXCHANGE_RATE_EUR_USD = await getEurUsdRate();

@@ -212,8 +212,11 @@ export async function fetchShopifyBalanceTransactions(
   const orderFees = new Map<number, number>();
   let lastId: number | null = null;
   let hasMore = true;
+  let pageCount = 0;
+  const MAX_PAGES = 10; // Safety limit: fetch max 10 pages (2500 transactions)
 
-  while (hasMore) {
+  while (hasMore && pageCount < MAX_PAGES) {
+    pageCount++;
     const params = new URLSearchParams({
       limit: "250",
     });
@@ -272,5 +275,6 @@ export async function fetchShopifyBalanceTransactions(
     }
   }
 
+  console.log(`[Balance Transactions] Fetched ${orderFees.size} orders with fees from ${pageCount} pages`);
   return orderFees;
 }
