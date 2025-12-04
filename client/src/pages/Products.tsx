@@ -30,7 +30,7 @@ export default function Products() {
     { enabled: isAuthenticated && storeId > 0 }
   );
 
-  const { data: shippingConfigs } = trpc.config.getShipping.useQuery(
+  const { data: shippingConfigs, refetch: refetchShippingConfigs } = trpc.config.getShipping.useQuery(
     { storeId },
     { enabled: isAuthenticated && storeId > 0 }
   );
@@ -49,6 +49,7 @@ export default function Products() {
     onSuccess: () => {
       toast.success("Shipping config saved successfully");
       refetch();
+      refetchShippingConfigs();
     },
     onError: (error) => {
       toast.error(error.message);

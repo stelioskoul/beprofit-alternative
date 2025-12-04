@@ -13,6 +13,10 @@ import {
   InsertCogsConfig,
   shippingConfig,
   InsertShippingConfig,
+  shippingProfiles,
+  InsertShippingProfile,
+  productShippingProfiles,
+  InsertProductShippingProfile,
   operationalExpenses,
   InsertOperationalExpense,
   processingFeesConfig,
@@ -324,4 +328,100 @@ export async function getProcessingFeesConfigByStoreId(storeId: number) {
 
   const result = await db.select().from(processingFeesConfig).where(eq(processingFeesConfig.storeId, storeId)).limit(1);
   return result.length > 0 ? result[0] : undefined;
+}
+
+// ============================================================================
+// SHIPPING PROFILES OPERATIONS
+// ============================================================================
+
+export async function createShippingProfile(profile: InsertShippingProfile) {
+  const db = await getDb();
+  if (!db) throw new Error("Database not available");
+
+  const result = await db.insert(shippingProfiles).values(profile);
+  return result;
+}
+
+export async function getShippingProfilesByStoreId(storeId: number) {
+  const db = await getDb();
+  if (!db) return [];
+
+  return await db.select().from(shippingProfiles).where(eq(shippingProfiles.storeId, storeId));
+}
+
+export async function getShippingProfileById(profileId: number) {
+  const db = await getDb();
+  if (!db) return undefined;
+
+  const result = await db.select().from(shippingProfiles).where(eq(shippingProfiles.id, profileId)).limit(1);
+  return result.length > 0 ? result[0] : undefined;
+}
+
+export async function updateShippingProfile(profileId: number, updates: Partial<InsertShippingProfile>) {
+  const db = await getDb();
+  if (!db) throw new Error("Database not available");
+
+  await db.update(shippingProfiles).set(updates).where(eq(shippingProfiles.id, profileId));
+}
+
+export async function deleteShippingProfile(profileId: number) {
+  const db = await getDb();
+  if (!db) throw new Error("Database not available");
+
+  // Delete all product assignments first
+  await db.delete(productShippingProfiles).where(eq(productShippingProfiles.profileId, profileId));
+  // Then delete the profile
+  await db.delete(shippingProfiles).where(eq(shippingProfiles.id, profileId));
+}
+
+// ============================================================================
+// PRODUCT SHIPPING PROFILES OPERATIONS
+// ============================================================================
+
+export async function assignShippingProfile(assignment: InsertProductShippingProfile) {
+  const db = await getDb();
+  if (!db) throw new Error("Database not available");
+
+  await db.insert(productShippingProfiles).values(assignment).onDuplicateKeyUpdate({
+    set: {
+      profileId: assignment.profileId,
+      productTitle: assignment.productTitle,
+    },
+  });
+}
+
+export async function getProductShippingProfilesByStoreId(storeId: number) {
+  const db = await getDb();
+  if (!db) return [];
+
+  return await db.select().from(productShippingProfiles).where(eq(productShippingProfiles.storeId, storeId));
+}
+
+export async function getProductShippingProfileByVariant(storeId: number, variantId: string) {
+  const db = await getDb();
+  if (!db) return undefined;
+
+  const result = await db.select()
+    .from(productShippingProfiles)
+    .where(
+      and(
+        eq(productShippingProfiles.storeId, storeId),
+        eq(productShippingProfiles.variantId, variantId)
+      )
+    )
+    .limit(1);
+  
+  return result.length > 0 ? result[0] : undefined;
+}
+
+export async function removeProductShippingProfile(storeId: number, variantId: string) {
+  const db = await getDb();
+  if (!db) throw new Error("Database not available");
+
+  await db.delete(productShippingProfiles).where(
+    and(
+      eq(productShippingProfiles.storeId, storeId),
+      eq(productShippingProfiles.variantId, variantId)
+    )
+  );
 }

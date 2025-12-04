@@ -163,3 +163,37 @@ export const exchangeRates = mysqlTable("exchange_rates", {
 
 export type ExchangeRate = typeof exchangeRates.$inferSelect;
 export type InsertExchangeRate = typeof exchangeRates.$inferInsert;
+
+/**
+ * Shipping Profiles - Reusable shipping configuration templates
+ */
+export const shippingProfiles = mysqlTable("shipping_profiles", {
+  id: int("id").autoincrement().primaryKey(),
+  storeId: int("storeId").notNull(),
+  name: varchar("name", { length: 255 }).notNull(), // e.g., "Standard Shipping", "Heavy Items", "International"
+  description: text("description"),
+  configJson: text("configJson").notNull(), // JSON: { shippingType: { region: { quantity: cost } } }
+  createdAt: timestamp("createdAt").defaultNow().notNull(),
+  updatedAt: timestamp("updatedAt").defaultNow().onUpdateNow().notNull(),
+});
+
+export type ShippingProfile = typeof shippingProfiles.$inferSelect;
+export type InsertShippingProfile = typeof shippingProfiles.$inferInsert;
+
+/**
+ * Product Shipping Profiles - Junction table linking products/variants to shipping profiles
+ */
+export const productShippingProfiles = mysqlTable("product_shipping_profiles", {
+  id: int("id").autoincrement().primaryKey(),
+  storeId: int("storeId").notNull(),
+  variantId: varchar("variantId", { length: 255 }).notNull(),
+  profileId: int("profileId").notNull(),
+  productTitle: text("productTitle"),
+  createdAt: timestamp("createdAt").defaultNow().notNull(),
+  updatedAt: timestamp("updatedAt").defaultNow().onUpdateNow().notNull(),
+}, (table) => ({
+  uniqueStoreVariantProfile: unique().on(table.storeId, table.variantId),
+}));
+
+export type ProductShippingProfile = typeof productShippingProfiles.$inferSelect;
+export type InsertProductShippingProfile = typeof productShippingProfiles.$inferInsert;

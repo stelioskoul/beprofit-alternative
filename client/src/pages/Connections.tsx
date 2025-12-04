@@ -9,7 +9,6 @@ import { ArrowLeft, CheckCircle, Loader2, XCircle } from "lucide-react";
 import { useState } from "react";
 import { useLocation, useParams } from "wouter";
 import { toast } from "sonner";
-import TimezoneSelector from "@/components/TimezoneSelector";
 
 export default function Connections() {
   const { id } = useParams();
@@ -336,16 +335,7 @@ export default function Connections() {
             </CardContent>
           </Card>
 
-          {/* Timezone Settings */}
-          <Card>
-            <CardHeader>
-              <CardTitle>Timezone Settings</CardTitle>
-              <CardDescription>Set your preferred timezone for daily reports and analytics</CardDescription>
-            </CardHeader>
-            <CardContent>
-              <TimezoneSelector storeId={storeId} />
-            </CardContent>
-          </Card>
+
         </div>
       </div>
     </div>

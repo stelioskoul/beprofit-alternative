@@ -774,6 +774,195 @@ export const appRouter = router({
         return { success: true };
       }),
   }),
+
+  shippingProfiles: router({
+    list: protectedProcedure
+      .input(z.object({ storeId: z.number() }))
+      .query(async ({ ctx, input }) => {
+        const store = await db.getStoreById(input.storeId);
+        if (!store || store.userId !== ctx.user.id) {
+          throw new TRPCError({
+            code: "NOT_FOUND",
+            message: "Store not found or access denied",
+          });
+        }
+
+        return await db.getShippingProfilesByStoreId(input.storeId);
+      }),
+
+    getById: protectedProcedure
+      .input(z.object({ profileId: z.number() }))
+      .query(async ({ ctx, input }) => {
+        const profile = await db.getShippingProfileById(input.profileId);
+        if (!profile) {
+          throw new TRPCError({
+            code: "NOT_FOUND",
+            message: "Profile not found",
+          });
+        }
+
+        const store = await db.getStoreById(profile.storeId);
+        if (!store || store.userId !== ctx.user.id) {
+          throw new TRPCError({
+            code: "NOT_FOUND",
+            message: "Access denied",
+          });
+        }
+
+        return profile;
+      }),
+
+    create: protectedProcedure
+      .input(
+        z.object({
+          storeId: z.number(),
+          name: z.string().min(1),
+          description: z.string().optional(),
+          configJson: z.string(),
+        })
+      )
+      .mutation(async ({ ctx, input }) => {
+        const store = await db.getStoreById(input.storeId);
+        if (!store || store.userId !== ctx.user.id) {
+          throw new TRPCError({
+            code: "NOT_FOUND",
+            message: "Store not found or access denied",
+          });
+        }
+
+        await db.createShippingProfile({
+          storeId: input.storeId,
+          name: input.name,
+          description: input.description || null,
+          configJson: input.configJson,
+        });
+
+        return { success: true };
+      }),
+
+    update: protectedProcedure
+      .input(
+        z.object({
+          profileId: z.number(),
+          name: z.string().min(1).optional(),
+          description: z.string().optional(),
+          configJson: z.string().optional(),
+        })
+      )
+      .mutation(async ({ ctx, input }) => {
+        const profile = await db.getShippingProfileById(input.profileId);
+        if (!profile) {
+          throw new TRPCError({
+            code: "NOT_FOUND",
+            message: "Profile not found",
+          });
+        }
+
+        const store = await db.getStoreById(profile.storeId);
+        if (!store || store.userId !== ctx.user.id) {
+          throw new TRPCError({
+            code: "NOT_FOUND",
+            message: "Access denied",
+          });
+        }
+
+        const updates: Partial<typeof profile> = {};
+        if (input.name) updates.name = input.name;
+        if (input.description !== undefined) updates.description = input.description;
+        if (input.configJson) updates.configJson = input.configJson;
+
+        await db.updateShippingProfile(input.profileId, updates);
+
+        return { success: true };
+      }),
+
+    delete: protectedProcedure
+      .input(z.object({ profileId: z.number() }))
+      .mutation(async ({ ctx, input }) => {
+        const profile = await db.getShippingProfileById(input.profileId);
+        if (!profile) {
+          throw new TRPCError({
+            code: "NOT_FOUND",
+            message: "Profile not found",
+          });
+        }
+
+        const store = await db.getStoreById(profile.storeId);
+        if (!store || store.userId !== ctx.user.id) {
+          throw new TRPCError({
+            code: "NOT_FOUND",
+            message: "Access denied",
+          });
+        }
+
+        await db.deleteShippingProfile(input.profileId);
+
+        return { success: true };
+      }),
+
+    assignToProduct: protectedProcedure
+      .input(
+        z.object({
+          storeId: z.number(),
+          variantId: z.string(),
+          profileId: z.number(),
+          productTitle: z.string().optional(),
+        })
+      )
+      .mutation(async ({ ctx, input }) => {
+        const store = await db.getStoreById(input.storeId);
+        if (!store || store.userId !== ctx.user.id) {
+          throw new TRPCError({
+            code: "NOT_FOUND",
+            message: "Store not found or access denied",
+          });
+        }
+
+        await db.assignShippingProfile({
+          storeId: input.storeId,
+          variantId: input.variantId,
+          profileId: input.profileId,
+          productTitle: input.productTitle || null,
+        });
+
+        return { success: true };
+      }),
+
+    getProductAssignments: protectedProcedure
+      .input(z.object({ storeId: z.number() }))
+      .query(async ({ ctx, input }) => {
+        const store = await db.getStoreById(input.storeId);
+        if (!store || store.userId !== ctx.user.id) {
+          throw new TRPCError({
+            code: "NOT_FOUND",
+            message: "Store not found or access denied",
+          });
+        }
+
+        return await db.getProductShippingProfilesByStoreId(input.storeId);
+      }),
+
+    removeProductAssignment: protectedProcedure
+      .input(
+        z.object({
+          storeId: z.number(),
+          variantId: z.string(),
+        })
+      )
+      .mutation(async ({ ctx, input }) => {
+        const store = await db.getStoreById(input.storeId);
+        if (!store || store.userId !== ctx.user.id) {
+          throw new TRPCError({
+            code: "NOT_FOUND",
+            message: "Store not found or access denied",
+          });
+        }
+
+        await db.removeProductShippingProfile(input.storeId, input.variantId);
+
+        return { success: true };
+      }),
+  }),
 });
 
 export type AppRouter = typeof appRouter;

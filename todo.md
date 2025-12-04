@@ -342,3 +342,27 @@
 - [x] Test timezone selector UI with all three options
 - [x] Update existing stores to have default timezone
 - [x] Calculate timezoneOffset from timezone for backward compatibility
+
+## Bug Fix: Timezone Mismatch in Connections Tab (User Reported) - COMPLETED ✅
+- [x] Fix Connections tab timezone selector to display store's current timezone
+- [x] Remove separate timezone setting in Connections tab (should use store timezone)
+- [x] Removed TimezoneSelector component from Connections tab
+- [x] Timezone is now only managed at store creation level
+
+## Bug Fix: Shipping Configuration Visibility (User Reported) - COMPLETED ✅
+- [x] Fix issue where existing shipping configuration is not visible when editing product
+- [x] Display current shipping settings when returning to product tab
+- [x] Allow editing and deleting existing shipping configurations
+- [x] Added refetch for shippingConfigs query after saving
+- [x] Shipping configurations now properly reload when dialog is reopened
+
+## Feature: Reusable Shipping Profiles (User Requested) - IN PROGRESS 🚧
+- [x] Create Shipping Profiles system (separate from per-product config)
+- [x] Add database tables for shipping profiles and product assignments
+- [x] Add backend database helpers for CRUD operations
+- [x] Add tRPC procedures for shipping profiles
+- [ ] Add UI to create/edit/delete shipping profiles
+- [ ] Update Products page to assign shipping profiles to products
+- [ ] Allow assigning one profile to multiple products
+- [ ] Show which products are using each profile
+- [ ] Migrate existing per-product shipping configs to profiles (optional)
