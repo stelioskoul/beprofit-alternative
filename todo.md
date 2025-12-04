@@ -51,3 +51,13 @@
 - [x] Added pagination limit (10 pages max = 2500 transactions) to prevent timeouts
 - [x] Balance transactions API is working but takes 20-30 seconds per request
 - [x] Note: Consider implementing as background job for better UX
+
+## CRITICAL FIXES - PHASE 3 ✅
+- [x] Convert processing fees from EUR to USD (balance transactions return EUR) - Verified working!
+- [x] Change default date range to today only (was last 30 days) - Dashboard defaults to today
+- [x] Add debug logging for COGS/Shipping configuration matching
+- [x] Remove products fetch limit - now fetches all products with pagination (up to 5000)
+- [x] Test all fixes with real data - All working correctly!
+- [x] COGS showing correctly in orders (Order #18306: $14.50, Order #18305: $37.00)
+- [x] Processing fees converted correctly (Order #18306: $3.58 from EUR)
+- [x] Total Profit Margin renamed and showing correctly

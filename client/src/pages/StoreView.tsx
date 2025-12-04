@@ -23,10 +23,9 @@ export default function StoreView() {
   const [activeTab, setActiveTab] = useState("dashboard");
 
   const today = new Date();
-  const thirtyDaysAgo = new Date(today);
-  thirtyDaysAgo.setDate(today.getDate() - 30);
 
-  const [startDate, setStartDate] = useState(thirtyDaysAgo.toISOString().split("T")[0]);
+  // Default to today only (not last 30 days)
+  const [startDate, setStartDate] = useState(today.toISOString().split("T")[0]);
   const [endDate, setEndDate] = useState(today.toISOString().split("T")[0]);
 
   const { data: store, isLoading: storeLoading } = trpc.stores.getById.useQuery(

@@ -355,6 +355,7 @@ export const appRouter = router({
               cogsMap[config.variantId] = val;
             }
           }
+          console.log(`[COGS] Loaded ${Object.keys(cogsMap).length} COGS configurations:`, Object.keys(cogsMap).slice(0, 5));
 
           const shippingMap: Record<string, any> = {};
           for (const config of shippingConfigList) {
@@ -364,16 +365,20 @@ export const appRouter = router({
               console.error("Failed to parse shipping config:", e);
             }
           }
+          console.log(`[Shipping] Loaded ${Object.keys(shippingMap).length} shipping configurations:`, Object.keys(shippingMap).slice(0, 5));
 
           // Fetch actual processing fees from Shopify balance transactions
           // NOTE: This may take 10-30 seconds depending on transaction volume
           let orderFees: Map<number, number> | undefined;
           try {
+            // Get exchange rate for EUR to USD conversion (balance transactions return EUR)
+            const EXCHANGE_RATE_EUR_USD = await getEurUsdRate();
             orderFees = await fetchShopifyBalanceTransactions(
               shopifyConn.shopDomain,
               shopifyConn.accessToken,
               { fromDate: input.fromDate, toDate: input.toDate },
-              shopifyConn.apiVersion || "2025-10"
+              shopifyConn.apiVersion || "2025-10",
+              EXCHANGE_RATE_EUR_USD
             );
             console.log(`[Balance Transactions] Fetched fees for ${orderFees.size} orders`);
           } catch (error) {
@@ -382,6 +387,13 @@ export const appRouter = router({
 
           // Get exchange rate for shipping cost conversion
           const EXCHANGE_RATE_EUR_USD = await getEurUsdRate();
+          
+          // Debug: Log first order's variant IDs
+          if (orders.length > 0 && orders[0].line_items?.length > 0) {
+            const firstOrderVariants = orders[0].line_items.map(item => `${item.variant_id} (${typeof item.variant_id})`);
+            console.log(`[Orders] First order variant IDs:`, firstOrderVariants);
+          }
+          
           processed = processOrders(orders, cogsMap, shippingMap, EXCHANGE_RATE_EUR_USD, orderFees);
 
           const processingFeesConfig = await db.getProcessingFeesConfigByStoreId(input.storeId);
@@ -534,23 +546,56 @@ export const appRouter = router({
           return [];
         }
 
-        // Fetch products from Shopify
-        const url = `https://${shopifyConn.shopDomain}/admin/api/${shopifyConn.apiVersion || "2025-10"}/products.json?limit=250`;
-        const response = await fetch(url, {
-          headers: {
-            "X-Shopify-Access-Token": shopifyConn.accessToken,
-          },
-        });
+        // Fetch ALL products from Shopify with pagination
+        const allProducts: any[] = [];
+        let nextPageInfo: string | null = null;
+        let pageCount = 0;
+        const MAX_PAGES = 20; // Fetch up to 5000 products (250 per page)
 
-        if (!response.ok) {
-          throw new TRPCError({
-            code: "INTERNAL_SERVER_ERROR",
-            message: "Failed to fetch products from Shopify",
+        while (pageCount < MAX_PAGES) {
+          pageCount++;
+          const url = new URL(`https://${shopifyConn.shopDomain}/admin/api/${shopifyConn.apiVersion || "2025-10"}/products.json`);
+          
+          if (nextPageInfo) {
+            url.searchParams.set("page_info", nextPageInfo);
+            url.searchParams.set("limit", "250");
+          } else {
+            url.searchParams.set("limit", "250");
+          }
+
+          const response = await fetch(url.toString(), {
+            headers: {
+              "X-Shopify-Access-Token": shopifyConn.accessToken,
+            },
           });
+
+          if (!response.ok) {
+            throw new TRPCError({
+              code: "INTERNAL_SERVER_ERROR",
+              message: "Failed to fetch products from Shopify",
+            });
+          }
+
+          const data = await response.json();
+          const products = data.products || [];
+          allProducts.push(...products);
+
+          // Check for next page
+          const linkHeader = response.headers.get("link");
+          if (linkHeader && linkHeader.includes('rel="next"')) {
+            const nextMatch = linkHeader.match(/<[^>]*page_info=([^&>]+)[^>]*>; rel="next"/);
+            if (nextMatch) {
+              nextPageInfo = nextMatch[1];
+            } else {
+              break;
+            }
+          } else {
+            break;
+          }
         }
 
-        const data = await response.json();
-        return data.products || [];
+        console.log(`[Products] Fetched ${allProducts.length} products from Shopify`);
+        return allProducts;
       }),
   }),
 
@@ -608,11 +653,14 @@ export const appRouter = router({
         // NOTE: This may take 10-30 seconds depending on transaction volume
         let orderFees: Map<number, number> | undefined;
         try {
+          // Get exchange rate for EUR to USD conversion (balance transactions return EUR)
+          const EXCHANGE_RATE_EUR_USD = await getEurUsdRate();
           orderFees = await fetchShopifyBalanceTransactions(
             shopifyConn.shopDomain,
             shopifyConn.accessToken,
             { fromDate: input.startDate, toDate: input.endDate },
-            shopifyConn.apiVersion || "2025-10"
+            shopifyConn.apiVersion || "2025-10",
+            EXCHANGE_RATE_EUR_USD
           );
           console.log(`[Balance Transactions] Fetched fees for ${orderFees.size} orders`);
         } catch (error) {

@@ -204,7 +204,8 @@ export async function fetchShopifyBalanceTransactions(
   shopDomain: string,
   accessToken: string,
   dateRange: DateRange,
-  apiVersion: string = "2025-10"
+  apiVersion: string = "2025-10",
+  eurToUsdRate: number = 1.1665
 ): Promise<Map<number, number>> {
   // Returns a map of order_id -> total_fee
   const baseUrl = `https://${shopDomain}/admin/api/${apiVersion}/shopify_payments/balance/transactions.json`;
@@ -258,11 +259,12 @@ export async function fetchShopifyBalanceTransactions(
     for (const txn of transactions) {
       if (txn.type === "charge" && txn.source_order_id) {
         const orderId = txn.source_order_id;
-        const fee = parseFloat(txn.fee);
+        const feeEur = parseFloat(txn.fee);
+        const feeUsd = feeEur * eurToUsdRate; // Convert EUR to USD
         
         // Accumulate fees for the same order (in case there are multiple charges)
         const existingFee = orderFees.get(orderId) || 0;
-        orderFees.set(orderId, existingFee + fee);
+        orderFees.set(orderId, existingFee + feeUsd);
       }
     }
 
