@@ -1,4 +1,4 @@
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
@@ -47,7 +47,12 @@ export function ShippingConfigEditor({
     return emptyConfig;
   });
 
-  const [currency, setCurrency] = useState<"USD" | "EUR">("USD");
+  // Update config when initialConfig changes (for edit dialog)
+  useEffect(() => {
+    if (initialConfig) {
+      setConfig(initialConfig);
+    }
+  }, [initialConfig]);
 
   const updatePrice = (country: Country, method: ShippingMethod, quantity: number, price: string) => {
     const numPrice = parseFloat(price);
@@ -115,13 +120,7 @@ export function ShippingConfigEditor({
       return;
     }
 
-    // Include currency in the saved config
-    const configWithCurrency: any = {
-      currency,
-      rates: config,
-    };
-
-    onSave(configWithCurrency);
+    onSave(config);
   };
 
   return (
@@ -129,23 +128,8 @@ export function ShippingConfigEditor({
       <CardHeader>
         <CardTitle className="gold-text">{productTitle}</CardTitle>
         <CardDescription>
-          Configure shipping costs by country, method, and quantity
+          Configure shipping costs by country, method, and quantity. All prices in USD.
         </CardDescription>
-        <div className="flex items-center gap-2 mt-4">
-          <Label>Input Currency:</Label>
-          <Select value={currency} onValueChange={(v) => setCurrency(v as "USD" | "EUR")}>
-            <SelectTrigger className="w-32">
-              <SelectValue />
-            </SelectTrigger>
-            <SelectContent>
-              <SelectItem value="USD">USD ($)</SelectItem>
-              <SelectItem value="EUR">EUR (€)</SelectItem>
-            </SelectContent>
-          </Select>
-          <span className="text-xs text-muted-foreground">
-            (All values will be converted to EUR for calculations)
-          </span>
-        </div>
       </CardHeader>
       <CardContent>
         <Tabs defaultValue="US" className="w-full">
@@ -192,7 +176,7 @@ export function ShippingConfigEditor({
                               </Label>
                               <div className="flex items-center gap-1 mt-1">
                                 <span className="text-sm font-medium">
-                                  {currency === "USD" ? "$" : "€"}
+                                  $
                                 </span>
                                 <Input
                                   type="number"

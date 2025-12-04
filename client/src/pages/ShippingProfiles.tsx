@@ -54,6 +54,9 @@ export default function ShippingProfiles() {
       refetchProfiles();
       setIsEditDialogOpen(false);
       setEditingProfile(null);
+      setProfileName("");
+      setProfileDescription("");
+      setProfileConfig({});
     },
     onError: (error) => {
       toast.error(error.message);
@@ -278,6 +281,7 @@ export default function ShippingProfiles() {
             </div>
             <div className="border-t pt-4">
               <ShippingConfigEditor
+                key={editingProfile?.id || "edit"}
                 variantId={editingProfile?.id?.toString() || "edit"}
                 productTitle={profileName || "Edit Profile"}
                 initialConfig={profileConfig}

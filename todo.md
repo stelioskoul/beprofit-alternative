@@ -377,3 +377,21 @@
 - [x] Added Shipping Profiles tab in store view
 - [x] Replaced individual product shipping config with profile dropdown
 - [x] Products can now select from existing profiles or have no profile
+
+## Bug Fix: Shipping Profile Configuration Not Displaying When Editing (User Reported) - COMPLETED ✅
+- [x] Fix issue where saved shipping profile configuration is not displayed when editing
+- [x] Ensure ShippingConfigEditor properly loads initialConfig prop
+- [x] Configuration should show all saved costs when reopening edit dialog
+- [x] Added useEffect to update config when initialConfig changes
+- [x] Added key prop to force remount when editing different profiles
+- [x] Reset profileConfig state when dialog closes
+- [x] Fixed currency reference error causing crashes
+- [x] Verified fix works: Test Profile 2 shows $5 for 1 pc when editing
+
+## UI Improvement: Remove Currency Selector (User Requested) - COMPLETED ✅
+- [x] Remove currency selector from ShippingConfigEditor
+- [x] Always use USD as the currency (no selection needed)
+- [x] Simplify the UI by removing unnecessary currency dropdown
+- [x] Updated description to show "All prices in USD"
+- [x] Replaced currency variable with hardcoded $ symbol
+- [x] Fixed ReferenceError: currency is not defined
