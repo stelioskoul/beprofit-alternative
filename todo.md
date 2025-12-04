@@ -395,3 +395,40 @@
 - [x] Updated description to show "All prices in USD"
 - [x] Replaced currency variable with hardcoded $ symbol
 - [x] Fixed ReferenceError: currency is not defined
+
+## UI Fix: Shipping Profiles Quantity Layout (User Requested) - COMPLETED ✅
+- [x] Change quantity pricing inputs to stack vertically instead of horizontally
+- [x] Give more space for price input fields
+- [x] Prevent inputs from getting squeezed when multiple quantities are added
+- [x] Changed from grid layout to flex-col for better spacing
+
+## Dashboard Enhancement: Average Profit Margin (User Requested) - COMPLETED ✅
+- [x] Add "Average Profit Margin per Order" to Order Statistics section
+- [x] Calculate as (Net Profit / Revenue) * 100
+- [x] Display as percentage with proper formatting
+- [x] Color-code green for positive, red for negative
+
+## Orders Tab Product Details Update (User Requested) - COMPLETED ✅
+- [x] Remove "Ad spend (allocated)" from order totals section
+- [x] Add "Net Profit Margin" field (profit / selling price * 100) to line items
+- [x] Add "Discount" field from Shopify order data (in USD) to line items
+- [x] Update UI to display new fields prominently
+- [x] Added total_discounts to Shopify order interface
+- [x] Extract discount from Shopify orders in profit calculator
+- [x] Pass discount field through backend to frontend
+
+## Feature: Add Shipping Revenue to Profit Calculation (User Requested) - COMPLETED ✅
+- [x] Extract shipping revenue (what customer pays) from Shopify orders
+- [x] Add shipping revenue to total revenue in profit calculation
+- [x] Old: Profit = Revenue - COGS - Shipping Cost - Processing Fees
+- [x] New: Profit = (Product Revenue + Shipping Revenue) - COGS - Shipping Cost - Processing Fees
+- [x] Update UI to show shipping revenue separately in Orders tab (green color)
+- [x] Renamed "Total Shipping" to "Shipping Cost" for clarity
+- [x] Extract from shipping_lines[].price in Shopify orders
+
+## Feature: Order Search in Orders Tab (User Requested) - COMPLETED ✅
+- [x] Add search bar to Orders tab
+- [x] Allow searching by Order ID (e.g., 18306)
+- [x] Filter orders in real-time as user types
+- [x] Add clear button to reset search
+- [x] Search matches order number (partial match supported)

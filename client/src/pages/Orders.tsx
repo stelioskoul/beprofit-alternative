@@ -20,6 +20,7 @@ export default function Orders() {
   
   const [startDate, setStartDate] = useState(thirtyDaysAgo.toISOString().split("T")[0]);
   const [endDate, setEndDate] = useState(today.toISOString().split("T")[0]);
+  const [searchQuery, setSearchQuery] = useState("");
 
   const { data: orders, isLoading } = trpc.orders.listWithProfit.useQuery(
     { storeId, startDate, endDate },
@@ -69,34 +70,50 @@ export default function Orders() {
 
   return (
     <div className="space-y-6">
-      <div className="flex items-center justify-between flex-wrap gap-4">
-        <div>
-          <h2 className="text-3xl font-bold gold-text">Orders</h2>
-          <p className="text-muted-foreground mt-1">
-            View detailed profit breakdown for each order
-          </p>
+      <div className="space-y-4">
+        <div className="flex items-center justify-between flex-wrap gap-4">
+          <div>
+            <h2 className="text-3xl font-bold gold-text">Orders</h2>
+            <p className="text-muted-foreground mt-1">
+              View detailed profit breakdown for each order
+            </p>
+          </div>
+          <div className="flex items-center gap-4">
+            <div className="space-y-1">
+              <Label htmlFor="start-date" className="text-xs">From</Label>
+              <Input
+                id="start-date"
+                type="date"
+                value={startDate}
+                onChange={(e) => setStartDate(e.target.value)}
+                className="w-40 date-input-gold"
+              />
+            </div>
+            <div className="space-y-1">
+              <Label htmlFor="end-date" className="text-xs">To</Label>
+              <Input
+                id="end-date"
+                type="date"
+                value={endDate}
+                onChange={(e) => setEndDate(e.target.value)}
+                className="w-40 date-input-gold"
+              />
+            </div>
+          </div>
         </div>
-        <div className="flex items-center gap-4">
-          <div className="space-y-1">
-            <Label htmlFor="start-date" className="text-xs">From</Label>
-            <Input
-              id="start-date"
-              type="date"
-              value={startDate}
-              onChange={(e) => setStartDate(e.target.value)}
-              className="w-40 date-input-gold"
-            />
-          </div>
-          <div className="space-y-1">
-            <Label htmlFor="end-date" className="text-xs">To</Label>
-            <Input
-              id="end-date"
-              type="date"
-              value={endDate}
-              onChange={(e) => setEndDate(e.target.value)}
-              className="w-40 date-input-gold"
-            />
-          </div>
+        <div className="flex items-center gap-2">
+          <Input
+            type="text"
+            placeholder="Search by Order ID (e.g., 18306)..."
+            value={searchQuery}
+            onChange={(e) => setSearchQuery(e.target.value)}
+            className="max-w-md"
+          />
+          {searchQuery && (
+            <Button variant="outline" size="sm" onClick={() => setSearchQuery("")}>
+              Clear
+            </Button>
+          )}
         </div>
       </div>
 
@@ -106,7 +123,13 @@ export default function Orders() {
         </div>
       ) : orders && orders.length > 0 ? (
         <div className="space-y-4">
-          {orders.map((order: any) => (
+          {orders
+            .filter((order: any) => {
+              if (!searchQuery) return true;
+              const orderIdStr = String(order.orderNumber || "");
+              return orderIdStr.includes(searchQuery);
+            })
+            .map((order: any) => (
             <Card key={order.id} className="card-glow">
               <CardContent className="p-6">
                 <div className="flex items-start justify-between mb-4">
@@ -147,7 +170,7 @@ export default function Orders() {
                         <p className="font-semibold">{formatCurrency(item.quantity * item.price)}</p>
                       </div>
                       
-                      <div className="grid grid-cols-2 md:grid-cols-4 gap-2 mt-2 pt-2 border-t border-white/5">
+                      <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-6 gap-2 mt-2 pt-2 border-t border-white/5">
                         <div>
                           <p className="text-xs text-muted-foreground">COGS</p>
                           <p className="text-sm font-medium">{formatCurrency(item.cogs || 0)}</p>
@@ -159,6 +182,16 @@ export default function Orders() {
                         <div>
                           <p className="text-xs text-muted-foreground">Processing Fee</p>
                           <p className="text-sm font-medium">{formatCurrency(item.processingFee || 0)}</p>
+                        </div>
+                        <div>
+                          <p className="text-xs text-muted-foreground">Discount</p>
+                          <p className="text-sm font-medium">{formatCurrency(order.discount || 0)}</p>
+                        </div>
+                        <div>
+                          <p className="text-xs text-muted-foreground">Net Profit Margin</p>
+                          <p className={`text-sm font-semibold ${(item.quantity * item.price) > 0 ? (item.profit / (item.quantity * item.price) * 100) >= 0 ? "text-green-500" : "text-red-500" : "text-muted-foreground"}`}>
+                            {(item.quantity * item.price) > 0 ? ((item.profit / (item.quantity * item.price)) * 100).toFixed(1) : "0.0"}%
+                          </p>
                         </div>
                         <div>
                           <p className="text-xs text-muted-foreground">Item Profit</p>
@@ -178,20 +211,20 @@ export default function Orders() {
                       <p className="font-semibold">{formatCurrency(order.totalRevenue)}</p>
                     </div>
                     <div>
+                      <p className="text-muted-foreground">Shipping Revenue</p>
+                      <p className="font-semibold text-green-500">{formatCurrency(order.shippingRevenue || 0)}</p>
+                    </div>
+                    <div>
                       <p className="text-muted-foreground">Total COGS</p>
                       <p className="font-semibold">{formatCurrency(order.totalCogs)}</p>
                     </div>
                     <div>
-                      <p className="text-muted-foreground">Total Shipping</p>
+                      <p className="text-muted-foreground">Shipping Cost</p>
                       <p className="font-semibold">{formatCurrency(order.totalShipping)}</p>
                     </div>
                     <div>
                       <p className="text-muted-foreground">Processing Fees</p>
                       <p className="font-semibold">{formatCurrency(order.totalProcessingFees)}</p>
-                    </div>
-                    <div>
-                      <p className="text-muted-foreground">Ad Spend (allocated)</p>
-                      <p className="font-semibold">{formatCurrency(order.allocatedAdSpend || 0)}</p>
                     </div>
                   </div>
                 </div>

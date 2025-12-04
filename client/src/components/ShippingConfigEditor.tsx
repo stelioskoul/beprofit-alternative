@@ -167,7 +167,7 @@ export function ShippingConfigEditor({
                         No pricing configured. Click "Add Quantity" to start.
                       </p>
                     ) : (
-                      <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-3">
+                      <div className="flex flex-col gap-3">
                         {quantities.map(qty => (
                           <div key={qty} className="flex items-center gap-2 p-3 border rounded-lg">
                             <div className="flex-1">

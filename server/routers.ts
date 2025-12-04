@@ -603,10 +603,12 @@ export const appRouter = router({
         const ordersWithProfit = processed.processedOrders.map((order: any) => {
           // Keep values in USD
           const orderTotal = order.total;
+          const orderShippingRevenue = order.shippingRevenue || 0;
           const orderCogs = order.cogs;
           const orderShipping = order.shippingCost;
           const orderProcessingFee = (order.total * parseFloat(processingFeesConfig?.percentFee || "0.028")) + parseFloat(processingFeesConfig?.fixedFee || "0.29");
-          const orderProfit = orderTotal - orderCogs - orderShipping - orderProcessingFee;
+          // Include shipping revenue in profit: (Product Revenue + Shipping Revenue) - Costs
+          const orderProfit = (orderTotal + orderShippingRevenue) - orderCogs - orderShipping - orderProcessingFee;
 
           return {
             id: order.id,
@@ -614,11 +616,12 @@ export const appRouter = router({
             createdAt: order.createdAt,
             country: order.country,
             shippingType: order.shippingType,
+            discount: order.discount || 0,
+            shippingRevenue: orderShippingRevenue,
             totalRevenue: orderTotal,
             totalCogs: orderCogs,
             totalShipping: orderShipping,
             totalProcessingFees: orderProcessingFee,
-            allocatedAdSpend: 0, // TODO: Allocate ad spend proportionally
             profit: orderProfit,
             lineItems: (order.items || []).map((item: any) => {
               // Keep values in USD

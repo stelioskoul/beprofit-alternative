@@ -32,6 +32,7 @@ interface ShopifyOrder {
   created_at: string;
   total_price: string;
   currency: string;
+  total_discounts?: string;
   customer?: {
     first_name?: string;
     last_name?: string;
@@ -200,6 +201,8 @@ export interface ProcessedOrder {
   customer: string;
   total: number;
   currency: string;
+  discount: number;
+  shippingRevenue: number;
   country: string | null;
   cogs: number;
   shippingCost: number;
@@ -266,6 +269,19 @@ export function processOrders(
     totalCogs += orderCogs;
     totalShipping += orderShipping;
 
+    const discountValue = order.total_discounts ? parseFloat(order.total_discounts) : 0;
+    
+    // Extract shipping revenue (what customer paid for shipping)
+    let shippingRevenue = 0;
+    if (order.shipping_lines && order.shipping_lines.length > 0) {
+      for (const shippingLine of order.shipping_lines) {
+        const price = parseFloat(String(shippingLine.price || "0"));
+        if (!isNaN(price)) {
+          shippingRevenue += price;
+        }
+      }
+    }
+    
     processedOrders.push({
       id: "#" + (order.order_number || order.id),
       orderNumber: order.order_number,
@@ -273,6 +289,8 @@ export function processOrders(
       customer: customerName,
       total: val,
       currency: order.currency || "USD",
+      discount: discountValue,
+      shippingRevenue,
       country: shippingCountry || null,
       cogs: orderCogs,
       shippingCost: orderShipping,

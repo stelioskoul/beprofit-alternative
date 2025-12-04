@@ -293,6 +293,12 @@ export default function StoreView() {
                           </div>
                         </div>
                       </div>
+                      <div className="flex items-center justify-between">
+                        <span className="text-muted-foreground">Average Profit Margin per Order</span>
+                        <span className={`font-semibold ${(metrics.revenue > 0 ? (metrics.netProfit / metrics.revenue * 100) : 0) >= 0 ? "text-green-500" : "text-red-500"}`}>
+                          {(metrics.revenue > 0 ? (metrics.netProfit / metrics.revenue * 100) : 0).toFixed(1)}%
+                        </span>
+                      </div>
                     </CardContent>
                   </Card>
                 </div>
