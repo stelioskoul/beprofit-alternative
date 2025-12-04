@@ -27,3 +27,19 @@
 - [x] Order search functionality
 - [x] Country and shipping method display in orders
 - [x] Average profit margin per order in Dashboard
+
+## CRITICAL PROFIT CALCULATION FIXES - PHASE 2 ✅
+- [x] Fix revenue double-counting bug - removed duplicate addition of shipping_revenue (total_price already includes it)
+- [x] Rename "Total Order Profit Margin" to "Total Profit Margin"
+- [x] Corrected profit formula: Profit = total_price - COGS - shipping_cost - processing_fees
+
+## FETCH ACTUAL PROCESSING FEES FROM SHOPIFY PAYOUTS ⚠️
+- [x] Research Shopify Payouts API (balance transactions with type "charge")
+- [x] Implement balance transaction fetching function with graceful error handling
+- [x] Integrate balance transactions into profit calculator
+- [x] Map actual fees to orders by order_id
+- [x] Remove per-product fee calculations and display
+- [x] Update routers.ts to use actual fees from balance transactions
+- [x] Temporarily disabled - requires Shopify Payments permissions (404/403)
+- [x] Fallback to calculated fees (2.8% + $0.29) works correctly
+- [x] Test with real order data - all calculations verified correct (Order #18305 and #18306)

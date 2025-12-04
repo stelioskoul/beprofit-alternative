@@ -217,7 +217,8 @@ export function processOrders(
   orders: ShopifyOrder[],
   cogsConfig: CogsConfigMap,
   shippingConfig: ShippingConfigMap,
-  exchangeRate: number = 1.0
+  exchangeRate: number = 1.0,
+  orderFees?: Map<number, number> // Map of order_id -> actual processing fee from Shopify
 ): {
   revenue: number;
   ordersCount: number;
@@ -287,8 +288,12 @@ export function processOrders(
       }
     }
     
-    // Calculate processing fees for this order (2.8% + $0.29)
-    const orderProcessingFees = val * 0.028 + 0.29;
+    // Use actual processing fees from Shopify balance transactions if available
+    // Otherwise fallback to calculated fees (2.8% + $0.29)
+    const orderIdNum = parseInt(order.id);
+    const orderProcessingFees = orderFees && orderFees.has(orderIdNum) 
+      ? orderFees.get(orderIdNum)! 
+      : val * 0.028 + 0.29;
     
     processedOrders.push({
       id: "#" + (order.order_number || order.id),

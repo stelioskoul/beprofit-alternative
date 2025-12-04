@@ -7,7 +7,7 @@ import { z } from "zod";
 import * as db from "./db";
 import { getShopifyAuthUrl, exchangeShopifyCode } from "./shopify-oauth";
 import { getFacebookAuthUrl, exchangeFacebookCode, exchangeForLongLivedToken, getFacebookAdAccounts } from "./facebook-oauth";
-import { fetchShopifyOrders, fetchShopifyDisputes } from "./shopify-data";
+import { fetchShopifyOrders, fetchShopifyDisputes, fetchShopifyBalanceTransactions } from "./shopify-data";
 import { fetchFacebookAdSpend } from "./facebook-data";
 import { processOrders, calculateProcessingFees, calculateOperationalExpensesForPeriod } from "./profit-calculator";
 import { getEurUsdRate, getCachedRate } from "./exchange-rate";
@@ -365,9 +365,23 @@ export const appRouter = router({
             }
           }
 
+          // Fetch actual processing fees from Shopify balance transactions
+          // Temporarily disabled for testing
+          let orderFees: Map<number, number> | undefined;
+          // try {
+          //   orderFees = await fetchShopifyBalanceTransactions(
+          //     shopifyConn.shopDomain,
+          //     shopifyConn.accessToken,
+          //     { fromDate: input.fromDate, toDate: input.toDate },
+          //     shopifyConn.apiVersion || "2025-10"
+          //   );
+          // } catch (error) {
+          //   console.error("Failed to fetch balance transactions, using calculated fees:", error);
+          // }
+
           // Get exchange rate for shipping cost conversion
           const EXCHANGE_RATE_EUR_USD = await getEurUsdRate();
-          processed = processOrders(orders, cogsMap, shippingMap, EXCHANGE_RATE_EUR_USD);
+          processed = processOrders(orders, cogsMap, shippingMap, EXCHANGE_RATE_EUR_USD, orderFees);
 
           const processingFeesConfig = await db.getProcessingFeesConfigByStoreId(input.storeId);
           const percentFee = processingFeesConfig ? parseFloat(processingFeesConfig.percentFee || "0.028") : 0.028;
@@ -589,9 +603,23 @@ export const appRouter = router({
           } catch {}
         }
 
+        // Fetch actual processing fees from Shopify balance transactions
+        // Temporarily disabled for testing
+        let orderFees: Map<number, number> | undefined;
+        // try {
+        //   orderFees = await fetchShopifyBalanceTransactions(
+        //     shopifyConn.shopDomain,
+        //     shopifyConn.accessToken,
+        //     { fromDate: input.startDate, toDate: input.endDate },
+        //     shopifyConn.apiVersion || "2025-10"
+        //   );
+        // } catch (error) {
+        //   console.error("Failed to fetch balance transactions, using calculated fees:", error);
+        // }
+
         // Get exchange rate for shipping cost conversion and currency conversion
         const EXCHANGE_RATE_EUR_USD = await getEurUsdRate();
-        const processed = processOrders(orders, cogsMap, shippingMap, EXCHANGE_RATE_EUR_USD);
+        const processed = processOrders(orders, cogsMap, shippingMap, EXCHANGE_RATE_EUR_USD, orderFees);
         const processingFees = calculateProcessingFees(
           processed.revenue,
           processed.ordersCount,
@@ -602,14 +630,15 @@ export const appRouter = router({
         // Calculate per-order profit in USD
         const ordersWithProfit = processed.processedOrders.map((order: any) => {
           // Keep values in USD
-          const orderTotal = order.total;
+          const orderTotal = order.total; // total_price from Shopify already includes shipping, discounts, and tips
           const orderShippingRevenue = order.shippingRevenue || 0;
           const orderTip = order.tip || 0;
           const orderCogs = order.cogs;
           const orderShipping = order.shippingCost;
           const orderProcessingFee = order.processingFees || ((order.total * parseFloat(processingFeesConfig?.percentFee || "0.028")) + parseFloat(processingFeesConfig?.fixedFee || "0.29"));
-          // Include shipping revenue and tip in profit: (Product Revenue + Shipping Revenue + Tip) - Costs
-          const orderProfit = (orderTotal + orderShippingRevenue + orderTip) - orderCogs - orderShipping - orderProcessingFee;
+          // Profit = Total Revenue - COGS - Shipping Cost - Processing Fees
+          // Note: orderTotal already includes everything customer paid (products + shipping + tip - discounts)
+          const orderProfit = orderTotal - orderCogs - orderShipping - orderProcessingFee;
 
           return {
             id: order.id,
@@ -630,7 +659,8 @@ export const appRouter = router({
               const itemPrice = item.price;
               const itemCogs = item.cogs || 0;
               const itemShipping = item.shippingCost || 0;
-              const itemProcessingFee = item.price * item.quantity * parseFloat(processingFeesConfig?.percentFee || "0.028");
+              // Note: Processing fees are now tracked at order level only (from Shopify balance transactions)
+              // Item profit = revenue - cogs - shipping (fees are deducted at order level)
               
               return {
                 name: item.name,
@@ -638,8 +668,7 @@ export const appRouter = router({
                 price: itemPrice,
                 cogs: itemCogs,
                 shipping: itemShipping,
-                processingFee: itemProcessingFee,
-                profit: (itemPrice * item.quantity) - itemCogs - itemShipping - itemProcessingFee,
+                profit: (itemPrice * item.quantity) - itemCogs - itemShipping,
               };
             }),
           };

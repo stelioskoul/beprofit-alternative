@@ -55,7 +55,6 @@ export default function Settings() {
 
     updateStoreMutation.mutate({
       id: storeId,
-      timezone: timezoneData.value,
       timezoneOffset: timezoneData.offset,
     });
   };

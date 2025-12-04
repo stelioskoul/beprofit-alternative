@@ -170,7 +170,7 @@ export default function Orders() {
                         <p className="font-semibold">{formatCurrency(item.quantity * item.price)}</p>
                       </div>
                       
-                      <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-6 gap-2 mt-2 pt-2 border-t border-white/5">
+                      <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-5 gap-2 mt-2 pt-2 border-t border-white/5">
                         <div>
                           <p className="text-xs text-muted-foreground">COGS</p>
                           <p className="text-sm font-medium">{formatCurrency(item.cogs || 0)}</p>
@@ -178,10 +178,6 @@ export default function Orders() {
                         <div>
                           <p className="text-xs text-muted-foreground">Shipping</p>
                           <p className="text-sm font-medium">{formatCurrency(item.shipping || 0)}</p>
-                        </div>
-                        <div>
-                          <p className="text-xs text-muted-foreground">Processing Fee</p>
-                          <p className="text-sm font-medium">{formatCurrency(item.processingFee || 0)}</p>
                         </div>
                         <div>
                           <p className="text-xs text-muted-foreground">Discount</p>
@@ -231,7 +227,7 @@ export default function Orders() {
                       <p className="font-semibold">{formatCurrency(order.totalProcessingFees)}</p>
                     </div>
                     <div>
-                      <p className="text-muted-foreground">Total Order Profit Margin</p>
+                      <p className="text-muted-foreground">Total Profit Margin</p>
                       <p className={`font-semibold ${order.totalRevenue > 0 ? (order.profit / order.totalRevenue * 100) >= 0 ? "text-green-500" : "text-red-500" : "text-muted-foreground"}`}>
                         {order.totalRevenue > 0 ? ((order.profit / order.totalRevenue) * 100).toFixed(1) : "0.0"}%
                       </p>

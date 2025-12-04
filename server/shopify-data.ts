@@ -182,3 +182,95 @@ export async function fetchShopifyDisputes(
 
   return { totalAmount, count: totalCount };
 }
+
+/**
+ * Fetch Shopify Balance Transactions to get actual processing fees
+ * Balance transactions include the actual fees charged by Shopify Payments
+ */
+interface BalanceTransaction {
+  id: number;
+  type: string; // "charge", "refund", "dispute", etc.
+  amount: string;
+  fee: string; // The actual processing fee
+  net: string;
+  source_order_id: number | null;
+  source_order_transaction_id: number | null;
+  source_type: string;
+  currency: string;
+  processed_at: string;
+}
+
+export async function fetchShopifyBalanceTransactions(
+  shopDomain: string,
+  accessToken: string,
+  dateRange: DateRange,
+  apiVersion: string = "2025-10"
+): Promise<Map<number, number>> {
+  // Returns a map of order_id -> total_fee
+  const baseUrl = `https://${shopDomain}/admin/api/${apiVersion}/shopify_payments/balance/transactions.json`;
+  
+  const orderFees = new Map<number, number>();
+  let lastId: number | null = null;
+  let hasMore = true;
+
+  while (hasMore) {
+    const params = new URLSearchParams({
+      limit: "250",
+    });
+    
+    if (lastId) {
+      params.append("last_id", lastId.toString());
+    }
+
+    const url = `${baseUrl}?${params.toString()}`;
+    
+    const response = await fetch(url, {
+      headers: {
+        "X-Shopify-Access-Token": accessToken,
+        "Content-Type": "application/json",
+      },
+    });
+
+    if (!response.ok) {
+      // If 404 or 403, the store doesn't have access to balance transactions (not using Shopify Payments or missing permissions)
+      if (response.status === 404 || response.status === 403) {
+        console.log(`[Balance Transactions] Not available for this store (${response.status}), using calculated fees`);
+        return new Map(); // Return empty map, will fall back to calculated fees
+      }
+      const errorText = await response.text();
+      throw new Error(
+        `Shopify balance transactions API error: ${response.status} ${response.statusText} - ${errorText}`
+      );
+    }
+
+    const data = await response.json();
+    const transactions: BalanceTransaction[] = data.transactions || [];
+
+    if (transactions.length === 0) {
+      hasMore = false;
+      break;
+    }
+
+    // Process transactions with type "charge" (these are order payments with fees)
+    for (const txn of transactions) {
+      if (txn.type === "charge" && txn.source_order_id) {
+        const orderId = txn.source_order_id;
+        const fee = parseFloat(txn.fee);
+        
+        // Accumulate fees for the same order (in case there are multiple charges)
+        const existingFee = orderFees.get(orderId) || 0;
+        orderFees.set(orderId, existingFee + fee);
+      }
+    }
+
+    // Check if there are more pages
+    const linkHeader = response.headers.get("link");
+    if (linkHeader && linkHeader.includes('rel="next"')) {
+      lastId = transactions[transactions.length - 1].id;
+    } else {
+      hasMore = false;
+    }
+  }
+
+  return orderFees;
+}
