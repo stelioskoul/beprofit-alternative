@@ -202,10 +202,12 @@ export interface ProcessedOrder {
   total: number;
   currency: string;
   discount: number;
+  tip: number;
   shippingRevenue: number;
   country: string | null;
   cogs: number;
   shippingCost: number;
+  processingFees: number;
   shippingType: string;
   region: string | null;
   items: LineItem[];
@@ -271,6 +273,9 @@ export function processOrders(
 
     const discountValue = order.total_discounts ? parseFloat(order.total_discounts) : 0;
     
+    // Extract tip (what customer paid as tip)
+    const tipValue = (order as any).total_tip_received ? parseFloat((order as any).total_tip_received) : 0;
+    
     // Extract shipping revenue (what customer paid for shipping)
     let shippingRevenue = 0;
     if (order.shipping_lines && order.shipping_lines.length > 0) {
@@ -282,6 +287,9 @@ export function processOrders(
       }
     }
     
+    // Calculate processing fees for this order (2.8% + $0.29)
+    const orderProcessingFees = val * 0.028 + 0.29;
+    
     processedOrders.push({
       id: "#" + (order.order_number || order.id),
       orderNumber: order.order_number,
@@ -290,10 +298,12 @@ export function processOrders(
       total: val,
       currency: order.currency || "USD",
       discount: discountValue,
+      tip: tipValue,
       shippingRevenue,
       country: shippingCountry || null,
       cogs: orderCogs,
       shippingCost: orderShipping,
+      processingFees: orderProcessingFees,
       shippingType,
       region,
       items: enrichedLineItems,

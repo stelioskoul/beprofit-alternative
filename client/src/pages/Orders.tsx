@@ -205,7 +205,7 @@ export default function Orders() {
                 </div>
 
                 <div className="mt-4 pt-4 border-t border-white/10">
-                  <div className="grid grid-cols-2 md:grid-cols-5 gap-4 text-sm">
+                  <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-7 gap-4 text-sm">
                     <div>
                       <p className="text-muted-foreground">Total Revenue</p>
                       <p className="font-semibold">{formatCurrency(order.totalRevenue)}</p>
@@ -213,6 +213,10 @@ export default function Orders() {
                     <div>
                       <p className="text-muted-foreground">Shipping Revenue</p>
                       <p className="font-semibold text-green-500">{formatCurrency(order.shippingRevenue || 0)}</p>
+                    </div>
+                    <div>
+                      <p className="text-muted-foreground">Tip</p>
+                      <p className="font-semibold text-green-500">{formatCurrency(order.tip || 0)}</p>
                     </div>
                     <div>
                       <p className="text-muted-foreground">Total COGS</p>
@@ -225,6 +229,12 @@ export default function Orders() {
                     <div>
                       <p className="text-muted-foreground">Processing Fees</p>
                       <p className="font-semibold">{formatCurrency(order.totalProcessingFees)}</p>
+                    </div>
+                    <div>
+                      <p className="text-muted-foreground">Total Order Profit Margin</p>
+                      <p className={`font-semibold ${order.totalRevenue > 0 ? (order.profit / order.totalRevenue * 100) >= 0 ? "text-green-500" : "text-red-500" : "text-muted-foreground"}`}>
+                        {order.totalRevenue > 0 ? ((order.profit / order.totalRevenue) * 100).toFixed(1) : "0.0"}%
+                      </p>
                     </div>
                   </div>
                 </div>

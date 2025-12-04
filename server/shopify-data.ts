@@ -63,7 +63,7 @@ export async function fetchShopifyOrders(
       url.searchParams.set("created_at_max", createdMax);
       url.searchParams.set(
         "fields",
-        "id,order_number,created_at,total_price,currency,customer,line_items,shipping_address,shipping_lines"
+        "id,order_number,created_at,total_price,currency,customer,line_items,shipping_address,shipping_lines,total_discounts,total_tip_received,current_total_discounts_set,financial_status"
       );
     }
 
