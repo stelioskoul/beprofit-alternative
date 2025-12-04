@@ -61,3 +61,10 @@
 - [x] COGS showing correctly in orders (Order #18306: $14.50, Order #18305: $37.00)
 - [x] Processing fees converted correctly (Order #18306: $3.58 from EUR)
 - [x] Total Profit Margin renamed and showing correctly
+
+## CRITICAL BUG: SHIPPING COSTS NOT SHOWING ✅
+- [x] Investigate shipping profile matching logic in profit-calculator.ts
+- [x] Check how shipping profiles are stored and retrieved from database
+- [x] Identified issue: getShippingConfigByStoreId only queried shipping_config table (empty)
+- [x] Fixed: Updated getShippingConfigByStoreId to JOIN product_shipping_profiles with shipping_profiles
+- [x] Ready for user testing - assign shipping profile to product and verify costs appear in orders

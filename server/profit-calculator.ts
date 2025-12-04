@@ -256,6 +256,20 @@ export function processOrders(
       const itemCogs = computeCogsForLineItem(item, cogsConfig);
       const itemShipping = region ? computeShippingForLineItem(item, region, shippingType, shippingConfig, exchangeRate) : 0;
       
+      // Debug logging for first order
+      if (processedOrders.length === 0 && lineItems.indexOf(item) === 0) {
+        const key = getItemConfigKey(item);
+        console.log(`[Shipping Debug] Order ${order.order_number}:`);
+        console.log(`  - variant_id: ${item.variant_id} (${typeof item.variant_id})`);
+        console.log(`  - Config key: ${key}`);
+        console.log(`  - Has shipping config: ${!!shippingConfig[key!]}`);
+        console.log(`  - Region: ${region}, Shipping Type: ${shippingType}`);
+        console.log(`  - Calculated shipping: $${itemShipping}`);
+        if (shippingConfig[key!]) {
+          console.log(`  - Shipping config:`, JSON.stringify(shippingConfig[key!]).substring(0, 200));
+        }
+      }
+      
       orderCogs += itemCogs;
       orderShipping += itemShipping;
       

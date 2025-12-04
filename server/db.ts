@@ -269,7 +269,39 @@ export async function getShippingConfigByStoreId(storeId: number) {
   const db = await getDb();
   if (!db) return [];
 
-  return await db.select().from(shippingConfig).where(eq(shippingConfig.storeId, storeId));
+  // First get direct shipping configs (old method)
+  const directConfigs = await db.select().from(shippingConfig).where(eq(shippingConfig.storeId, storeId));
+  
+  // Then get shipping configs from assigned profiles (new method)
+  // JOIN product_shipping_profiles with shipping_profiles to get the config for each variant
+  const profileConfigs = await db
+    .select({
+      id: productShippingProfiles.id,
+      storeId: productShippingProfiles.storeId,
+      variantId: productShippingProfiles.variantId,
+      productTitle: productShippingProfiles.productTitle,
+      configJson: shippingProfiles.configJson,
+      createdAt: productShippingProfiles.createdAt,
+      updatedAt: productShippingProfiles.updatedAt,
+    })
+    .from(productShippingProfiles)
+    .innerJoin(shippingProfiles, eq(productShippingProfiles.profileId, shippingProfiles.id))
+    .where(eq(productShippingProfiles.storeId, storeId));
+  
+  // Combine both sources (profile configs take precedence over direct configs)
+  const variantMap = new Map<string, any>();
+  
+  // Add direct configs first
+  for (const config of directConfigs) {
+    variantMap.set(config.variantId, config);
+  }
+  
+  // Override with profile configs (newer method)
+  for (const config of profileConfigs) {
+    variantMap.set(config.variantId, config);
+  }
+  
+  return Array.from(variantMap.values());
 }
 
 export async function deleteShippingConfig(configId: number) {
