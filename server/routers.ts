@@ -367,20 +367,23 @@ export const appRouter = router({
           }
           console.log(`[Shipping] Loaded ${Object.keys(shippingMap).length} shipping configurations:`, Object.keys(shippingMap).slice(0, 5));
 
-          // Fetch actual processing fees from Shopify balance transactions
+          // Fetch actual processing fees and disputes from Shopify balance transactions
           // NOTE: This may take 10-30 seconds depending on transaction volume
           let orderFees: Map<number, number> | undefined;
+          let totalDisputes = 0;
           try {
             // Get exchange rate for EUR to USD conversion (balance transactions return EUR)
             const EXCHANGE_RATE_EUR_USD = await getEurUsdRate();
-            orderFees = await fetchShopifyBalanceTransactions(
+            const balanceData = await fetchShopifyBalanceTransactions(
               shopifyConn.shopDomain,
               shopifyConn.accessToken,
               { fromDate: input.fromDate, toDate: input.toDate },
               shopifyConn.apiVersion || "2025-10",
               EXCHANGE_RATE_EUR_USD
             );
-            console.log(`[Balance Transactions] Fetched fees for ${orderFees.size} orders`);
+            orderFees = balanceData.orderFees;
+            totalDisputes = balanceData.totalDisputes;
+            console.log(`[Balance Transactions] Fetched fees for ${orderFees.size} orders, disputes: $${totalDisputes.toFixed(2)}`);
           } catch (error) {
             console.error("Failed to fetch balance transactions, using calculated fees:", error);
           }
@@ -439,7 +442,7 @@ export const appRouter = router({
         const cogsUSD = processed.totalCogs;
         const shippingUSD = processed.totalShipping;
         const processingFeesUSD = processingFees;
-        const disputesUSD = disputes.totalAmount;
+        const disputesUSD = totalDisputes; // From balance transactions
         
         // Convert ad spend to USD if it was in EUR
         const adSpendUSD = totalAdSpend * EXCHANGE_RATE_EUR_USD;
@@ -456,6 +459,17 @@ export const appRouter = router({
           disputesUSD -
           operationalExpensesUSD;
 
+        // Calculate average order profit margin (average of individual order margins)
+        let averageOrderProfitMargin = 0;
+        if (processed.processedOrders && processed.processedOrders.length > 0) {
+          const orderMargins = processed.processedOrders.map(order => {
+            const orderRevenue = order.total;
+            const orderProfit = order.profit;
+            return orderRevenue > 0 ? (orderProfit / orderRevenue) * 100 : 0;
+          });
+          averageOrderProfitMargin = orderMargins.reduce((sum, margin) => sum + margin, 0) / orderMargins.length;
+        }
+
         return {
           revenue: revenueUSD,
           orders: processed.ordersCount,
@@ -467,6 +481,7 @@ export const appRouter = router({
           operationalExpenses: operationalExpensesUSD,
           netProfit: netProfitUSD,
           processedOrders: processed.processedOrders,
+          averageOrderProfitMargin: averageOrderProfitMargin,
         };
       }),
   }),
@@ -649,19 +664,21 @@ export const appRouter = router({
           } catch {}
         }
 
-        // Fetch actual processing fees from Shopify balance transactions
+        // Fetch actual processing fees and disputes from Shopify balance transactions
         // NOTE: This may take 10-30 seconds depending on transaction volume
         let orderFees: Map<number, number> | undefined;
         try {
           // Get exchange rate for EUR to USD conversion (balance transactions return EUR)
           const EXCHANGE_RATE_EUR_USD = await getEurUsdRate();
-          orderFees = await fetchShopifyBalanceTransactions(
+          const balanceData = await fetchShopifyBalanceTransactions(
             shopifyConn.shopDomain,
             shopifyConn.accessToken,
             { fromDate: input.startDate, toDate: input.endDate },
             shopifyConn.apiVersion || "2025-10",
             EXCHANGE_RATE_EUR_USD
           );
+          orderFees = balanceData.orderFees;
+          // Note: totalDisputes is not used in orders list, only in dashboard
           console.log(`[Balance Transactions] Fetched fees for ${orderFees.size} orders`);
         } catch (error) {
           console.error("Failed to fetch balance transactions, using calculated fees:", error);

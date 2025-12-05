@@ -6,7 +6,7 @@ import { getLoginUrl } from "@/const";
 import { trpc } from "@/lib/trpc";
 import { ArrowLeft, Loader2 } from "lucide-react";
 import { Link, useLocation, useParams } from "wouter";
-import { useState } from "react";
+import { useState, useMemo } from "react";
 import Connections from "./Connections";
 import Products from "./Products";
 import Expenses from "./Expenses";
@@ -22,11 +22,12 @@ export default function StoreView() {
   const { isAuthenticated, loading } = useAuth();
   const [activeTab, setActiveTab] = useState("dashboard");
 
-  const today = new Date();
+  // Memoize today's date to prevent recalculation on every render
+  const todayString = useMemo(() => new Date().toISOString().split("T")[0], []);
 
   // Default to today only (not last 30 days)
-  const [startDate, setStartDate] = useState(today.toISOString().split("T")[0]);
-  const [endDate, setEndDate] = useState(today.toISOString().split("T")[0]);
+  const [startDate, setStartDate] = useState(todayString);
+  const [endDate, setEndDate] = useState(todayString);
 
   const { data: store, isLoading: storeLoading } = trpc.stores.getById.useQuery(
     { id: storeId },
@@ -191,10 +192,10 @@ export default function StoreView() {
                     <CardContent className="p-6">
                       <p className="text-sm text-muted-foreground mb-2">Total Costs</p>
                       <p className="text-3xl font-bold text-red-500">
-                        {formatCurrencyUSD(metrics.cogs + metrics.shipping + metrics.processingFees + metrics.adSpend + metrics.operationalExpenses)}
+                        {formatCurrencyUSD(metrics.cogs + metrics.shipping + metrics.processingFees + (metrics.disputes || 0) + metrics.adSpend + metrics.operationalExpenses)}
                       </p>
                       <p className="text-xs text-muted-foreground mt-1">
-                        {formatCurrencyEUR((metrics.cogs + metrics.shipping + metrics.processingFees + metrics.adSpend + metrics.operationalExpenses) / exchangeRate)}
+                        {formatCurrencyEUR((metrics.cogs + metrics.shipping + metrics.processingFees + (metrics.disputes || 0) + metrics.adSpend + metrics.operationalExpenses) / exchangeRate)}
                       </p>
                     </CardContent>
                   </Card>
@@ -247,6 +248,13 @@ export default function StoreView() {
                         </div>
                       </div>
                       <div className="flex items-center justify-between">
+                        <span className="text-muted-foreground">Disputes/Chargebacks</span>
+                        <div className="text-right">
+                          <div className="font-semibold">{formatCurrencyUSD(metrics.disputes || 0)}</div>
+                          <div className="text-xs text-muted-foreground">{formatCurrencyEUR((metrics.disputes || 0) / exchangeRate)}</div>
+                        </div>
+                      </div>
+                      <div className="flex items-center justify-between">
                         <span className="text-muted-foreground">Ad Spend</span>
                         <div className="text-right">
                           <div className="font-semibold">{formatCurrencyUSD(metrics.adSpend)}</div>
@@ -294,8 +302,8 @@ export default function StoreView() {
                       </div>
                       <div className="flex items-center justify-between">
                         <span className="text-muted-foreground">Average Profit Margin per Order</span>
-                        <span className={`font-semibold ${(metrics.revenue > 0 ? (metrics.netProfit / metrics.revenue * 100) : 0) >= 0 ? "text-green-500" : "text-red-500"}`}>
-                          {(metrics.revenue > 0 ? (metrics.netProfit / metrics.revenue * 100) : 0).toFixed(1)}%
+                        <span className={`font-semibold ${(metrics.averageOrderProfitMargin || 0) >= 0 ? "text-green-500" : "text-red-500"}`}>
+                          {(metrics.averageOrderProfitMargin || 0).toFixed(1)}%
                         </span>
                       </div>
                     </CardContent>

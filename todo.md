@@ -68,3 +68,12 @@
 - [x] Identified issue: getShippingConfigByStoreId only queried shipping_config table (empty)
 - [x] Fixed: Updated getShippingConfigByStoreId to JOIN product_shipping_profiles with shipping_profiles
 - [x] Ready for user testing - assign shipping profile to product and verify costs appear in orders
+
+## CRITICAL FIXES - PHASE 4 ✅
+- [x] Fix dashboard showing zeros on initial load - used useMemo to stabilize date initialization
+- [x] Add Disputes/Chargebacks to cost breakdown - extract from Shopify balance transactions (type: "chargeback")
+- [x] Include dispute fees in net profit calculation - totalDisputes added to cost breakdown
+- [x] Fix Average Profit Margin calculation - now calculates average of individual order profit margins
+- [x] Added Disputes/Chargebacks row to Cost Breakdown UI
+- [x] Updated Total Costs to include disputes
+- [x] Ready for user testing

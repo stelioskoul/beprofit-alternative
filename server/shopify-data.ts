@@ -239,7 +239,7 @@ export async function fetchShopifyBalanceTransactions(
       // If 404 or 403, the store doesn't have access to balance transactions (not using Shopify Payments or missing permissions)
       if (response.status === 404 || response.status === 403) {
         console.log(`[Balance Transactions] Not available for this store (${response.status}), using calculated fees`);
-        return new Map(); // Return empty map, will fall back to calculated fees
+        return { orderFees: new Map(), totalDisputes: 0 }; // Return empty data, will fall back to calculated fees
       }
       const errorText = await response.text();
       throw new Error(
@@ -255,8 +255,9 @@ export async function fetchShopifyBalanceTransactions(
       break;
     }
 
-    // Process transactions with type "charge" (these are order payments with fees)
+    // Process transactions
     for (const txn of transactions) {
+      // Extract processing fees from charge transactions
       if (txn.type === "charge" && txn.source_order_id) {
         const orderId = txn.source_order_id;
         const feeEur = parseFloat(txn.fee);
@@ -266,8 +267,17 @@ export async function fetchShopifyBalanceTransactions(
         const existingFee = orderFees.get(orderId) || 0;
         orderFees.set(orderId, existingFee + feeUsd);
       }
+      
+      // Extract chargeback amounts (negative impact on profit)
+      // Shopify uses lowercase "chargeback" for the type
+      if (txn.type === "chargeback" || txn.type === "dispute") {
+        const amountEur = Math.abs(parseFloat(txn.amount)); // Chargebacks are negative, make positive for cost
+        const feeEur = Math.abs(parseFloat(txn.fee)); // Chargeback fees
+        const totalEur = amountEur + feeEur;
+        const totalUsd = totalEur * eurToUsdRate; // Convert EUR to USD
+        totalDisputes += totalUsd;
+      }
     }
-
     // Check if there are more pages
     const linkHeader = response.headers.get("link");
     if (linkHeader && linkHeader.includes('rel="next"')) {
@@ -277,6 +287,6 @@ export async function fetchShopifyBalanceTransactions(
     }
   }
 
-  console.log(`[Balance Transactions] Fetched ${orderFees.size} orders with fees from ${pageCount} pages`);
-  return orderFees;
+  console.log(`[Balance Transactions] Fetched ${orderFees.size} orders with fees from ${pageCount} pages, total disputes: $${totalDisputes.toFixed(2)}`);
+  return { orderFees, totalDisputes };
 }
