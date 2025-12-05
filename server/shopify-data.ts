@@ -206,15 +206,17 @@ export async function fetchShopifyBalanceTransactions(
   dateRange: DateRange,
   apiVersion: string = "2025-10",
   eurToUsdRate: number = 1.1665
-): Promise<Map<number, number>> {
-  // Returns a map of order_id -> total_fee
+): Promise<{ orderFees: Map<number, number>; totalDisputeValue: number; totalDisputeFees: number }> {
+  // Returns order fees map, dispute value, and dispute fees separately
   const baseUrl = `https://${shopDomain}/admin/api/${apiVersion}/shopify_payments/balance/transactions.json`;
   
   const orderFees = new Map<number, number>();
-  let lastId: number | null = null;
-  let hasMore = true;
+  let totalDisputeValue = 0;
+  let totalDisputeFees = 0;
   let pageCount = 0;
   const MAX_PAGES = 10; // Safety limit: fetch max 10 pages (2500 transactions)
+  let hasMore = true;
+  let lastId: number | null = null;
 
   while (hasMore && pageCount < MAX_PAGES) {
     pageCount++;
@@ -239,7 +241,7 @@ export async function fetchShopifyBalanceTransactions(
       // If 404 or 403, the store doesn't have access to balance transactions (not using Shopify Payments or missing permissions)
       if (response.status === 404 || response.status === 403) {
         console.log(`[Balance Transactions] Not available for this store (${response.status}), using calculated fees`);
-        return { orderFees: new Map(), totalDisputes: 0 }; // Return empty data, will fall back to calculated fees
+        return { orderFees: new Map(), totalDisputeValue: 0, totalDisputeFees: 0 }; // Return empty data, will fall back to calculated fees
       }
       const errorText = await response.text();
       throw new Error(
@@ -271,11 +273,12 @@ export async function fetchShopifyBalanceTransactions(
       // Extract chargeback amounts (negative impact on profit)
       // Shopify uses lowercase "chargeback" for the type
       if (txn.type === "chargeback" || txn.type === "dispute") {
-        const amountEur = Math.abs(parseFloat(txn.amount)); // Chargebacks are negative, make positive for cost
-        const feeEur = Math.abs(parseFloat(txn.fee)); // Chargeback fees
-        const totalEur = amountEur + feeEur;
-        const totalUsd = totalEur * eurToUsdRate; // Convert EUR to USD
-        totalDisputes += totalUsd;
+        const amountEur = Math.abs(parseFloat(txn.amount)); // Chargeback amount
+        const feeEur = Math.abs(parseFloat(txn.fee)); // Chargeback/dispute fee
+        
+        // Convert to USD and accumulate separately
+        totalDisputeValue += amountEur * eurToUsdRate;
+        totalDisputeFees += feeEur * eurToUsdRate;
       }
     }
     // Check if there are more pages
@@ -287,6 +290,6 @@ export async function fetchShopifyBalanceTransactions(
     }
   }
 
-  console.log(`[Balance Transactions] Fetched ${orderFees.size} orders with fees from ${pageCount} pages, total disputes: $${totalDisputes.toFixed(2)}`);
-  return { orderFees, totalDisputes };
+  console.log(`[Balance Transactions] Fetched ${orderFees.size} orders with fees from ${pageCount} pages, dispute value: $${totalDisputeValue.toFixed(2)}, dispute fees: $${totalDisputeFees.toFixed(2)}`);
+  return { orderFees, totalDisputeValue, totalDisputeFees };
 }

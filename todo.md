@@ -77,3 +77,13 @@
 - [x] Added Disputes/Chargebacks row to Cost Breakdown UI
 - [x] Updated Total Costs to include disputes
 - [x] Ready for user testing
+
+## CRITICAL FIXES - PHASE 5 ✅
+- [x] Split chargeback transactions into dispute value and dispute fees (separate in balance transactions)
+- [x] Update dashboard cost breakdown to show both "Dispute Value" and "Dispute Fees" separately
+- [x] Update routers.ts to use new balance transactions return type
+- [x] Include both dispute value and fees in net profit calculation
+- [x] Fix Average Profit per Order - now calculates average of individual order net profits
+- [x] Updated StoreView.tsx to use averageOrderProfit from backend
+- [x] Fixed hasMore/lastId variable declarations in balance transactions
+- [x] Ready for user testing

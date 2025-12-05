@@ -442,7 +442,9 @@ export const appRouter = router({
         const cogsUSD = processed.totalCogs;
         const shippingUSD = processed.totalShipping;
         const processingFeesUSD = processingFees;
-        const disputesUSD = totalDisputes; // From balance transactions
+        const disputeValueUSD = totalDisputeValue; // Chargeback amounts from balance transactions
+        const disputeFeesUSD = totalDisputeFees; // Dispute fees from balance transactions
+        const totalDisputesUSD = disputeValueUSD + disputeFeesUSD; // Total disputes impact
         
         // Convert ad spend to USD if it was in EUR
         const adSpendUSD = totalAdSpend * EXCHANGE_RATE_EUR_USD;
@@ -456,11 +458,12 @@ export const appRouter = router({
           shippingUSD -
           processingFeesUSD -
           adSpendUSD -
-          disputesUSD -
+          totalDisputesUSD -
           operationalExpensesUSD;
 
         // Calculate average order profit margin (average of individual order margins)
         let averageOrderProfitMargin = 0;
+        let averageOrderProfit = 0;
         if (processed.processedOrders && processed.processedOrders.length > 0) {
           const orderMargins = processed.processedOrders.map(order => {
             const orderRevenue = order.total;
@@ -468,6 +471,10 @@ export const appRouter = router({
             return orderRevenue > 0 ? (orderProfit / orderRevenue) * 100 : 0;
           });
           averageOrderProfitMargin = orderMargins.reduce((sum, margin) => sum + margin, 0) / orderMargins.length;
+          
+          // Calculate average order profit (average of individual order profits)
+          const orderProfits = processed.processedOrders.map(order => order.profit);
+          averageOrderProfit = orderProfits.reduce((sum, profit) => sum + profit, 0) / orderProfits.length;
         }
 
         return {
@@ -477,11 +484,13 @@ export const appRouter = router({
           shipping: shippingUSD,
           processingFees: processingFeesUSD,
           adSpend: adSpendUSD,
-          disputes: disputesUSD,
+          disputeValue: disputeValueUSD,
+          disputeFees: disputeFeesUSD,
           operationalExpenses: operationalExpensesUSD,
           netProfit: netProfitUSD,
           processedOrders: processed.processedOrders,
           averageOrderProfitMargin: averageOrderProfitMargin,
+          averageOrderProfit: averageOrderProfit,
         };
       }),
   }),
