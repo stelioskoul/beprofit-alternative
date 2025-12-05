@@ -326,7 +326,8 @@ export const appRouter = router({
         let disputes = { totalAmount: 0, count: 0 };
         let processed: any = { revenue: 0, totalCogs: 0, totalShipping: 0, ordersCount: 0, processedOrders: [] };
         let processingFees = 0;
-        let totalDisputes = 0; // Initialize disputes from balance transactions
+        let totalDisputeValue = 0; // Initialize dispute value from balance transactions
+        let totalDisputeFees = 0; // Initialize dispute fees from balance transactions
 
         // Fetch Shopify data if connected
         if (shopifyConn) {
@@ -382,8 +383,9 @@ export const appRouter = router({
               EXCHANGE_RATE_EUR_USD
             );
             orderFees = balanceData.orderFees;
-            totalDisputes = balanceData.totalDisputes;
-            console.log(`[Balance Transactions] Fetched fees for ${orderFees.size} orders, disputes: $${totalDisputes.toFixed(2)}`);
+            totalDisputeValue = balanceData.totalDisputeValue;
+            totalDisputeFees = balanceData.totalDisputeFees;
+            console.log(`[Balance Transactions] Fetched fees for ${orderFees.size} orders, dispute value: $${totalDisputeValue.toFixed(2)}, dispute fees: $${totalDisputeFees.toFixed(2)}`);
           } catch (error) {
             console.error("Failed to fetch balance transactions, using calculated fees:", error);
           }
@@ -687,7 +689,7 @@ export const appRouter = router({
             EXCHANGE_RATE_EUR_USD
           );
           orderFees = balanceData.orderFees;
-          // Note: totalDisputes is not used in orders list, only in dashboard
+          // Note: disputes are not used in orders list, only in dashboard
           console.log(`[Balance Transactions] Fetched fees for ${orderFees.size} orders`);
         } catch (error) {
           console.error("Failed to fetch balance transactions, using calculated fees:", error);
