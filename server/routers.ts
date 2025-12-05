@@ -326,6 +326,7 @@ export const appRouter = router({
         let disputes = { totalAmount: 0, count: 0 };
         let processed: any = { revenue: 0, totalCogs: 0, totalShipping: 0, ordersCount: 0, processedOrders: [] };
         let processingFees = 0;
+        let totalDisputes = 0; // Initialize disputes from balance transactions
 
         // Fetch Shopify data if connected
         if (shopifyConn) {
@@ -370,7 +371,6 @@ export const appRouter = router({
           // Fetch actual processing fees and disputes from Shopify balance transactions
           // NOTE: This may take 10-30 seconds depending on transaction volume
           let orderFees: Map<number, number> | undefined;
-          let totalDisputes = 0;
           try {
             // Get exchange rate for EUR to USD conversion (balance transactions return EUR)
             const EXCHANGE_RATE_EUR_USD = await getEurUsdRate();
