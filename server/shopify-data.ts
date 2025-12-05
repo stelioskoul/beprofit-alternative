@@ -257,8 +257,19 @@ export async function fetchShopifyBalanceTransactions(
       break;
     }
 
-    // Process transactions
+    // Process transactions with date filtering
     for (const txn of transactions) {
+      // Filter by date range using processed_at timestamp
+      const txnDate = new Date(txn.processed_at);
+      const fromDate = new Date(dateRange.fromDate);
+      const toDate = new Date(dateRange.toDate);
+      toDate.setHours(23, 59, 59, 999); // Include the entire "to" date
+      
+      // Skip transactions outside the date range
+      if (txnDate < fromDate || txnDate > toDate) {
+        continue;
+      }
+      
       // Extract processing fees from charge transactions
       if (txn.type === "charge" && txn.source_order_id) {
         const orderId = txn.source_order_id;

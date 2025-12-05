@@ -87,3 +87,9 @@
 - [x] Updated StoreView.tsx to use averageOrderProfit from backend
 - [x] Fixed hasMore/lastId variable declarations in balance transactions
 - [x] Ready for user testing
+
+## CRITICAL FIXES - PHASE 6 ✅
+- [x] Fix dispute fees/value not filtering by date range - added date filtering using processed_at timestamp
+- [x] Investigate balance transactions date filtering logic - API doesn't support date params, filter client-side
+- [x] Add date validation - "from" date max is "to" date, "to" date min is "from" date
+- [x] Ready for user testing

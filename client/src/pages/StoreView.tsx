@@ -138,6 +138,7 @@ export default function StoreView() {
                   type="date"
                   id="start-date"
                   value={startDate}
+                  max={endDate}
                   onChange={(e) => setStartDate(e.target.value)}
                   className="px-3 py-2 rounded-md border border-border bg-black/30 text-foreground date-input-gold"
                   style={{ colorScheme: 'dark' }}
@@ -151,6 +152,7 @@ export default function StoreView() {
                   type="date"
                   id="end-date"
                   value={endDate}
+                  min={startDate}
                   onChange={(e) => setEndDate(e.target.value)}
                   className="px-3 py-2 rounded-md border border-border bg-black/30 text-foreground date-input-gold"
                   style={{ colorScheme: 'dark' }}
