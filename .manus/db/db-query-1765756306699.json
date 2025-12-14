@@ -1,0 +1,15 @@
+{
+  "query": "SELECT id, email, name FROM users WHERE email = 'business.kdgroup@gmail.com'",
+  "command": "mysql --batch --raw --column-names --default-character-set=utf8mb4 --host gateway02.us-east-1.prod.aws.tidbcloud.com --port 4000 --user 4HftCxbWFSVCr8z.53cca666d27c --database 3G7vN4VEcdfqqwn3pSLaGt --execute SELECT id, email, name FROM users WHERE email = 'business.kdgroup@gmail.com'",
+  "rows": [
+    {
+      "id": "480002",
+      "email": "business.kdgroup@gmail.com",
+      "name": "KD Group"
+    }
+  ],
+  "messages": [],
+  "stdout": "id\temail\tname\n480002\tbusiness.kdgroup@gmail.com\tKD Group\n",
+  "stderr": "",
+  "execution_time_ms": 1637
+}

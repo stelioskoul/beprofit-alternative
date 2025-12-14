@@ -173,3 +173,23 @@
 - [x] Hash password $Koul112002 using bcrypt for stelioskouloulias@gmail.com
 - [x] Update both users with passwordHash in database
 - [ ] Verify both users can log in with email + password
+
+## FIX LOGIN REDIRECT ISSUE ✅
+- [x] Investigate why login redirects to homepage instead of stores page
+- [x] Check login endpoint response and session cookie setting
+- [x] Check SignIn page redirect logic after successful login
+- [x] Fix and test login flow - Changed redirect from / to /dashboard
+
+## MIGRATE USER ACCOUNT ✅
+- [x] Update stelioskouloulias@gmail.com to business.kdgroup@gmail.com
+- [x] Hash new password $KoulDoul1243 using bcrypt
+- [x] Update email and passwordHash in database (preserve all user data)
+- [ ] Test login with new credentials
+
+## REDESIGN AUTH PAGES ✅
+- [x] Add Profit Tracker logo to SignIn and SignUp pages
+- [x] Apply gold gradient background matching app design
+- [x] Add gold texture overlay and animations
+- [x] Style buttons with gold-gradient class
+- [x] Add breathing animation to background
+- [x] Make auth pages visually consistent with main app
