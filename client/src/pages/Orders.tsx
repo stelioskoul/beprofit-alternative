@@ -181,7 +181,7 @@ export default function Orders() {
                         </div>
                         <div>
                           <p className="text-xs text-muted-foreground">Discount</p>
-                          <p className="text-sm font-medium">{formatCurrency(order.discount || 0)}</p>
+                          <p className="text-sm font-medium">{formatCurrency(item.discount || 0)}</p>
                         </div>
                         <div>
                           <p className="text-xs text-muted-foreground">Net Profit Margin</p>

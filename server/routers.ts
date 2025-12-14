@@ -737,8 +737,16 @@ export const appRouter = router({
               const itemPrice = item.price;
               const itemCogs = item.cogs || 0;
               const itemShipping = item.shippingCost || 0;
+              
+              // Calculate proportional discount allocation
+              // Each item gets a share of the order discount based on its price proportion
+              const itemTotal = itemPrice * item.quantity;
+              const orderSubtotal = (order.items || []).reduce((sum: number, i: any) => sum + (i.price * i.quantity), 0);
+              const itemDiscountShare = orderSubtotal > 0 ? (itemTotal / orderSubtotal) * (order.discount || 0) : 0;
+              
               // Note: Processing fees are now tracked at order level only (from Shopify balance transactions)
-              // Item profit = revenue - cogs - shipping (fees are deducted at order level)
+              // Item profit = revenue - cogs - shipping - proportional discount (fees are deducted at order level)
+              const itemProfit = itemTotal - itemCogs - itemShipping - itemDiscountShare;
               
               return {
                 name: item.name,
@@ -746,7 +754,8 @@ export const appRouter = router({
                 price: itemPrice,
                 cogs: itemCogs,
                 shipping: itemShipping,
-                profit: (itemPrice * item.quantity) - itemCogs - itemShipping,
+                discount: itemDiscountShare,
+                profit: itemProfit,
               };
             }),
           };

@@ -93,3 +93,11 @@
 - [x] Investigate balance transactions date filtering logic - API doesn't support date params, filter client-side
 - [x] Add date validation - "from" date max is "to" date, "to" date min is "from" date
 - [x] Ready for user testing
+
+## CRITICAL FIX - DISCOUNT ALLOCATION ✅
+- [x] Allocate order discounts proportionally to line items based on item price
+- [x] Update item profit calculation to include allocated discount
+- [x] Formula: Item Profit = Item Total - COGS - Shipping Cost - Proportional Discount
+- [x] Added discount field to line item return data
+- [x] Update Orders.tsx to display item-level discount instead of order-level discount
+- [x] Ready for user testing with orders that have discounts
