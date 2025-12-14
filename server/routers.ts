@@ -17,6 +17,135 @@ export const appRouter = router({
   system: systemRouter,
   auth: router({
     me: publicProcedure.query(opts => opts.ctx.user),
+    
+    signup: publicProcedure
+      .input(
+        z.object({
+          email: z.string().email(),
+          password: z.string().min(8),
+          name: z.string().optional(),
+        })
+      )
+      .mutation(async ({ input, ctx }) => {
+        const { hashPassword, validatePassword, validateEmail } = await import("./auth-utils");
+        const { getUserByEmail, createUser } = await import("./db-auth");
+
+        // Validate input
+        const emailError = validateEmail(input.email);
+        if (emailError) {
+          throw new TRPCError({ code: "BAD_REQUEST", message: emailError });
+        }
+
+        const passwordError = validatePassword(input.password);
+        if (passwordError) {
+          throw new TRPCError({ code: "BAD_REQUEST", message: passwordError });
+        }
+
+        // Check if user already exists
+        const existingUser = await getUserByEmail(input.email.toLowerCase());
+        if (existingUser) {
+          throw new TRPCError({
+            code: "CONFLICT",
+            message: "Email already registered",
+          });
+        }
+
+        // Hash password and create user
+        const passwordHash = await hashPassword(input.password);
+        await createUser({
+          email: input.email.toLowerCase(),
+          passwordHash,
+          name: input.name || null,
+          loginMethod: "email",
+          lastSignedIn: new Date(),
+        });
+
+        // Get the created user
+        const user = await getUserByEmail(input.email.toLowerCase());
+        if (!user) {
+          throw new TRPCError({
+            code: "INTERNAL_SERVER_ERROR",
+            message: "Failed to create user",
+          });
+        }
+
+        // Create session token
+        const { sdk } = await import("./_core/sdk");
+        const sessionToken = await sdk.createSessionToken(user.id.toString(), {
+          name: user.name || "",
+          expiresInMs: 365 * 24 * 60 * 60 * 1000, // 1 year
+        });
+
+        // Set session cookie
+        const cookieOptions = getSessionCookieOptions(ctx.req);
+        ctx.res.cookie(COOKIE_NAME, sessionToken, cookieOptions);
+
+        return {
+          success: true,
+          user: {
+            id: user.id,
+            email: user.email,
+            name: user.name,
+          },
+        };
+      }),
+
+    login: publicProcedure
+      .input(
+        z.object({
+          email: z.string().email(),
+          password: z.string(),
+        })
+      )
+      .mutation(async ({ input, ctx }) => {
+        const { verifyPassword } = await import("./auth-utils");
+        const { getUserByEmail } = await import("./db-auth");
+
+        // Get user by email
+        const user = await getUserByEmail(input.email.toLowerCase());
+        if (!user || !user.passwordHash) {
+          throw new TRPCError({
+            code: "UNAUTHORIZED",
+            message: "Invalid email or password",
+          });
+        }
+
+        // Verify password
+        const isValid = await verifyPassword(input.password, user.passwordHash);
+        if (!isValid) {
+          throw new TRPCError({
+            code: "UNAUTHORIZED",
+            message: "Invalid email or password",
+          });
+        }
+
+        // Update last signed in
+        await db.upsertUser({
+          email: user.email,
+          lastSignedIn: new Date(),
+        });
+
+        // Create session token
+        const { sdk } = await import("./_core/sdk");
+        const sessionToken = await sdk.createSessionToken(user.id.toString(), {
+          name: user.name || "",
+          expiresInMs: 365 * 24 * 60 * 60 * 1000, // 1 year
+        });
+
+        // Set session cookie
+        const cookieOptions = getSessionCookieOptions(ctx.req);
+        ctx.res.cookie(COOKIE_NAME, sessionToken, cookieOptions);
+
+        return {
+          success: true,
+          user: {
+            id: user.id,
+            email: user.email,
+            name: user.name,
+          },
+        };
+      }),
+
     logout: publicProcedure.mutation(({ ctx }) => {
       const cookieOptions = getSessionCookieOptions(ctx.req);
       ctx.res.clearCookie(COOKIE_NAME, { ...cookieOptions, maxAge: -1 });

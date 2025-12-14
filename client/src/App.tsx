@@ -9,10 +9,14 @@ import Dashboard from "./pages/Dashboard";
 import StoreView from "./pages/StoreView";
 import Connections from "./pages/Connections";
 import DebugTransactions from "./pages/DebugTransactions";
+import SignIn from "./pages/SignIn";
+import SignUp from "./pages/SignUp";
 
 function Router() {
   return (
     <Switch>
+      <Route path={"/signin"} component={SignIn} />
+      <Route path={"/signup"} component={SignUp} />
       <Route path={"/"} component={Home} />
       <Route path={"/dashboard"} component={Dashboard} />
       <Route path={"/store/:id"} component={StoreView} />

@@ -31,10 +31,10 @@ export function registerOAuthRoutes(app: Express) {
       }
 
       await db.upsertUser({
+        email: userInfo.email || `${userInfo.openId}@oauth.local`, // Fallback email for OAuth users
         openId: userInfo.openId,
         name: userInfo.name || null,
-        email: userInfo.email ?? null,
-        loginMethod: userInfo.loginMethod ?? userInfo.platform ?? null,
+        loginMethod: userInfo.loginMethod ?? userInfo.platform ?? "oauth",
         lastSignedIn: new Date(),
       });
 

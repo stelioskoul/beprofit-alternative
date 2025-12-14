@@ -151,3 +151,19 @@
 - [x] Implement "No Longer Active" logic (apply from start to end date based on frequency)
 - [x] Update dashboard to sum expenses in date range correctly
 - [x] Test all expense scenarios
+
+## CUSTOM EMAIL/PASSWORD AUTHENTICATION ✅
+- [x] Update users table schema - add passwordHash field, make openId optional
+- [x] Run database migration to apply schema changes
+- [x] Install bcrypt package for password hashing
+- [x] Create password hashing utility functions
+- [x] Create POST /api/auth/signup endpoint (email, password, name)
+- [x] Create POST /api/auth/login endpoint (email, password)
+- [x] Update logout endpoint if needed
+- [x] Create Sign In page (email + password form)
+- [x] Create Sign Up page (email + password + name form)
+- [x] Update auth context to use new endpoints
+- [x] Remove Manus OAuth login flow from UI
+- [x] Remove Manus OAuth dependencies from backend
+- [x] Add password validation (min 8 characters)
+- [ ] Test complete auth flow (signup → login → logout)

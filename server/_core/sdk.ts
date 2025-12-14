@@ -275,10 +275,10 @@ class SDKServer {
       try {
         const userInfo = await this.getUserInfoWithJwt(sessionCookie ?? "");
         await db.upsertUser({
+          email: userInfo.email || `${userInfo.openId}@oauth.local`, // Fallback email for OAuth users
           openId: userInfo.openId,
           name: userInfo.name || null,
-          email: userInfo.email ?? null,
-          loginMethod: userInfo.loginMethod ?? userInfo.platform ?? null,
+          loginMethod: userInfo.loginMethod ?? userInfo.platform ?? "oauth",
           lastSignedIn: signedInAt,
         });
         user = await db.getUserByOpenId(userInfo.openId);
@@ -293,6 +293,7 @@ class SDKServer {
     }
 
     await db.upsertUser({
+      email: user.email,
       openId: user.openId,
       lastSignedIn: signedInAt,
     });
