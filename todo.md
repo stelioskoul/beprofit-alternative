@@ -167,3 +167,9 @@
 - [x] Remove Manus OAuth dependencies from backend
 - [x] Add password validation (min 8 characters)
 - [ ] Test complete auth flow (signup → login → logout)
+
+## MIGRATE EXISTING USERS TO CUSTOM AUTH ✅
+- [x] Hash password $KoulPant1243 using bcrypt for kingkom.business@gmail.com
+- [x] Hash password $Koul112002 using bcrypt for stelioskouloulias@gmail.com
+- [x] Update both users with passwordHash in database
+- [ ] Verify both users can log in with email + password
