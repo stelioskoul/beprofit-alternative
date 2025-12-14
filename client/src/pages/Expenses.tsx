@@ -110,7 +110,7 @@ export default function Expenses() {
   const formatCurrency = (value: string) => {
     return new Intl.NumberFormat("en-US", {
       style: "currency",
-      currency: "EUR",
+      currency: "USD",
     }).format(parseFloat(value));
   };
 

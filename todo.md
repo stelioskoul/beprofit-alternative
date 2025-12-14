@@ -140,3 +140,14 @@
 - [x] Investigate why Orders tab shows "No orders found" after timezone fix
 - [x] Check if orders fetching is affected by timezone changes
 - [x] Fix and test - Issue was Orders.tsx trying to access data.orders when data is already the array
+
+## OPERATIONAL EXPENSES IMPROVEMENTS ✅
+- [x] Display total expenses in USD (changed formatCurrency from EUR to USD)
+- [x] Add currency field to expense form (USD/EUR) - already exists
+- [x] Auto-convert EUR to USD when saving, store in USD
+- [x] Implement one-time expense logic (apply only on specified date)
+- [x] Implement monthly recurring logic (apply on same day each month while active)
+- [x] Implement yearly recurring logic (apply on same day each year while active)
+- [x] Implement "No Longer Active" logic (apply from start to end date based on frequency)
+- [x] Update dashboard to sum expenses in date range correctly
+- [x] Test all expense scenarios

@@ -526,8 +526,8 @@ export const appRouter = router({
         // Convert ad spend to USD if it was in EUR
         const adSpendUSD = totalAdSpend * EXCHANGE_RATE_EUR_USD;
         
-        // Convert operational expenses to USD
-        const operationalExpensesUSD = operationalExpensesTotal * EXCHANGE_RATE_EUR_USD;
+        // Operational expenses are already in USD (converted when saved)
+        const operationalExpensesUSD = operationalExpensesTotal;
 
         const netProfitUSD =
           revenueUSD -
@@ -609,12 +609,20 @@ export const appRouter = router({
           });
         }
 
+        // Convert EUR to USD before saving (always store in USD)
+        let amountUSD = parseFloat(input.amount);
+        if (input.currency === "EUR") {
+          const exchangeRate = await getEurUsdRate();
+          amountUSD = amountUSD * exchangeRate;
+          console.log(`[Expense Create] Converting EUR ${input.amount} to USD ${amountUSD.toFixed(2)} (rate: ${exchangeRate})`);
+        }
+
         await db.createOperationalExpense({
           storeId: input.storeId,
           type: input.type,
           title: input.title,
-          amount: input.amount,
-          currency: input.currency,
+          amount: amountUSD.toFixed(2), // Store in USD with 2 decimal places
+          currency: "USD", // Always store as USD
           date: input.date ? new Date(input.date) : undefined,
           startDate: input.startDate ? new Date(input.startDate) : undefined,
           endDate: input.endDate ? new Date(input.endDate) : undefined,

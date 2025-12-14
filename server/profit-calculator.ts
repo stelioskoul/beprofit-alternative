@@ -355,6 +355,16 @@ export function calculateProcessingFees(
   return revenue * percentFee + ordersCount * fixedFee;
 }
 
+/**
+ * Calculate operational expenses for a given period
+ * Counts discrete occurrences of recurring expenses (not prorated)
+ * 
+ * Logic:
+ * - One-time: Count once if date falls in range
+ * - Monthly: Count once for each month where the expense is active
+ * - Yearly: Count once for each year where the expense is active
+ * - Respects endDate for "No Longer Active" expenses
+ */
 export function calculateOperationalExpensesForPeriod(
   expenses: Array<{
     type: "one_time" | "monthly" | "yearly";
@@ -370,34 +380,56 @@ export function calculateOperationalExpensesForPeriod(
 
   for (const expense of expenses) {
     if (expense.type === "one_time") {
+      // One-time expense: count once if date falls in range
       if (expense.date) {
         const expenseDate = new Date(expense.date);
         if (expenseDate >= fromDate && expenseDate <= toDate) {
           total += expense.amount;
         }
       }
-    } else if (expense.type === "monthly" || expense.type === "yearly") {
+    } else if (expense.type === "monthly") {
+      // Monthly recurring: count once for each occurrence in range
       if (!expense.startDate) continue;
 
       const start = new Date(expense.startDate);
-      const end = expense.endDate ? new Date(expense.endDate) : toDate;
+      const end = expense.endDate ? new Date(expense.endDate) : new Date("2099-12-31"); // Far future if no end date
 
-      // Check if expense period overlaps with query period
-      if (start <= toDate && end >= fromDate) {
-        const effectiveStart = start > fromDate ? start : fromDate;
-        const effectiveEnd = end < toDate ? end : toDate;
-
-        const days = Math.ceil((effectiveEnd.getTime() - effectiveStart.getTime()) / (1000 * 60 * 60 * 24)) + 1;
-
-        if (expense.type === "monthly") {
-          // Approximate: 30 days per month
-          const months = days / 30;
-          total += expense.amount * months;
-        } else if (expense.type === "yearly") {
-          // Approximate: 365 days per year
-          const years = days / 365;
-          total += expense.amount * years;
+      // Generate all monthly occurrences
+      let currentDate = new Date(start);
+      while (currentDate <= end && currentDate <= toDate) {
+        // Check if this occurrence falls in the query range
+        if (currentDate >= fromDate && currentDate <= toDate) {
+          total += expense.amount;
         }
+
+        // Move to next month (same day)
+        currentDate = new Date(currentDate);
+        currentDate.setMonth(currentDate.getMonth() + 1);
+
+        // If we've passed the start date, break
+        if (currentDate < start) break;
+      }
+    } else if (expense.type === "yearly") {
+      // Yearly recurring: count once for each occurrence in range
+      if (!expense.startDate) continue;
+
+      const start = new Date(expense.startDate);
+      const end = expense.endDate ? new Date(expense.endDate) : new Date("2099-12-31"); // Far future if no end date
+
+      // Generate all yearly occurrences
+      let currentDate = new Date(start);
+      while (currentDate <= end && currentDate <= toDate) {
+        // Check if this occurrence falls in the query range
+        if (currentDate >= fromDate && currentDate <= toDate) {
+          total += expense.amount;
+        }
+
+        // Move to next year (same month and day)
+        currentDate = new Date(currentDate);
+        currentDate.setFullYear(currentDate.getFullYear() + 1);
+
+        // If we've passed the start date, break
+        if (currentDate < start) break;
       }
     }
   }
