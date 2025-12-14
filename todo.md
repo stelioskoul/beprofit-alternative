@@ -193,3 +193,9 @@
 - [x] Style buttons with gold-gradient class
 - [x] Add breathing animation to background
 - [x] Make auth pages visually consistent with main app
+
+## FIX AUTH CONTEXT MANUS OAUTH REDIRECT ✅
+- [x] Investigate why dashboard redirects to Manus OAuth login
+- [x] Find getLoginUrl function and update to return /signin
+- [x] Remove Manus OAuth redirect from auth context
+- [ ] Test complete login flow (signin → dashboard → logout → signin)
