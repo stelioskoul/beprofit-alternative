@@ -8,6 +8,7 @@ import Home from "./pages/Home";
 import Dashboard from "./pages/Dashboard";
 import StoreView from "./pages/StoreView";
 import Connections from "./pages/Connections";
+import DebugTransactions from "./pages/DebugTransactions";
 
 function Router() {
   return (
@@ -16,6 +17,7 @@ function Router() {
       <Route path={"/dashboard"} component={Dashboard} />
       <Route path={"/store/:id"} component={StoreView} />
       <Route path={"/store/:id/connections"} component={Connections} />
+      <Route path={"/debug/transactions"} component={DebugTransactions} />
       <Route path={"/404"} component={NotFound} />
       <Route component={NotFound} />
     </Switch>

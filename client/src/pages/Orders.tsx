@@ -22,10 +22,12 @@ export default function Orders() {
   const [endDate, setEndDate] = useState(today.toISOString().split("T")[0]);
   const [searchQuery, setSearchQuery] = useState("");
 
-  const { data: orders, isLoading } = trpc.orders.listWithProfit.useQuery(
+  const { data, isLoading } = trpc.orders.listWithProfit.useQuery(
     { storeId, startDate, endDate },
     { enabled: isAuthenticated && storeId > 0 }
   );
+  
+  const orders = (data as any)?.orders || [];
 
   if (loading) {
     return (

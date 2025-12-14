@@ -110,3 +110,28 @@
 - [x] Ensure dispute fees are not double-counted in processing fees
 - [x] Added comprehensive logging for all transaction types
 - [x] Created TRANSACTION_EXTRACTION_LOGIC.md documentation
+
+## PROCESSING FEE FIX - ROUND 2 ⚠️
+- [ ] Remove source_type === "Order" filter - it's excluding legitimate charge transactions
+- [ ] Fetch ALL "charge" type transaction fees per order (sum them up)
+- [ ] Test with order #11472 to verify fee matches Shopify's $3.69
+
+## DEBUG - RAW TRANSACTION DATA 🔍
+- [ ] Create debug endpoint to view raw Shopify balance transaction data
+- [ ] Examine actual fee values returned by API for order #11472
+- [ ] Identify why fees don't match Shopify UI ($2.59 vs $2.50)
+
+## TIMEZONE ISSUE ✅
+- [x] Fix balance transactions date filtering to use store timezone (not UTC)
+- [x] Ensure order filtering uses store timezone consistently
+- [x] Verify orders at timezone boundaries (start/end of day) are included correctly
+- [x] Test with New York timezone (UTC-5) vs Greece timezone (UTC+2)
+
+## REFUNDS & CHARGEBACK REVERSALS ✅
+- [x] Remove debug UI elements from Orders page
+- [x] Add currency checking for all balance transaction types (check currency field, convert EUR to USD)
+- [x] Track refunds from balance transactions (type: "refund")
+- [x] Add refunds to dashboard cost breakdown
+- [x] Track chargeback reversals (type: "chargeback_reversal")
+- [x] Subtract reversals from dispute value (but keep dispute fees)
+- [ ] Test with real data

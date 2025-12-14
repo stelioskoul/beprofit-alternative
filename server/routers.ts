@@ -227,6 +227,77 @@ export const appRouter = router({
         await db.deleteShopifyConnection(input.storeId);
         return { success: true };
       }),
+
+    debugTransactions: protectedProcedure
+      .input(z.object({ 
+        storeId: z.number(),
+        orderNumber: z.number().optional()
+      }))
+      .query(async ({ ctx, input }) => {
+        const store = await db.getStoreById(input.storeId);
+        if (!store || store.userId !== ctx.user.id) {
+          throw new Error("Store not found or access denied");
+        }
+
+        const connection = await db.getShopifyConnectionByStoreId(input.storeId);
+        if (!connection) {
+          throw new Error("Shopify not connected");
+        }
+
+        // Fetch last 30 days of transactions
+        const toDate = new Date();
+        const fromDate = new Date();
+        fromDate.setDate(fromDate.getDate() - 30);
+
+        const baseUrl = `https://${connection.shopDomain}/admin/api/2025-10/shopify_payments/balance/transactions.json`;
+        const params = new URLSearchParams({ limit: "250" });
+        
+        const response = await fetch(`${baseUrl}?${params.toString()}`, {
+          headers: {
+            "X-Shopify-Access-Token": connection.accessToken,
+            "Content-Type": "application/json",
+          },
+        });
+
+        if (!response.ok) {
+          throw new Error(`API error: ${response.status}`);
+        }
+
+        const data = await response.json();
+        const transactions = data.transactions || [];
+
+        // If orderNumber specified, also fetch orders to find the order ID
+        let targetOrderId = null;
+        if (input.orderNumber) {
+          const ordersUrl = `https://${connection.shopDomain}/admin/api/2025-10/orders.json?limit=250&status=any`;
+          const ordersResponse = await fetch(ordersUrl, {
+            headers: {
+              "X-Shopify-Access-Token": connection.accessToken,
+              "Content-Type": "application/json",
+            },
+          });
+          
+          if (ordersResponse.ok) {
+            const ordersData = await ordersResponse.json();
+            const targetOrder = ordersData.orders.find((o: any) => o.order_number === input.orderNumber);
+            if (targetOrder) {
+              targetOrderId = parseInt(targetOrder.id);
+            }
+          }
+        }
+
+        // Filter transactions if orderNumber specified
+        const filteredTransactions = targetOrderId
+          ? transactions.filter((t: any) => t.source_order_id === targetOrderId)
+          : transactions;
+
+        return {
+          orderNumber: input.orderNumber,
+          orderIdFound: targetOrderId,
+          transactionCount: filteredTransactions.length,
+          transactions: filteredTransactions,
+        };
+      }),
   }),
   facebook: router({
     getAuthUrl: protectedProcedure
@@ -312,11 +383,11 @@ export const appRouter = router({
       .query(async ({ ctx, input }) => {
         const store = await db.getStoreById(input.storeId);
         if (!store || store.userId !== ctx.user.id) {
-          throw new Error("Store not found or access denied");
+          throw new TRPCError({
+            code: "NOT_FOUND",
+            message: "Store not found or access denied",
+          });
         }
-
-        // Get live exchange rate
-        const EXCHANGE_RATE_EUR_USD = await getEurUsdRate();
 
         const shopifyConn = await db.getShopifyConnectionByStoreId(input.storeId);
         const facebookConns = await db.getFacebookConnectionsByStoreId(input.storeId);
@@ -328,6 +399,12 @@ export const appRouter = router({
         let processingFees = 0;
         let totalDisputeValue = 0; // Initialize dispute value from balance transactions
         let totalDisputeFees = 0; // Initialize dispute fees from balance transactions
+        let totalRefunds = 0; // Initialize refunds from balance transactions
+        let orderFees: Map<number, number> | undefined; // Declare at higher scope for debug access
+        let balancePageCount = 0; // Number of pages fetched from balance transactions API
+
+        // Get exchange rate for EUR to USD conversion
+        const EXCHANGE_RATE_EUR_USD = await getEurUsdRate();
 
         // Fetch Shopify data if connected
         if (shopifyConn) {
@@ -371,27 +448,24 @@ export const appRouter = router({
 
           // Fetch actual processing fees and disputes from Shopify balance transactions
           // NOTE: This may take 10-30 seconds depending on transaction volume
-          let orderFees: Map<number, number> | undefined;
           try {
-            // Get exchange rate for EUR to USD conversion (balance transactions return EUR)
-            const EXCHANGE_RATE_EUR_USD = await getEurUsdRate();
             const balanceData = await fetchShopifyBalanceTransactions(
               shopifyConn.shopDomain,
               shopifyConn.accessToken,
               { fromDate: input.fromDate, toDate: input.toDate },
               shopifyConn.apiVersion || "2025-10",
-              EXCHANGE_RATE_EUR_USD
+              EXCHANGE_RATE_EUR_USD,
+              store.timezoneOffset || -300 // Use store's timezone offset
             );
             orderFees = balanceData.orderFees;
             totalDisputeValue = balanceData.totalDisputeValue;
             totalDisputeFees = balanceData.totalDisputeFees;
-            console.log(`[Balance Transactions] Fetched fees for ${orderFees.size} orders, dispute value: $${totalDisputeValue.toFixed(2)}, dispute fees: $${totalDisputeFees.toFixed(2)}`);
+            totalRefunds = balanceData.totalRefunds;
+            balancePageCount = balanceData.pageCount;
+            console.log(`[Balance Transactions] Fetched fees for ${orderFees.size} orders, dispute value: $${totalDisputeValue.toFixed(2)}, dispute fees: $${totalDisputeFees.toFixed(2)}, refunds: $${totalRefunds.toFixed(2)}`);
           } catch (error) {
             console.error("Failed to fetch balance transactions, using calculated fees:", error);
           }
-
-          // Get exchange rate for shipping cost conversion
-          const EXCHANGE_RATE_EUR_USD = await getEurUsdRate();
           
           // Debug: Log first order's variant IDs
           if (orders.length > 0 && orders[0].line_items?.length > 0) {
@@ -447,6 +521,7 @@ export const appRouter = router({
         const disputeValueUSD = totalDisputeValue; // Chargeback amounts from balance transactions
         const disputeFeesUSD = totalDisputeFees; // Dispute fees from balance transactions
         const totalDisputesUSD = disputeValueUSD + disputeFeesUSD; // Total disputes impact
+        const refundsUSD = totalRefunds; // Total refunds from balance transactions
         
         // Convert ad spend to USD if it was in EUR
         const adSpendUSD = totalAdSpend * EXCHANGE_RATE_EUR_USD;
@@ -461,6 +536,7 @@ export const appRouter = router({
           processingFeesUSD -
           adSpendUSD -
           totalDisputesUSD -
+          refundsUSD -
           operationalExpensesUSD;
 
         // Calculate average order profit margin (average of individual order margins)
@@ -488,6 +564,7 @@ export const appRouter = router({
           adSpend: adSpendUSD,
           disputeValue: disputeValueUSD,
           disputeFees: disputeFeesUSD,
+          refunds: refundsUSD,
           operationalExpenses: operationalExpensesUSD,
           netProfit: netProfitUSD,
           processedOrders: processed.processedOrders,
@@ -678,6 +755,7 @@ export const appRouter = router({
         // Fetch actual processing fees and disputes from Shopify balance transactions
         // NOTE: This may take 10-30 seconds depending on transaction volume
         let orderFees: Map<number, number> | undefined;
+        let balancePageCount = 0;
         try {
           // Get exchange rate for EUR to USD conversion (balance transactions return EUR)
           const EXCHANGE_RATE_EUR_USD = await getEurUsdRate();
@@ -686,11 +764,13 @@ export const appRouter = router({
             shopifyConn.accessToken,
             { fromDate: input.startDate, toDate: input.endDate },
             shopifyConn.apiVersion || "2025-10",
-            EXCHANGE_RATE_EUR_USD
+            EXCHANGE_RATE_EUR_USD,
+            store.timezoneOffset || -300 // Use store's timezone offset
           );
           orderFees = balanceData.orderFees;
+          balancePageCount = balanceData.pageCount;
           // Note: disputes are not used in orders list, only in dashboard
-          console.log(`[Balance Transactions] Fetched fees for ${orderFees.size} orders`);
+          console.log(`[Balance Transactions] Fetched fees for ${orderFees.size} orders from ${balancePageCount} pages`);
         } catch (error) {
           console.error("Failed to fetch balance transactions, using calculated fees:", error);
         }

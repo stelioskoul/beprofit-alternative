@@ -309,6 +309,14 @@ export function processOrders(
       ? orderFees.get(orderIdNum)! 
       : val * 0.028 + 0.29;
     
+    // Debug logging for order #11472
+    if (order.order_number === 11472) {
+      console.log(`[Order #11472] Internal ID: ${orderIdNum} (type: ${typeof orderIdNum}), Has fee data: ${orderFees?.has(orderIdNum)}, Fee: $${orderProcessingFees.toFixed(2)}`);
+      if (orderFees) {
+        console.log(`[Order #11472] orderFees map size: ${orderFees.size}, sample keys:`, Array.from(orderFees.keys()).slice(0, 5));
+      }
+    }
+    
     processedOrders.push({
       id: "#" + (order.order_number || order.id),
       orderNumber: order.order_number,

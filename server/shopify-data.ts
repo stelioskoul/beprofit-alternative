@@ -205,14 +205,16 @@ export async function fetchShopifyBalanceTransactions(
   accessToken: string,
   dateRange: DateRange,
   apiVersion: string = "2025-10",
-  eurToUsdRate: number = 1.1665
-): Promise<{ orderFees: Map<number, number>; totalDisputeValue: number; totalDisputeFees: number }> {
+  eurToUsdRate: number = 1.1665,
+  timezoneOffsetMinutes: number = -300 // Default: EST (UTC-5)
+): Promise<{ orderFees: Map<number, number>; totalDisputeValue: number; totalDisputeFees: number; totalRefunds: number; pageCount: number }> {
   // Returns order fees map, dispute value, and dispute fees separately
   const baseUrl = `https://${shopDomain}/admin/api/${apiVersion}/shopify_payments/balance/transactions.json`;
   
   const orderFees = new Map<number, number>();
   let totalDisputeValue = 0;
   let totalDisputeFees = 0;
+  let totalRefunds = 0; // Track total refund amounts
   let pageCount = 0;
   const MAX_PAGES = 10; // Safety limit: fetch max 10 pages (2500 transactions)
   let hasMore = true;
@@ -222,6 +224,8 @@ export async function fetchShopifyBalanceTransactions(
     pageCount++;
     const params = new URLSearchParams({
       limit: "250",
+      // Note: API doesn't support processed_at filtering, we filter client-side after fetching
+      // payout_date filtering excludes pending transactions, so we don't use it
     });
     
     if (lastId) {
@@ -241,7 +245,7 @@ export async function fetchShopifyBalanceTransactions(
       // If 404 or 403, the store doesn't have access to balance transactions (not using Shopify Payments or missing permissions)
       if (response.status === 404 || response.status === 403) {
         console.log(`[Balance Transactions] Not available for this store (${response.status}), using calculated fees`);
-        return { orderFees: new Map(), totalDisputeValue: 0, totalDisputeFees: 0 }; // Return empty data, will fall back to calculated fees
+        return { orderFees: new Map(), totalDisputeValue: 0, totalDisputeFees: 0, totalRefunds: 0, pageCount: 0 }; // Return empty data, will fall back to calculated fees
       }
       const errorText = await response.text();
       throw new Error(
@@ -260,66 +264,146 @@ export async function fetchShopifyBalanceTransactions(
     // Process transactions with date filtering
     for (const txn of transactions) {
       // Filter by date range using processed_at timestamp
+      // Account for store timezone: interpret date strings in store's local time, not UTC
       const txnDate = new Date(txn.processed_at);
-      const fromDate = new Date(dateRange.fromDate);
-      const toDate = new Date(dateRange.toDate);
-      toDate.setHours(23, 59, 59, 999); // Include the entire "to" date
+      
+      // Create date range in store's timezone
+      // Example: If store is EST (UTC-5, offset = -300), and user selects "2025-12-14":
+      // - fromDate should be 2025-12-14 00:00:00 EST = 2025-12-14 05:00:00 UTC
+      // - toDate should be 2025-12-14 23:59:59 EST = 2025-12-15 04:59:59 UTC
+      const fromDate = new Date(dateRange.fromDate + 'T00:00:00');
+      const toDate = new Date(dateRange.toDate + 'T23:59:59');
+      
+      // Adjust for timezone offset (offset is in minutes, negative for west of UTC)
+      // Convert offset to milliseconds and subtract (because offset is negative for EST)
+      const offsetMs = timezoneOffsetMinutes * 60 * 1000;
+      fromDate.setTime(fromDate.getTime() - offsetMs);
+      toDate.setTime(toDate.getTime() - offsetMs);
+      
+      // Debug logging for order 12621097337158
+      if (txn.source_order_id === 12621097337158) {
+        console.log(`[Date Filter Debug] Order 12621097337158 transaction:`, {
+          processed_at: txn.processed_at,
+          txnDate: txnDate.toISOString(),
+          fromDate: fromDate.toISOString(),
+          toDate: toDate.toISOString(),
+          passesFilter: !(txnDate < fromDate || txnDate > toDate),
+          txnBeforeFrom: txnDate < fromDate,
+          txnAfterTo: txnDate > toDate
+        });
+      }
       
       // Skip transactions outside the date range
       if (txnDate < fromDate || txnDate > toDate) {
         continue;
       }
       
-      // Extract processing fees from charge transactions
-      // Only count charges from actual orders (not refunds or other sources)
-      if (txn.type === "charge" && txn.source_order_id && txn.source_type === "Order") {
-        const orderId = txn.source_order_id;
-        const feeEur = parseFloat(txn.fee);
-        const feeUsd = feeEur * eurToUsdRate; // Convert EUR to USD
+      // Log ALL transaction types to understand what we're seeing
+      if (txn.type !== "charge" && txn.type !== "chargeback" && txn.type !== "dispute") {
+        console.log(`[Unknown Transaction Type] ${txn.type}:`, {
+          txn_id: txn.id,
+          type: txn.type,
+          source_type: txn.source_type,
+          source_order_id: txn.source_order_id,
+          amount: txn.amount,
+          fee: txn.fee,
+          currency: txn.currency
+        });
+      }
+      
+      // Extract processing fees from ALL transactions linked to orders
+      // Capture fees from ANY transaction type that has a source_order_id
+      // Only exclude disputes/chargebacks (handled separately below)
+      if (txn.source_order_id && txn.type !== "chargeback" && txn.type !== "dispute" && txn.type !== "refund") {
+        const orderId = Number(txn.source_order_id); // Ensure it's a number
+        const feeAmount = Math.abs(parseFloat(txn.fee)); // Use absolute value like disputes
+        // Convert to USD if currency is EUR
+        const feeUsd = txn.currency === "EUR" ? feeAmount * eurToUsdRate : feeAmount;
         
-        // Debug logging for specific order
-        if (orderId === 11472) {
-          console.log(`[DEBUG Order 11472] Charge transaction found:`, {
-            txn_id: txn.id,
-            type: txn.type,
-            source_type: txn.source_type,
-            amount: txn.amount,
-            fee_eur: feeEur,
-            fee_usd: feeUsd.toFixed(2),
-            processed_at: txn.processed_at
-          });
-        }
+        // Debug logging for ALL orders to understand fee structure
+        console.log(`[Fee Transaction] Order ${orderId} (type: ${txn.type}):`, {
+          txn_id: txn.id,
+          type: txn.type,
+          source_type: txn.source_type,
+          amount: txn.amount,
+          fee_original: feeAmount.toFixed(2),
+          fee_usd: feeUsd.toFixed(2),
+          processed_at: txn.processed_at,
+          currency: txn.currency
+        });
         
         // Accumulate fees for the same order (in case there are multiple charges)
         const existingFee = orderFees.get(orderId) || 0;
         orderFees.set(orderId, existingFee + feeUsd);
         
-        if (orderId === 11472) {
-          console.log(`[DEBUG Order 11472] Total fee now: $${orderFees.get(orderId)?.toFixed(2)}`);
-        }
+        console.log(`[Fee Transaction] Order ${orderId} running total: $${orderFees.get(orderId)?.toFixed(2)}`);
+      }
+      
+      // Extract chargeback reversals (when you win a dispute)
+      if (txn.type === "chargeback_reversal") {
+        const reversalAmount = Math.abs(parseFloat(txn.amount)); // Money returned to you
+        // Convert to USD if currency is EUR
+        const reversalUsd = txn.currency === "EUR" ? reversalAmount * eurToUsdRate : reversalAmount;
+        
+        console.log(`[Chargeback Reversal] Found reversal:`, {
+          txn_id: txn.id,
+          source_order_id: txn.source_order_id,
+          amount_original: reversalAmount,
+          amount_usd: reversalUsd.toFixed(2),
+          currency: txn.currency,
+          processed_at: txn.processed_at
+        });
+        
+        // Subtract from total dispute value (you got the money back)
+        totalDisputeValue -= reversalUsd;
+        // Note: Dispute fees are NOT refunded, so we don't touch totalDisputeFees
       }
       
       // Extract chargeback amounts (negative impact on profit)
       // Shopify uses lowercase "chargeback" for the type
       if (txn.type === "chargeback" || txn.type === "dispute") {
-        const amountEur = Math.abs(parseFloat(txn.amount)); // Chargeback amount
-        const feeEur = Math.abs(parseFloat(txn.fee)); // Chargeback/dispute fee
+        const amountOriginal = Math.abs(parseFloat(txn.amount)); // Chargeback amount
+        const feeOriginal = Math.abs(parseFloat(txn.fee)); // Chargeback/dispute fee
+        
+        // Convert to USD if currency is EUR
+        const amountUsd = txn.currency === "EUR" ? amountOriginal * eurToUsdRate : amountOriginal;
+        const feeUsd = txn.currency === "EUR" ? feeOriginal * eurToUsdRate : feeOriginal;
         
         console.log(`[Dispute Transaction] Found ${txn.type}:`, {
           txn_id: txn.id,
           type: txn.type,
           source_type: txn.source_type,
           source_order_id: txn.source_order_id,
-          amount_eur: amountEur,
-          fee_eur: feeEur,
-          amount_usd: (amountEur * eurToUsdRate).toFixed(2),
-          fee_usd: (feeEur * eurToUsdRate).toFixed(2),
+          amount_original: amountOriginal,
+          fee_original: feeOriginal,
+          amount_usd: amountUsd.toFixed(2),
+          fee_usd: feeUsd.toFixed(2),
+          currency: txn.currency,
           processed_at: txn.processed_at
         });
         
-        // Convert to USD and accumulate separately
-        totalDisputeValue += amountEur * eurToUsdRate;
-        totalDisputeFees += feeEur * eurToUsdRate;
+        // Accumulate in USD
+        totalDisputeValue += amountUsd;
+        totalDisputeFees += feeUsd;
+      }
+      
+      // Extract refunds
+      if (txn.type === "refund") {
+        const refundAmount = Math.abs(parseFloat(txn.amount)); // Refund amount (money returned to customer)
+        // Convert to USD if currency is EUR
+        const refundUsd = txn.currency === "EUR" ? refundAmount * eurToUsdRate : refundAmount;
+        
+        console.log(`[Refund Transaction] Found refund:`, {
+          txn_id: txn.id,
+          source_order_id: txn.source_order_id,
+          amount_original: refundAmount,
+          amount_usd: refundUsd.toFixed(2),
+          currency: txn.currency,
+          processed_at: txn.processed_at
+        });
+        
+        // Accumulate total refunds
+        totalRefunds += refundUsd;
       }
     }
     // Check if there are more pages
@@ -331,6 +415,7 @@ export async function fetchShopifyBalanceTransactions(
     }
   }
 
-  console.log(`[Balance Transactions] Fetched ${orderFees.size} orders with fees from ${pageCount} pages, dispute value: $${totalDisputeValue.toFixed(2)}, dispute fees: $${totalDisputeFees.toFixed(2)}`);
-  return { orderFees, totalDisputeValue, totalDisputeFees };
+  console.log(`[Balance Transactions] Fetched ${orderFees.size} orders with fees from ${pageCount} pages, dispute value: $${totalDisputeValue.toFixed(2)}, dispute fees: $${totalDisputeFees.toFixed(2)}, refunds: $${totalRefunds.toFixed(2)}`);
+  console.log(`[Balance Transactions] Sample orderFees entries:`, Array.from(orderFees.entries()).slice(0, 5));
+  return { orderFees, totalDisputeValue, totalDisputeFees, totalRefunds, pageCount };
 }
