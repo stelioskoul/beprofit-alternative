@@ -27,7 +27,7 @@ export default function Orders() {
     { enabled: isAuthenticated && storeId > 0 }
   );
   
-  const orders = (data as any)?.orders || [];
+  const orders = (data as any) || [];
 
   if (loading) {
     return (

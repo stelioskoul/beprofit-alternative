@@ -135,3 +135,8 @@
 - [x] Track chargeback reversals (type: "chargeback_reversal")
 - [x] Subtract reversals from dispute value (but keep dispute fees)
 - [ ] Test with real data
+
+## CRITICAL BUG - ORDERS TAB NOT SHOWING ORDERS ✅
+- [x] Investigate why Orders tab shows "No orders found" after timezone fix
+- [x] Check if orders fetching is affected by timezone changes
+- [x] Fix and test - Issue was Orders.tsx trying to access data.orders when data is already the array
