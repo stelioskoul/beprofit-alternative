@@ -395,7 +395,7 @@ export const appRouter = router({
           
           // Debug: Log first order's variant IDs
           if (orders.length > 0 && orders[0].line_items?.length > 0) {
-            const firstOrderVariants = orders[0].line_items.map(item => `${item.variant_id} (${typeof item.variant_id})`);
+            const firstOrderVariants = orders[0].line_items.map((item: any) => `${item.variant_id} (${typeof item.variant_id})`);
             console.log(`[Orders] First order variant IDs:`, firstOrderVariants);
           }
           
@@ -467,16 +467,16 @@ export const appRouter = router({
         let averageOrderProfitMargin = 0;
         let averageOrderProfit = 0;
         if (processed.processedOrders && processed.processedOrders.length > 0) {
-          const orderMargins = processed.processedOrders.map(order => {
+          const orderMargins = processed.processedOrders.map((order: any) => {
             const orderRevenue = order.total;
             const orderProfit = order.profit;
             return orderRevenue > 0 ? (orderProfit / orderRevenue) * 100 : 0;
           });
-          averageOrderProfitMargin = orderMargins.reduce((sum, margin) => sum + margin, 0) / orderMargins.length;
+          averageOrderProfitMargin = orderMargins.reduce((sum: number, margin: number) => sum + margin, 0) / orderMargins.length;
           
           // Calculate average order profit (average of individual order profits)
-          const orderProfits = processed.processedOrders.map(order => order.profit);
-          averageOrderProfit = orderProfits.reduce((sum, profit) => sum + profit, 0) / orderProfits.length;
+          const orderProfits = processed.processedOrders.map((order: any) => order.profit);
+          averageOrderProfit = orderProfits.reduce((sum: number, profit: number) => sum + profit, 0) / orderProfits.length;
         }
 
         return {

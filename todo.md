@@ -101,3 +101,12 @@
 - [x] Added discount field to line item return data
 - [x] Update Orders.tsx to display item-level discount instead of order-level discount
 - [x] Ready for user testing with orders that have discounts
+
+## INVESTIGATION - PROCESSING FEES & DISPUTES ✅
+- [x] Fix processing fee calculation - added source_type === "Order" filter to exclude refund-related charges
+- [x] Verify processing fees are extracted from "charge" type transactions only (not including dispute fees)
+- [x] Verify dispute value is extracted from "chargeback" type transaction amount
+- [x] Verify dispute fee is extracted from "chargeback" type transaction fee field
+- [x] Ensure dispute fees are not double-counted in processing fees
+- [x] Added comprehensive logging for all transaction types
+- [x] Created TRANSACTION_EXTRACTION_LOGIC.md documentation

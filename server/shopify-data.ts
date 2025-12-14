@@ -271,14 +271,32 @@ export async function fetchShopifyBalanceTransactions(
       }
       
       // Extract processing fees from charge transactions
-      if (txn.type === "charge" && txn.source_order_id) {
+      // Only count charges from actual orders (not refunds or other sources)
+      if (txn.type === "charge" && txn.source_order_id && txn.source_type === "Order") {
         const orderId = txn.source_order_id;
         const feeEur = parseFloat(txn.fee);
         const feeUsd = feeEur * eurToUsdRate; // Convert EUR to USD
         
+        // Debug logging for specific order
+        if (orderId === 11472) {
+          console.log(`[DEBUG Order 11472] Charge transaction found:`, {
+            txn_id: txn.id,
+            type: txn.type,
+            source_type: txn.source_type,
+            amount: txn.amount,
+            fee_eur: feeEur,
+            fee_usd: feeUsd.toFixed(2),
+            processed_at: txn.processed_at
+          });
+        }
+        
         // Accumulate fees for the same order (in case there are multiple charges)
         const existingFee = orderFees.get(orderId) || 0;
         orderFees.set(orderId, existingFee + feeUsd);
+        
+        if (orderId === 11472) {
+          console.log(`[DEBUG Order 11472] Total fee now: $${orderFees.get(orderId)?.toFixed(2)}`);
+        }
       }
       
       // Extract chargeback amounts (negative impact on profit)
@@ -286,6 +304,18 @@ export async function fetchShopifyBalanceTransactions(
       if (txn.type === "chargeback" || txn.type === "dispute") {
         const amountEur = Math.abs(parseFloat(txn.amount)); // Chargeback amount
         const feeEur = Math.abs(parseFloat(txn.fee)); // Chargeback/dispute fee
+        
+        console.log(`[Dispute Transaction] Found ${txn.type}:`, {
+          txn_id: txn.id,
+          type: txn.type,
+          source_type: txn.source_type,
+          source_order_id: txn.source_order_id,
+          amount_eur: amountEur,
+          fee_eur: feeEur,
+          amount_usd: (amountEur * eurToUsdRate).toFixed(2),
+          fee_usd: (feeEur * eurToUsdRate).toFixed(2),
+          processed_at: txn.processed_at
+        });
         
         // Convert to USD and accumulate separately
         totalDisputeValue += amountEur * eurToUsdRate;
