@@ -1419,58 +1419,37 @@ export const appRouter = router({
         }
 
         // Reconstruct shipping profiles from flat CSV rows
+         // Group rows by profile name and reconstruct Country→Method→Quantity→Cost structure
+        const data = parseResult.data!;
         const profilesMap = new Map<string, any>();
-        
-        for (const item of parseResult.data || []) {
+        for (const item of data) {
           const profileName = item["Profile Name"];
           if (!profileName) continue;
           
           if (!profilesMap.has(profileName)) {
-            profilesMap.set(profileName, {
-              name: profileName,
-              quantityTiers: new Map(),
-            });
+            profilesMap.set(profileName, {});
           }
           
-          const profile = profilesMap.get(profileName);
-          const tierKey = `${item["Min Quantity"]}-${item["Max Quantity"]}`;
-          
-          if (!profile.quantityTiers.has(tierKey)) {
-            profile.quantityTiers.set(tierKey, {
-              minQuantity: parseInt(item["Min Quantity"]) || 1,
-              maxQuantity: parseInt(item["Max Quantity"]) || 999,
-              countries: new Map(),
-            });
-          }
-          
-          const tier = profile.quantityTiers.get(tierKey);
+          const config = profilesMap.get(profileName);
           const countryCode = item["Country Code"] || "ALL";
+          const methodName = item["Shipping Method"] || "Standard";
+          const quantity = item["Quantity"] || "1";
+          const cost = parseFloat(item["Cost (USD)"]) || 0;
           
-          if (!tier.countries.has(countryCode)) {
-            tier.countries.set(countryCode, {
-              code: countryCode,
-              name: item["Country Name"] || "All Countries",
-              methods: [],
-            });
+          // Build structure: config[country][method][quantity] = cost
+          if (!config[countryCode]) {
+            config[countryCode] = {};
           }
-          
-          const country = tier.countries.get(countryCode);
-          country.methods.push({
-            name: item["Shipping Method"] || "Standard",
-            cost: parseFloat(item["Cost (USD)"]) || 0,
-          });
+          if (!config[countryCode][methodName]) {
+            config[countryCode][methodName] = {};
+          }
+          config[countryCode][methodName][quantity.toString()] = cost;
         }
         
         // Create or update profiles
         let successCount = 0;
-        for (const [profileName, profileData] of Array.from(profilesMap.entries())) {
-          const quantityTiers = Array.from(profileData.quantityTiers.values()).map((tier: any) => ({
-            minQuantity: tier.minQuantity,
-            maxQuantity: tier.maxQuantity,
-            countries: Array.from(tier.countries.values()),
-          }));
-          
-          const configJson = JSON.stringify({ quantityTiers });
+        for (const [profileName, config] of Array.from(profilesMap.entries())) {
+          const configJson = JSON.stringify(config);
           
           // Check if profile exists
           const existingProfiles = await db.getShippingProfilesByStoreId(input.storeId);

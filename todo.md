@@ -306,3 +306,11 @@
 - [x] Fix data structure to properly flatten quantity tiers, countries, and methods
 - [ ] Test export with real shipping profile data
 - [ ] Verify import can reconstruct profiles correctly
+
+## DEBUG SHIPPING PROFILE CSV EXPORT 🔍
+- [x] Query database to see actual configJson structure for Test profile
+- [x] Found actual structure: Country → Method → Quantity → Cost
+- [x] Fix CSV export to parse this structure instead of quantityTiers
+- [x] Test export with real shipping profile configuration
+- [x] Fix import to reconstruct Country→Method→Quantity→Cost structure
+- [x] Update CSV validation to use new column names

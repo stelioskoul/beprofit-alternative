@@ -1,0 +1,15 @@
+{
+  "query": "SELECT id, name, configJson FROM shipping_profiles WHERE name = 'Test' LIMIT 1",
+  "command": "mysql --batch --raw --column-names --default-character-set=utf8mb4 --host gateway02.us-east-1.prod.aws.tidbcloud.com --port 4000 --user 4HftCxbWFSVCr8z.53cca666d27c --database 3G7vN4VEcdfqqwn3pSLaGt --execute SELECT id, name, configJson FROM shipping_profiles WHERE name = 'Test' LIMIT 1",
+  "rows": [
+    {
+      "id": "60003",
+      "name": "Test",
+      "configJson": "{\"US\":{\"Standard\":{\"1\":6,\"2\":8},\"Express\":{\"1\":10}},\"EU\":{\"Standard\":{\"1\":6},\"Express\":{\"1\":12}},\"CA\":{\"Standard\":{\"1\":6},\"Express\":{\"1\":13}}}"
+    }
+  ],
+  "messages": [],
+  "stdout": "id\tname\tconfigJson\n60003\tTest\t{\"US\":{\"Standard\":{\"1\":6,\"2\":8},\"Express\":{\"1\":10}},\"EU\":{\"Standard\":{\"1\":6},\"Express\":{\"1\":12}},\"CA\":{\"Standard\":{\"1\":6},\"Express\":{\"1\":13}}}\n",
+  "stderr": "",
+  "execution_time_ms": 1618
+}

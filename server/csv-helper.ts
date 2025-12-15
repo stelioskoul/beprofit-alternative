@@ -130,66 +130,39 @@ export async function generateShippingTemplate(storeId: number): Promise<string>
       config = {};
     }
     
-    // Export each quantity tier, country, and method as a separate row
-    const tiers = config.quantityTiers || [];
+    // Parse actual structure: Country → Method → Quantity → Cost
+    // Example: {"US": {"Standard": {"1": 6, "2": 8}, "Express": {"1": 10}}}
     
-    if (tiers.length === 0) {
+    const countries = Object.keys(config);
+    
+    if (countries.length === 0) {
       // Empty profile, add placeholder row
       rows.push({
         "Profile Name": profile.name,
-        "Min Quantity": 1,
-        "Max Quantity": 999,
+        "Quantity": 1,
         "Country Code": "ALL",
-        "Country Name": "All Countries",
         "Shipping Method": "Standard",
         "Cost (USD)": 0,
       });
       continue;
     }
     
-    for (const tier of tiers) {
-      const countries = tier.countries || [];
+    for (const countryCode of countries) {
+      const methods = config[countryCode];
+      if (!methods || typeof methods !== 'object') continue;
       
-      if (countries.length === 0) {
-        // No countries, add placeholder
-        rows.push({
-          "Profile Name": profile.name,
-          "Min Quantity": tier.minQuantity || 1,
-          "Max Quantity": tier.maxQuantity || 999,
-          "Country Code": "ALL",
-          "Country Name": "All Countries",
-          "Shipping Method": "Standard",
-          "Cost (USD)": 0,
-        });
-        continue;
-      }
-      
-      for (const country of countries) {
-        const methods = country.methods || [];
+      for (const methodName of Object.keys(methods)) {
+        const quantities = methods[methodName];
+        if (!quantities || typeof quantities !== 'object') continue;
         
-        if (methods.length === 0) {
-          // No methods, add placeholder
+        for (const quantity of Object.keys(quantities)) {
+          const cost = quantities[quantity];
           rows.push({
             "Profile Name": profile.name,
-            "Min Quantity": tier.minQuantity || 1,
-            "Max Quantity": tier.maxQuantity || 999,
-            "Country Code": country.code || "ALL",
-            "Country Name": country.name || "All Countries",
-            "Shipping Method": "Standard",
-            "Cost (USD)": 0,
-          });
-          continue;
-        }
-        
-        for (const method of methods) {
-          rows.push({
-            "Profile Name": profile.name,
-            "Min Quantity": tier.minQuantity || 1,
-            "Max Quantity": tier.maxQuantity || 999,
-            "Country Code": country.code || "ALL",
-            "Country Name": country.name || "All Countries",
-            "Shipping Method": method.name || "Standard",
-            "Cost (USD)": method.cost || 0,
+            "Quantity": parseInt(quantity) || 1,
+            "Country Code": countryCode,
+            "Shipping Method": methodName,
+            "Cost (USD)": parseFloat(cost) || 0,
           });
         }
       }
@@ -272,7 +245,7 @@ export function parseShippingCSV(csvText: string): { success: boolean; data?: an
   
   // Validate required columns
   const firstRow = data[0];
-  const requiredColumns = ["Profile Name", "Min Quantity", "Max Quantity", "Cost (USD)"];
+  const requiredColumns = ["Profile Name", "Quantity", "Cost (USD)"];
   const missing = requiredColumns.filter(col => !(col in firstRow));
   if (missing.length > 0) {
     return { success: false, errors: [`Missing required columns: ${missing.join(", ")}`] };
