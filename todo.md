@@ -402,3 +402,9 @@
 - [x] Add disputeFeesRecovered to API response
 - [x] Update profit calculation to add back recovered fees (totalRecovered = disputeRecovered + feesRecovered)
 - [x] Update frontend to show combined recovered amount in green
+
+## TRANSACTION TYPE HANDLING 🔧
+- [x] Verify refund transactions (type "refund") are handled correctly
+- [x] Add support for "chargeback_won" transaction type
+- [x] Add support for "dispute_reversal" transaction type
+- [x] All reversal types now handled: chargeback_reversal, chargeback_won, dispute_reversal

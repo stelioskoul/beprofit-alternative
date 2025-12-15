@@ -342,14 +342,16 @@ export async function fetchShopifyBalanceTransactions(
       }
       
       // Extract chargeback reversals (when you win a dispute)
-      if (txn.type === "chargeback_reversal") {
+      // Shopify uses different types: chargeback_reversal, chargeback_won, dispute_reversal
+      const reversalTypes = ["chargeback_reversal", "chargeback_won", "dispute_reversal"];
+      if (reversalTypes.includes(txn.type)) {
         const reversalAmount = Math.abs(parseFloat(txn.amount)); // Money returned to you
         const reversalFee = Math.abs(parseFloat(txn.fee)); // Fee also returned when you win
         // Convert to USD if currency is EUR
         const reversalUsd = txn.currency === "EUR" ? reversalAmount * eurToUsdRate : reversalAmount;
         const reversalFeeUsd = txn.currency === "EUR" ? reversalFee * eurToUsdRate : reversalFee;
         
-        console.log(`[Chargeback Reversal] Found reversal:`, {
+        console.log(`[Chargeback Reversal] Found ${txn.type}:`, {
           txn_id: txn.id,
           source_order_id: txn.source_order_id,
           amount_original: reversalAmount,
