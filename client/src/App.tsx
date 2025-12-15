@@ -12,6 +12,8 @@ import DebugTransactions from "./pages/DebugTransactions";
 import SignIn from "./pages/SignIn";
 import SignUp from "./pages/SignUp";
 import AdminPanel from "./pages/AdminPanel";
+import PrivacyPolicy from "./pages/PrivacyPolicy";
+import TermsConditions from "./pages/TermsConditions";
 
 function Router() {
   return (
@@ -24,6 +26,8 @@ function Router() {
       <Route path={"/store/:id/connections"} component={Connections} />
       <Route path={"/debug/transactions"} component={DebugTransactions} />
       <Route path={"/admin"} component={AdminPanel} />
+      <Route path={"/privacy"} component={PrivacyPolicy} />
+      <Route path={"/terms"} component={TermsConditions} />
       <Route path={"/404"} component={NotFound} />
       <Route component={NotFound} />
     </Switch>
