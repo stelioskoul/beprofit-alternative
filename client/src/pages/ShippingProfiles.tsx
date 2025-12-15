@@ -7,7 +7,7 @@ import { Label } from "@/components/ui/label";
 import { Textarea } from "@/components/ui/textarea";
 import { getLoginUrl } from "@/const";
 import { trpc } from "@/lib/trpc";
-import { Loader2, Plus, Trash2, Edit, Package } from "lucide-react";
+import { Download, Loader2, Plus, Trash2, Edit, Package, Upload } from "lucide-react";
 import { useParams } from "wouter";
 import { useState } from "react";
 import { ShippingConfigEditor } from "@/components/ShippingConfigEditor";
@@ -72,6 +72,48 @@ export default function ShippingProfiles() {
       toast.error(error.message);
     },
   });
+
+  const downloadShippingTemplateMutation = trpc.config.downloadShippingTemplate.useQuery(
+    { storeId },
+    { enabled: false }
+  );
+
+  const importShippingMutation = trpc.config.importShippingBulk.useMutation({
+    onSuccess: (data) => {
+      toast.success(`Successfully imported ${data.count} shipping configurations`);
+      refetchProfiles();
+    },
+    onError: (error) => {
+      toast.error(error.message);
+    },
+  });
+
+  const handleDownloadTemplate = async () => {
+    const result = await downloadShippingTemplateMutation.refetch();
+    if (result.data?.csv) {
+      const blob = new Blob([result.data.csv], { type: "text/csv" });
+      const url = URL.createObjectURL(blob);
+      const a = document.createElement("a");
+      a.href = url;
+      a.download = "shipping_template.csv";
+      a.click();
+      URL.revokeObjectURL(url);
+    }
+  };
+
+  const handleImportCSV = () => {
+    const input = document.createElement("input");
+    input.type = "file";
+    input.accept = ".csv";
+    input.onchange = async (e: any) => {
+      const file = e.target.files[0];
+      if (file) {
+        const text = await file.text();
+        importShippingMutation.mutate({ storeId, csvData: text });
+      }
+    };
+    input.click();
+  };
 
   if (loading) {
     return (
@@ -142,7 +184,16 @@ export default function ShippingProfiles() {
             Create reusable shipping configurations and assign them to multiple products
           </p>
         </div>
-        <Dialog open={isCreateDialogOpen} onOpenChange={setIsCreateDialogOpen}>
+        <div className="flex items-center gap-2">
+          <Button variant="outline" size="sm" onClick={handleDownloadTemplate} className="gold-gradient-border">
+            <Download className="h-4 w-4 mr-2" />
+            Download Template
+          </Button>
+          <Button variant="outline" size="sm" onClick={handleImportCSV} disabled={importShippingMutation.isPending} className="gold-gradient-border">
+            {importShippingMutation.isPending ? <Loader2 className="h-4 w-4 mr-2 animate-spin" /> : <Upload className="h-4 w-4 mr-2" />}
+            Import CSV
+          </Button>
+          <Dialog open={isCreateDialogOpen} onOpenChange={setIsCreateDialogOpen}>
           <DialogTrigger asChild>
             <Button className="gold-gradient">
               <Plus className="h-4 w-4 mr-2" />
@@ -188,6 +239,7 @@ export default function ShippingProfiles() {
             </div>
           </DialogContent>
         </Dialog>
+        </div>
       </div>
 
       {!profiles || profiles.length === 0 ? (

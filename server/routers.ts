@@ -848,6 +848,80 @@ export const appRouter = router({
         
         return { success: true };
       }),
+
+    // Bulk CSV Operations for Expenses
+    downloadExpensesTemplate: protectedProcedure
+      .input(z.object({ storeId: z.number() }))
+      .query(async ({ ctx, input }) => {
+        const store = await db.getStoreById(input.storeId);
+        if (!store || store.userId !== ctx.user.id) {
+          throw new TRPCError({
+            code: "NOT_FOUND",
+            message: "Store not found or access denied",
+          });
+        }
+
+        const { generateExpensesTemplate } = await import("./csv-helper");
+        return { csv: generateExpensesTemplate() };
+      }),
+
+    importExpensesBulk: protectedProcedure
+      .input(
+        z.object({
+          storeId: z.number(),
+          csvData: z.string(),
+        })
+      )
+      .mutation(async ({ ctx, input }) => {
+        const store = await db.getStoreById(input.storeId);
+        if (!store || store.userId !== ctx.user.id) {
+          throw new TRPCError({
+            code: "NOT_FOUND",
+            message: "Store not found or access denied",
+          });
+        }
+
+        const { parseExpensesCSV } = await import("./csv-helper");
+        const parseResult = parseExpensesCSV(input.csvData);
+
+        if (!parseResult.success) {
+          throw new TRPCError({
+            code: "BAD_REQUEST",
+            message: `CSV validation failed: ${parseResult.errors?.join(", ")}`,
+          });
+        }
+
+        // Bulk create operational expenses
+        let successCount = 0;
+        for (const item of parseResult.data || []) {
+          // Convert EUR to USD if needed
+          let amountUSD = parseFloat(item.amount);
+          if (item.currency === "EUR") {
+            const exchangeRate = await getEurUsdRate();
+            amountUSD = amountUSD * exchangeRate;
+          }
+
+          await db.createOperationalExpense({
+            storeId: input.storeId,
+            type: item.type,
+            title: item.title,
+            amount: amountUSD.toFixed(2),
+            currency: "USD",
+            date: item.date ? new Date(item.date) : undefined,
+            startDate: item.startDate ? new Date(item.startDate) : undefined,
+            endDate: item.endDate ? new Date(item.endDate) : undefined,
+            isActive: item.isActive,
+          });
+          successCount++;
+        }
+
+        // Invalidate cache after bulk update
+        const cache = await import("./cache");
+        await cache.clearStoreCache(input.storeId);
+        console.log(`[Cache] Cleared cache for store ${input.storeId} after bulk expenses import`);
+
+        return { success: true, count: successCount };
+      }),
   }),
 
   products: router({
@@ -1206,6 +1280,130 @@ export const appRouter = router({
         });
 
         return { success: true };
+      }),
+
+    // Bulk CSV Operations
+    downloadCogsTemplate: protectedProcedure
+      .input(z.object({ storeId: z.number() }))
+      .query(async ({ ctx, input }) => {
+        const store = await db.getStoreById(input.storeId);
+        if (!store || store.userId !== ctx.user.id) {
+          throw new TRPCError({
+            code: "NOT_FOUND",
+            message: "Store not found or access denied",
+          });
+        }
+
+        const { generateCogsTemplate } = await import("./csv-helper");
+        return { csv: generateCogsTemplate() };
+      }),
+
+    downloadShippingTemplate: protectedProcedure
+      .input(z.object({ storeId: z.number() }))
+      .query(async ({ ctx, input }) => {
+        const store = await db.getStoreById(input.storeId);
+        if (!store || store.userId !== ctx.user.id) {
+          throw new TRPCError({
+            code: "NOT_FOUND",
+            message: "Store not found or access denied",
+          });
+        }
+
+        const { generateShippingTemplate } = await import("./csv-helper");
+        return { csv: generateShippingTemplate() };
+      }),
+
+    importCogsBulk: protectedProcedure
+      .input(
+        z.object({
+          storeId: z.number(),
+          csvData: z.string(),
+        })
+      )
+      .mutation(async ({ ctx, input }) => {
+        const store = await db.getStoreById(input.storeId);
+        if (!store || store.userId !== ctx.user.id) {
+          throw new TRPCError({
+            code: "NOT_FOUND",
+            message: "Store not found or access denied",
+          });
+        }
+
+        const { parseCogsCSV } = await import("./csv-helper");
+        const parseResult = parseCogsCSV(input.csvData);
+
+        if (!parseResult.success) {
+          throw new TRPCError({
+            code: "BAD_REQUEST",
+            message: `CSV validation failed: ${parseResult.errors?.join(", ")}`,
+          });
+        }
+
+        // Bulk upsert COGS configurations
+        let successCount = 0;
+        for (const item of parseResult.data || []) {
+          await db.upsertCogsConfig({
+            storeId: input.storeId,
+            variantId: item.variantId,
+            productTitle: item.productTitle,
+            cogsValue: item.cogsValue.toString(),
+            currency: item.currency,
+          });
+          successCount++;
+        }
+
+        // Invalidate cache after bulk update
+        const cache = await import("./cache");
+        await cache.clearStoreCache(input.storeId);
+        console.log(`[Cache] Cleared cache for store ${input.storeId} after bulk COGS import`);
+
+        return { success: true, count: successCount };
+      }),
+
+    importShippingBulk: protectedProcedure
+      .input(
+        z.object({
+          storeId: z.number(),
+          csvData: z.string(),
+        })
+      )
+      .mutation(async ({ ctx, input }) => {
+        const store = await db.getStoreById(input.storeId);
+        if (!store || store.userId !== ctx.user.id) {
+          throw new TRPCError({
+            code: "NOT_FOUND",
+            message: "Store not found or access denied",
+          });
+        }
+
+        const { parseShippingCSV } = await import("./csv-helper");
+        const parseResult = parseShippingCSV(input.csvData);
+
+        if (!parseResult.success) {
+          throw new TRPCError({
+            code: "BAD_REQUEST",
+            message: `CSV validation failed: ${parseResult.errors?.join(", ")}`,
+          });
+        }
+
+        // Bulk upsert shipping configurations
+        let successCount = 0;
+        for (const item of parseResult.data || []) {
+          await db.upsertShippingConfig({
+            storeId: input.storeId,
+            variantId: item.variantId,
+            productTitle: item.productTitle,
+            configJson: item.configJson,
+          });
+          successCount++;
+        }
+
+        // Invalidate cache after bulk update
+        const cache = await import("./cache");
+        await cache.clearStoreCache(input.storeId);
+        console.log(`[Cache] Cleared cache for store ${input.storeId} after bulk shipping import`);
+
+        return { success: true, count: successCount };
       }),
   }),
 

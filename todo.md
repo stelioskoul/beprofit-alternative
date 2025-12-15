@@ -241,3 +241,28 @@
 - [ ] Implement bulk update logic with transactions
 - [ ] Show import preview before applying changes
 - [ ] Add success/error feedback after import
+
+## ADD LAST REFRESHED TIMESTAMP 🕐
+- [ ] Store fetchedAt timestamp in cached metrics
+- [ ] Return timestamp with cached data
+- [ ] Display "Last refreshed X minutes ago" in dashboard UI
+- [ ] Show real-time indicator for today's data
+
+## BULK CSV OPERATIONS 📊
+### Backend (Complete)
+- [x] Create CSV helper module with template generation
+- [x] Add CSV parsing and validation functions
+- [x] Create downloadCogsTemplate endpoint
+- [x] Create downloadShippingTemplate endpoint
+- [x] Create downloadExpensesTemplate endpoint
+- [x] Create importCogsBulk endpoint with validation
+- [x] Create importShippingBulk endpoint with validation
+- [x] Create importExpensesBulk endpoint with validation
+- [x] Add cache invalidation after bulk imports
+
+### Frontend (Complete)
+- [x] Add "Download Template" and "Import CSV" buttons in Products tab
+- [x] Add "Download Template" and "Import CSV" buttons in Shipping Profiles tab
+- [x] Add "Download Template" and "Import CSV" buttons in Expenses tab
+- [x] Implement file upload and CSV reading
+- [x] Show success/error messages after import

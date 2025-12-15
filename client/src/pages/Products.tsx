@@ -6,7 +6,7 @@ import { Label } from "@/components/ui/label";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { getLoginUrl } from "@/const";
 import { trpc } from "@/lib/trpc";
-import { Loader2, Save, Search, Settings } from "lucide-react";
+import { Download, Loader2, Save, Search, Settings, Upload } from "lucide-react";
 import { useParams } from "wouter";
 import { useState } from "react";
 import { ShippingConfigEditor } from "@/components/ShippingConfigEditor";
@@ -71,6 +71,21 @@ export default function Products() {
     onSuccess: () => {
       toast.success("Shipping profile assigned successfully");
       refetchAssignments();
+    },
+    onError: (error) => {
+      toast.error(error.message);
+    },
+  });
+
+  const downloadCogsTemplateMutation = trpc.config.downloadCogsTemplate.useQuery(
+    { storeId },
+    { enabled: false }
+  );
+
+  const importCogsMutation = trpc.config.importCogsBulk.useMutation({
+    onSuccess: (data) => {
+      toast.success(`Successfully imported ${data.count} COGS configurations`);
+      refetch();
     },
     onError: (error) => {
       toast.error(error.message);
@@ -161,6 +176,52 @@ export default function Products() {
           </p>
         </div>
         <div className="flex items-center gap-2">
+          <Button
+            variant="outline"
+            size="sm"
+            onClick={async () => {
+              const result = await downloadCogsTemplateMutation.refetch();
+              if (result.data?.csv) {
+                const blob = new Blob([result.data.csv], { type: "text/csv" });
+                const url = URL.createObjectURL(blob);
+                const a = document.createElement("a");
+                a.href = url;
+                a.download = "cogs_template.csv";
+                a.click();
+                URL.revokeObjectURL(url);
+              }
+            }}
+            className="gold-gradient-border"
+          >
+            <Download className="h-4 w-4 mr-2" />
+            Download COGS Template
+          </Button>
+          <Button
+            variant="outline"
+            size="sm"
+            onClick={() => {
+              const input = document.createElement("input");
+              input.type = "file";
+              input.accept = ".csv";
+              input.onchange = async (e: any) => {
+                const file = e.target.files[0];
+                if (file) {
+                  const text = await file.text();
+                  importCogsMutation.mutate({ storeId, csvData: text });
+                }
+              };
+              input.click();
+            }}
+            disabled={importCogsMutation.isPending}
+            className="gold-gradient-border"
+          >
+            {importCogsMutation.isPending ? (
+              <Loader2 className="h-4 w-4 mr-2 animate-spin" />
+            ) : (
+              <Upload className="h-4 w-4 mr-2" />
+            )}
+            Import COGS CSV
+          </Button>
           <div className="relative">
             <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
             <Input

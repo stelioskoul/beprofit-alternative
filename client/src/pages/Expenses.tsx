@@ -14,7 +14,7 @@ import { Label } from "@/components/ui/label";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { getLoginUrl } from "@/const";
 import { trpc } from "@/lib/trpc";
-import { Loader2, Plus, Trash2 } from "lucide-react";
+import { Download, Loader2, Plus, Trash2, Upload } from "lucide-react";
 import { useParams } from "wouter";
 import { useState } from "react";
 import { toast } from "sonner";
@@ -66,6 +66,48 @@ export default function Expenses() {
       toast.error(error.message);
     },
   });
+
+  const downloadExpensesTemplateMutation = trpc.expenses.downloadExpensesTemplate.useQuery(
+    { storeId },
+    { enabled: false }
+  );
+
+  const importExpensesMutation = trpc.expenses.importExpensesBulk.useMutation({
+    onSuccess: (data) => {
+      toast.success(`Successfully imported ${data.count} expenses`);
+      refetch();
+    },
+    onError: (error: any) => {
+      toast.error(error.message);
+    },
+  });
+
+  const handleDownloadTemplate = async () => {
+    const result = await downloadExpensesTemplateMutation.refetch();
+    if (result.data?.csv) {
+      const blob = new Blob([result.data.csv], { type: "text/csv" });
+      const url = URL.createObjectURL(blob);
+      const a = document.createElement("a");
+      a.href = url;
+      a.download = "expenses_template.csv";
+      a.click();
+      URL.revokeObjectURL(url);
+    }
+  };
+
+  const handleImportCSV = () => {
+    const input = document.createElement("input");
+    input.type = "file";
+    input.accept = ".csv";
+    input.onchange = async (e: any) => {
+      const file = e.target.files[0];
+      if (file) {
+        const text = await file.text();
+        importExpensesMutation.mutate({ storeId, csvData: text });
+      }
+    };
+    input.click();
+  };
 
   if (loading) {
     return (
@@ -138,7 +180,16 @@ export default function Expenses() {
             Manage one-time and recurring business expenses
           </p>
         </div>
-        <Dialog open={open} onOpenChange={setOpen}>
+        <div className="flex items-center gap-2">
+          <Button variant="outline" size="sm" onClick={handleDownloadTemplate} className="gold-gradient-border">
+            <Download className="h-4 w-4 mr-2" />
+            Download Template
+          </Button>
+          <Button variant="outline" size="sm" onClick={handleImportCSV} disabled={importExpensesMutation.isPending} className="gold-gradient-border">
+            {importExpensesMutation.isPending ? <Loader2 className="h-4 w-4 mr-2 animate-spin" /> : <Upload className="h-4 w-4 mr-2" />}
+            Import CSV
+          </Button>
+          <Dialog open={open} onOpenChange={setOpen}>
           <DialogTrigger asChild>
             <Button className="gold-gradient">
               <Plus className="h-4 w-4 mr-2" />
@@ -277,6 +328,7 @@ export default function Expenses() {
             </div>
           </DialogContent>
         </Dialog>
+        </div>
       </div>
 
       <Card className="card-glow">
