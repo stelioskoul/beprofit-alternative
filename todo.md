@@ -424,3 +424,8 @@
 - [x] Rename current "Disputes (Lost)" to "Total Disputes" (all chargebacks) - amber color
 - [x] Keep "Disputes (Won)" as is (recovered amounts) - green color
 - [x] Add new "Disputes (Lost)" card calculated as Total - Won - red color
+
+## FIX CHARGEBACK WON NOT FETCHED 🐛
+- [x] Debug why "Chargeback Won" transactions not showing in Disputes Won
+- [x] Fixed transaction type matching (now case-insensitive, handles spaces)
+- [x] Normalized all transaction types: "Chargeback Won" -> "chargeback_won", "Dispute Reversal" -> "dispute_reversal"

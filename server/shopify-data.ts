@@ -300,8 +300,11 @@ export async function fetchShopifyBalanceTransactions(
         continue;
       }
       
+      // Normalize transaction type for comparison (case-insensitive, spaces to underscores)
+      const txnTypeNormalized = (txn.type || "").toLowerCase().replace(/\s+/g, "_");
+      
       // Log ALL transaction types to understand what we're seeing
-      if (txn.type !== "charge" && txn.type !== "chargeback" && txn.type !== "dispute") {
+      if (txnTypeNormalized !== "charge" && txnTypeNormalized !== "chargeback" && txnTypeNormalized !== "dispute") {
         console.log(`[Unknown Transaction Type] ${txn.type}:`, {
           txn_id: txn.id,
           type: txn.type,
@@ -316,7 +319,7 @@ export async function fetchShopifyBalanceTransactions(
       // Extract processing fees from ALL transactions linked to orders
       // Capture fees from ANY transaction type that has a source_order_id
       // Only exclude disputes/chargebacks (handled separately below)
-      if (txn.source_order_id && txn.type !== "chargeback" && txn.type !== "dispute" && txn.type !== "refund") {
+      if (txn.source_order_id && txnTypeNormalized !== "chargeback" && txnTypeNormalized !== "dispute" && txnTypeNormalized !== "refund") {
         const orderId = Number(txn.source_order_id); // Ensure it's a number
         const feeAmount = Math.abs(parseFloat(txn.fee)); // Use absolute value like disputes
         // Convert to USD if currency is EUR
@@ -343,8 +346,9 @@ export async function fetchShopifyBalanceTransactions(
       
       // Extract chargeback reversals (when you win a dispute)
       // Shopify uses different types: chargeback_reversal, chargeback_won, dispute_reversal
+      // Also handle variations with spaces and different cases (e.g., "Chargeback Won")
       const reversalTypes = ["chargeback_reversal", "chargeback_won", "dispute_reversal"];
-      if (reversalTypes.includes(txn.type)) {
+      if (reversalTypes.includes(txnTypeNormalized)) {
         const reversalAmount = Math.abs(parseFloat(txn.amount)); // Money returned to you
         const reversalFee = Math.abs(parseFloat(txn.fee)); // Fee also returned when you win
         // Convert to USD if currency is EUR
@@ -369,8 +373,8 @@ export async function fetchShopifyBalanceTransactions(
       }
       
       // Extract chargeback amounts (negative impact on profit)
-      // Shopify uses lowercase "chargeback" for the type
-      if (txn.type === "chargeback" || txn.type === "dispute") {
+      // Shopify uses lowercase "chargeback" for the type (now case-insensitive)
+      if (txnTypeNormalized === "chargeback" || txnTypeNormalized === "dispute") {
         const amountOriginal = Math.abs(parseFloat(txn.amount)); // Chargeback amount
         const feeOriginal = Math.abs(parseFloat(txn.fee)); // Chargeback/dispute fee
         
