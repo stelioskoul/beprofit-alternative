@@ -1,4 +1,4 @@
-import { int, mysqlEnum, mysqlTable, text, timestamp, varchar, decimal, date, unique, tinyint } from "drizzle-orm/mysql-core";
+import { int, mysqlEnum, mysqlTable, text, timestamp, varchar, decimal, date, unique, tinyint, json } from "drizzle-orm/mysql-core";
 
 /**
  * Core user table backing auth flow.
@@ -198,3 +198,21 @@ export const productShippingProfiles = mysqlTable("product_shipping_profiles", {
 
 export type ProductShippingProfile = typeof productShippingProfiles.$inferSelect;
 export type InsertProductShippingProfile = typeof productShippingProfiles.$inferInsert;
+
+/**
+ * Cached Metrics - Store pre-calculated metrics to reduce load times
+ */
+export const cachedMetrics = mysqlTable("cached_metrics", {
+  id: int("id").autoincrement().primaryKey(),
+  storeId: int("storeId").notNull(),
+  cacheKey: varchar("cacheKey", { length: 255 }).notNull(), // e.g., 'dashboard_2024-01-15', 'orders_2024-01-15'
+  dateRange: varchar("dateRange", { length: 50 }).notNull(), // e.g., 'today', '2024-01-15_2024-01-15'
+  metricsData: json("metricsData").notNull(), // Stores the calculated metrics as JSON
+  lastRefreshedAt: timestamp("lastRefreshedAt").defaultNow().notNull(),
+  createdAt: timestamp("createdAt").defaultNow().notNull(),
+}, (table) => ({
+  uniqueStoreCacheKey: unique().on(table.storeId, table.cacheKey),
+}));
+
+export type CachedMetric = typeof cachedMetrics.$inferSelect;
+export type InsertCachedMetric = typeof cachedMetrics.$inferInsert;

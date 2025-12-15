@@ -212,3 +212,32 @@
 - [x] Create new user stelioskouloulias@gmail.com with password $Koul112002
 - [x] Set stelioskouloulias@gmail.com role to 'admin'
 - [x] Verify both users work correctly
+
+## FINAL OPTIMIZATION FEATURES 🚀
+
+### Orders Tab Default Date
+- [x] Change Orders tab default date range to "today" (matching dashboard)
+
+### Data Caching System (Option 2: Last 90 days)
+- [x] Create cached_metrics table in database schema
+- [x] Implement cache module with smart caching rules (skip today)
+- [x] Extract metrics calculation to separate module
+- [x] Add getProfitCached procedure with cache-first logic
+- [x] Add refreshCache mutation for manual refresh
+- [x] Update scheduler to refresh yesterday, last 7 days, last 30 days
+- [x] Initialize scheduler in server startup
+- [x] Implement cache invalidation when COGS/shipping/expenses updated
+- [x] Add "Refresh Data" button in dashboard UI
+- [ ] Show "Last refreshed" timestamp in UI (optional - can be added later)
+- [x] Update frontend to use getProfitCached instead of getProfit
+
+### Bulk Product Operations
+- [ ] Design CSV templates for COGS (product SKU, cost)
+- [ ] Design CSV templates for Shipping Profiles (product SKU, profile)
+- [ ] Design CSV templates for Operational Expenses (expense name, amount, type)
+- [ ] Add "Download Template" buttons in each tab
+- [ ] Add "Import CSV" buttons in each tab
+- [ ] Implement CSV parsing and validation
+- [ ] Implement bulk update logic with transactions
+- [ ] Show import preview before applying changes
+- [ ] Add success/error feedback after import

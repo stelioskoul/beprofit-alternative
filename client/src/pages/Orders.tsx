@@ -15,10 +15,8 @@ export default function Orders() {
   const { isAuthenticated, loading } = useAuth();
   
   const today = new Date();
-  const thirtyDaysAgo = new Date(today);
-  thirtyDaysAgo.setDate(today.getDate() - 30);
   
-  const [startDate, setStartDate] = useState(thirtyDaysAgo.toISOString().split("T")[0]);
+  const [startDate, setStartDate] = useState(today.toISOString().split("T")[0]);
   const [endDate, setEndDate] = useState(today.toISOString().split("T")[0]);
   const [searchQuery, setSearchQuery] = useState("");
 

@@ -34,10 +34,16 @@ export default function StoreView() {
     { enabled: isAuthenticated && storeId > 0 }
   );
 
-  const { data: metrics, isLoading: metricsLoading, error } = trpc.metrics.getProfit.useQuery(
+  const { data: metrics, isLoading: metricsLoading, error, refetch } = trpc.metrics.getProfitCached.useQuery(
     { storeId, fromDate: startDate, toDate: endDate },
     { enabled: isAuthenticated && storeId > 0, retry: false }
   );
+
+  const refreshMutation = trpc.metrics.refreshCache.useMutation({
+    onSuccess: () => {
+      refetch();
+    },
+  });
 
   const { data: exchangeRateData } = trpc.exchangeRate.getCurrent.useQuery();
   const exchangeRate = exchangeRateData?.rate || 1.1588;
@@ -159,7 +165,21 @@ export default function StoreView() {
                 />
               </div>
               </div>
-              <ExchangeRateDisplay />
+              <div className="flex items-center gap-4">
+                <Button
+                  variant="outline"
+                  size="sm"
+                  onClick={() => refreshMutation.mutate({ storeId, fromDate: startDate, toDate: endDate })}
+                  disabled={refreshMutation.isPending || metricsLoading}
+                  className="gold-gradient-border"
+                >
+                  {refreshMutation.isPending ? (
+                    <Loader2 className="h-4 w-4 animate-spin mr-2" />
+                  ) : null}
+                  Refresh Data
+                </Button>
+                <ExchangeRateDisplay />
+              </div>
             </div>
 
             {metricsLoading ? (

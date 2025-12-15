@@ -168,6 +168,13 @@ export async function deleteStore(storeId: number) {
   await db.delete(stores).where(eq(stores.id, storeId));
 }
 
+export async function getAllStores() {
+  const db = await getDb();
+  if (!db) return [];
+
+  return await db.select().from(stores);
+}
+
 // ============================================================================
 // SHOPIFY CONNECTION OPERATIONS
 // ============================================================================
