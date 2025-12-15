@@ -207,7 +207,7 @@ export async function fetchShopifyBalanceTransactions(
   apiVersion: string = "2025-10",
   eurToUsdRate: number = 1.1665,
   timezoneOffsetMinutes: number = -300 // Default: EST (UTC-5)
-): Promise<{ orderFees: Map<number, number>; totalDisputeValue: number; totalDisputeFees: number; totalDisputeRecovered: number; totalRefunds: number; pageCount: number }> {
+): Promise<{ orderFees: Map<number, number>; totalDisputeValue: number; totalDisputeFees: number; totalDisputeRecovered: number; totalDisputeFeesRecovered: number; totalRefunds: number; pageCount: number }> {
   // Returns order fees map, dispute value, and dispute fees separately
   const baseUrl = `https://${shopDomain}/admin/api/${apiVersion}/shopify_payments/balance/transactions.json`;
   
@@ -215,6 +215,7 @@ export async function fetchShopifyBalanceTransactions(
   let totalDisputeValue = 0;
   let totalDisputeFees = 0;
   let totalDisputeRecovered = 0; // Track money recovered from won chargebacks
+  let totalDisputeFeesRecovered = 0; // Track fees recovered from won chargebacks
   let totalRefunds = 0; // Track total refund amounts
   let pageCount = 0;
   const MAX_PAGES = 10; // Safety limit: fetch max 10 pages (2500 transactions)
@@ -246,7 +247,7 @@ export async function fetchShopifyBalanceTransactions(
       // If 404 or 403, the store doesn't have access to balance transactions (not using Shopify Payments or missing permissions)
       if (response.status === 404 || response.status === 403) {
         console.log(`[Balance Transactions] Not available for this store (${response.status}), using calculated fees`);
-        return { orderFees: new Map(), totalDisputeValue: 0, totalDisputeFees: 0, totalDisputeRecovered: 0, totalRefunds: 0, pageCount: 0 }; // Return empty data, will fall back to calculated fees
+        return { orderFees: new Map(), totalDisputeValue: 0, totalDisputeFees: 0, totalDisputeRecovered: 0, totalDisputeFeesRecovered: 0, totalRefunds: 0, pageCount: 0 }; // Return empty data, will fall back to calculated fees
       }
       const errorText = await response.text();
       throw new Error(
@@ -343,21 +344,26 @@ export async function fetchShopifyBalanceTransactions(
       // Extract chargeback reversals (when you win a dispute)
       if (txn.type === "chargeback_reversal") {
         const reversalAmount = Math.abs(parseFloat(txn.amount)); // Money returned to you
+        const reversalFee = Math.abs(parseFloat(txn.fee)); // Fee also returned when you win
         // Convert to USD if currency is EUR
         const reversalUsd = txn.currency === "EUR" ? reversalAmount * eurToUsdRate : reversalAmount;
+        const reversalFeeUsd = txn.currency === "EUR" ? reversalFee * eurToUsdRate : reversalFee;
         
         console.log(`[Chargeback Reversal] Found reversal:`, {
           txn_id: txn.id,
           source_order_id: txn.source_order_id,
           amount_original: reversalAmount,
           amount_usd: reversalUsd.toFixed(2),
+          fee_original: reversalFee,
+          fee_usd: reversalFeeUsd.toFixed(2),
           currency: txn.currency,
           processed_at: txn.processed_at
         });
         
         // Track recovered amount separately (money won back from disputes)
         totalDisputeRecovered += reversalUsd;
-        // Note: Dispute fees are NOT refunded, so we don't touch totalDisputeFees
+        // Dispute fees ARE refunded when you win, so track them too
+        totalDisputeFeesRecovered += reversalFeeUsd;
       }
       
       // Extract chargeback amounts (negative impact on profit)
@@ -418,5 +424,5 @@ export async function fetchShopifyBalanceTransactions(
 
   console.log(`[Balance Transactions] Fetched ${orderFees.size} orders with fees from ${pageCount} pages, dispute value: $${totalDisputeValue.toFixed(2)}, dispute fees: $${totalDisputeFees.toFixed(2)}, dispute recovered: $${totalDisputeRecovered.toFixed(2)}, refunds: $${totalRefunds.toFixed(2)}`);
   console.log(`[Balance Transactions] Sample orderFees entries:`, Array.from(orderFees.entries()).slice(0, 5));
-  return { orderFees, totalDisputeValue, totalDisputeFees, totalDisputeRecovered, totalRefunds, pageCount };
+  return { orderFees, totalDisputeValue, totalDisputeFees, totalDisputeRecovered, totalDisputeFeesRecovered, totalRefunds, pageCount };
 }

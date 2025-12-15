@@ -531,6 +531,7 @@ export const appRouter = router({
         let totalDisputeValue = 0; // Initialize dispute value from balance transactions
         let totalDisputeFees = 0; // Initialize dispute fees from balance transactions
         let totalDisputeRecovered = 0; // Initialize recovered amount from won chargebacks
+        let totalDisputeFeesRecovered = 0; // Initialize recovered fees from won chargebacks
         let totalRefunds = 0; // Initialize refunds from balance transactions
         let orderFees: Map<number, number> | undefined; // Declare at higher scope for debug access
         let balancePageCount = 0; // Number of pages fetched from balance transactions API
@@ -593,6 +594,7 @@ export const appRouter = router({
             totalDisputeValue = balanceData.totalDisputeValue;
             totalDisputeFees = balanceData.totalDisputeFees;
             totalDisputeRecovered = balanceData.totalDisputeRecovered;
+            totalDisputeFeesRecovered = balanceData.totalDisputeFeesRecovered;
             totalRefunds = balanceData.totalRefunds;
             balancePageCount = balanceData.pageCount;
             console.log(`[Balance Transactions] Fetched fees for ${orderFees.size} orders, dispute value: $${totalDisputeValue.toFixed(2)}, dispute fees: $${totalDisputeFees.toFixed(2)}, recovered: $${totalDisputeRecovered.toFixed(2)}, refunds: $${totalRefunds.toFixed(2)}`);
@@ -655,7 +657,9 @@ export const appRouter = router({
         const disputeValueUSD = Math.max(0, totalDisputeValue); // Chargeback amounts from balance transactions
         const disputeFeesUSD = totalDisputeFees; // Dispute fees from balance transactions
         const disputeRecoveredUSD = totalDisputeRecovered; // Money recovered from won chargebacks
+        const disputeFeesRecoveredUSD = totalDisputeFeesRecovered; // Fees recovered from won chargebacks
         const totalDisputesUSD = disputeValueUSD + disputeFeesUSD; // Total disputes impact (not including recovered)
+        const totalRecoveredUSD = disputeRecoveredUSD + disputeFeesRecoveredUSD; // Total recovered from won chargebacks
         const refundsUSD = totalRefunds; // Total refunds from balance transactions
         
         // Convert ad spend to USD if it was in EUR
@@ -673,7 +677,7 @@ export const appRouter = router({
           totalDisputesUSD -
           refundsUSD -
           operationalExpensesUSD +
-          disputeRecoveredUSD; // Add back recovered dispute amounts
+          totalRecoveredUSD; // Add back recovered dispute amounts and fees
 
         // Calculate average order profit margin (average of individual order margins)
         let averageOrderProfitMargin = 0;
@@ -704,6 +708,7 @@ export const appRouter = router({
           disputeValue: disputeValueUSD,
           disputeFees: disputeFeesUSD,
           disputeRecovered: disputeRecoveredUSD,
+          disputeFeesRecovered: disputeFeesRecoveredUSD,
           refunds: refundsUSD,
           operationalExpenses: operationalExpensesUSD,
           netProfit: netProfitUSD,

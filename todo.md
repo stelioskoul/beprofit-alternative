@@ -396,3 +396,9 @@
 - [x] Display Dispute Recovered in dashboard UI (green, only shows when > 0)
 - [x] Update profit calculation to include recovered amount
 - [x] Update Total Costs calculation to subtract recovered amount
+
+## DISPUTE FEE RECOVERY 💰
+- [x] Track recovered dispute fees from chargeback_reversal transactions
+- [x] Add disputeFeesRecovered to API response
+- [x] Update profit calculation to add back recovered fees (totalRecovered = disputeRecovered + feesRecovered)
+- [x] Update frontend to show combined recovered amount in green

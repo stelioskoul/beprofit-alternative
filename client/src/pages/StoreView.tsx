@@ -282,10 +282,10 @@ export default function StoreView() {
                     <CardContent className="p-6">
                       <p className="text-sm text-muted-foreground mb-2">Total Costs</p>
                       <p className="text-3xl font-bold text-red-500">
-                        {formatCurrencyUSD(metrics.cogs + metrics.shipping + metrics.processingFees + (metrics.disputeValue || 0) + (metrics.disputeFees || 0) + (metrics.refunds || 0) + metrics.adSpend + metrics.operationalExpenses - (metrics.disputeRecovered || 0))}
+                        {formatCurrencyUSD(metrics.cogs + metrics.shipping + metrics.processingFees + (metrics.disputeValue || 0) + (metrics.disputeFees || 0) + (metrics.refunds || 0) + metrics.adSpend + metrics.operationalExpenses - (metrics.disputeRecovered || 0) - (metrics.disputeFeesRecovered || 0))}
                       </p>
                       <p className="text-xs text-muted-foreground mt-1">
-                        {formatCurrencyEUR((metrics.cogs + metrics.shipping + metrics.processingFees + (metrics.disputeValue || 0) + (metrics.disputeFees || 0) + (metrics.refunds || 0) + metrics.adSpend + metrics.operationalExpenses - (metrics.disputeRecovered || 0)) / exchangeRate)}
+                        {formatCurrencyEUR((metrics.cogs + metrics.shipping + metrics.processingFees + (metrics.disputeValue || 0) + (metrics.disputeFees || 0) + (metrics.refunds || 0) + metrics.adSpend + metrics.operationalExpenses - (metrics.disputeRecovered || 0) - (metrics.disputeFeesRecovered || 0)) / exchangeRate)}
                       </p>
                     </CardContent>
                   </Card>
@@ -351,12 +351,12 @@ export default function StoreView() {
                           <div className="text-xs text-muted-foreground">{formatCurrencyEUR((metrics.disputeFees || 0) / exchangeRate)}</div>
                         </div>
                       </div>
-                      {(metrics.disputeRecovered || 0) > 0 && (
+                      {((metrics.disputeRecovered || 0) + (metrics.disputeFeesRecovered || 0)) > 0 && (
                         <div className="flex items-center justify-between">
                           <span className="text-muted-foreground">Dispute Recovered</span>
                           <div className="text-right">
-                            <div className="font-semibold text-green-500">+{formatCurrencyUSD(metrics.disputeRecovered || 0)}</div>
-                            <div className="text-xs text-muted-foreground">+{formatCurrencyEUR((metrics.disputeRecovered || 0) / exchangeRate)}</div>
+                            <div className="font-semibold text-green-500">+{formatCurrencyUSD((metrics.disputeRecovered || 0) + (metrics.disputeFeesRecovered || 0))}</div>
+                            <div className="text-xs text-muted-foreground">+{formatCurrencyEUR(((metrics.disputeRecovered || 0) + (metrics.disputeFeesRecovered || 0)) / exchangeRate)}</div>
                           </div>
                         </div>
                       )}
