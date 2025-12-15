@@ -317,23 +317,29 @@
 
 ## MOBILE RESPONSIVENESS 📱
 ### Dashboard & Navigation
-- [ ] Make DashboardLayout sidebar collapsible on mobile
-- [ ] Add hamburger menu for mobile navigation
-- [ ] Optimize header spacing for small screens
-- [ ] Make store selector dropdown mobile-friendly
+- [ ] Convert sidebar to drawer menu on mobile (Sheet component)
+- [ ] Add hamburger menu button in header
+- [ ] Stack header elements vertically on mobile
+- [ ] Make store selector full-width on mobile
 
-### Data Tables
-- [ ] Make Products table responsive (horizontal scroll or card view)
-- [ ] Make Orders table responsive
-- [ ] Make Shipping Profiles table responsive
-- [ ] Make Expenses table responsive
+### Data Tables → Card View on Mobile
+- [ ] Products table: Convert to card view on mobile
+- [ ] Orders table: Convert to card view on mobile  
+- [ ] Shipping Profiles table: Convert to card view on mobile
+- [ ] Expenses table: Convert to card view on mobile
 
-### Forms & Modals
-- [ ] Optimize all forms for mobile (full-width inputs, larger touch targets)
-- [ ] Make modals responsive (full-screen on mobile)
-- [ ] Optimize date pickers for mobile
-- [ ] Make CSV upload buttons touch-friendly
+### Page Headers & Actions
+- [ ] Stack date picker and buttons vertically on mobile
+- [ ] Combine CSV buttons into dropdown menu on mobile
+- [ ] Make "Refresh Data" and action buttons full-width on mobile
+- [ ] Hide less critical actions in overflow menu
+
+### Forms & Inputs
+- [ ] Make all input fields full-width on mobile
+- [ ] Increase button touch targets (min 44px height)
+- [ ] Stack form fields vertically on mobile
+- [ ] Make date pickers mobile-friendly (full-width)
 
 ### General
-- [ ] Test on mobile viewport sizes
+- [ ] Test on mobile viewport (375px, 768px)
 - [ ] Push to GitHub
