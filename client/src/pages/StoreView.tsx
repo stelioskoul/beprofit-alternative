@@ -2,9 +2,10 @@ import { useAuth } from "@/_core/hooks/useAuth";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent } from "@/components/ui/card";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { getLoginUrl } from "@/const";
 import { trpc } from "@/lib/trpc";
-import { ArrowLeft, Loader2, Clock } from "lucide-react";
+import { ArrowLeft, Loader2, Clock, CalendarDays } from "lucide-react";
 import { Link, useLocation, useParams } from "wouter";
 import { useState, useMemo } from "react";
 import Connections from "./Connections";
@@ -166,91 +167,59 @@ export default function StoreView() {
                   style={{ colorScheme: 'dark' }}
                 />
               </div>
-              {/* Date Range Presets */}
-              <div className="flex flex-wrap items-center gap-2">
-                <Button
-                  variant="ghost"
-                  size="sm"
-                  onClick={() => {
-                    const today = new Date();
-                    const dateStr = today.toISOString().split('T')[0];
-                    setStartDate(dateStr);
-                    setEndDate(dateStr);
-                  }}
-                  className="text-xs h-8 px-3 hover:bg-primary/10"
-                >
-                  Today
-                </Button>
-                <Button
-                  variant="ghost"
-                  size="sm"
-                  onClick={() => {
-                    const yesterday = new Date();
-                    yesterday.setDate(yesterday.getDate() - 1);
-                    const dateStr = yesterday.toISOString().split('T')[0];
-                    setStartDate(dateStr);
-                    setEndDate(dateStr);
-                  }}
-                  className="text-xs h-8 px-3 hover:bg-primary/10"
-                >
-                  Yesterday
-                </Button>
-                <Button
-                  variant="ghost"
-                  size="sm"
-                  onClick={() => {
-                    const today = new Date();
-                    const last7 = new Date();
-                    last7.setDate(today.getDate() - 6);
-                    setStartDate(last7.toISOString().split('T')[0]);
-                    setEndDate(today.toISOString().split('T')[0]);
-                  }}
-                  className="text-xs h-8 px-3 hover:bg-primary/10"
-                >
-                  Last 7 Days
-                </Button>
-                <Button
-                  variant="ghost"
-                  size="sm"
-                  onClick={() => {
-                    const today = new Date();
-                    const last30 = new Date();
-                    last30.setDate(today.getDate() - 29);
-                    setStartDate(last30.toISOString().split('T')[0]);
-                    setEndDate(today.toISOString().split('T')[0]);
-                  }}
-                  className="text-xs h-8 px-3 hover:bg-primary/10"
-                >
-                  Last 30 Days
-                </Button>
-                <Button
-                  variant="ghost"
-                  size="sm"
-                  onClick={() => {
-                    const today = new Date();
-                    const firstDay = new Date(today.getFullYear(), today.getMonth(), 1);
-                    setStartDate(firstDay.toISOString().split('T')[0]);
-                    setEndDate(today.toISOString().split('T')[0]);
-                  }}
-                  className="text-xs h-8 px-3 hover:bg-primary/10"
-                >
-                  This Month
-                </Button>
-                <Button
-                  variant="ghost"
-                  size="sm"
-                  onClick={() => {
-                    const today = new Date();
-                    const firstDayLastMonth = new Date(today.getFullYear(), today.getMonth() - 1, 1);
-                    const lastDayLastMonth = new Date(today.getFullYear(), today.getMonth(), 0);
-                    setStartDate(firstDayLastMonth.toISOString().split('T')[0]);
-                    setEndDate(lastDayLastMonth.toISOString().split('T')[0]);
-                  }}
-                  className="text-xs h-8 px-3 hover:bg-primary/10"
-                >
-                  Last Month
-                </Button>
-              </div>
+              {/* Date Range Presets Dropdown */}
+              <Select
+                value="custom"
+                onValueChange={(value) => {
+                  const today = new Date();
+                  let fromDate: Date;
+                  let toDate: Date = today;
+                  
+                  switch (value) {
+                    case 'today':
+                      fromDate = today;
+                      break;
+                    case 'yesterday':
+                      fromDate = new Date(today);
+                      fromDate.setDate(today.getDate() - 1);
+                      toDate = fromDate;
+                      break;
+                    case 'last7':
+                      fromDate = new Date(today);
+                      fromDate.setDate(today.getDate() - 6);
+                      break;
+                    case 'last30':
+                      fromDate = new Date(today);
+                      fromDate.setDate(today.getDate() - 29);
+                      break;
+                    case 'thisMonth':
+                      fromDate = new Date(today.getFullYear(), today.getMonth(), 1);
+                      break;
+                    case 'lastMonth':
+                      fromDate = new Date(today.getFullYear(), today.getMonth() - 1, 1);
+                      toDate = new Date(today.getFullYear(), today.getMonth(), 0);
+                      break;
+                    default:
+                      return;
+                  }
+                  
+                  setStartDate(fromDate.toISOString().split('T')[0]);
+                  setEndDate(toDate.toISOString().split('T')[0]);
+                }}
+              >
+                <SelectTrigger className="w-[140px] h-9 bg-black/30 border-border">
+                  <CalendarDays className="h-4 w-4 mr-2 text-primary" />
+                  <SelectValue placeholder="Quick Select" />
+                </SelectTrigger>
+                <SelectContent>
+                  <SelectItem value="today">Today</SelectItem>
+                  <SelectItem value="yesterday">Yesterday</SelectItem>
+                  <SelectItem value="last7">Last 7 Days</SelectItem>
+                  <SelectItem value="last30">Last 30 Days</SelectItem>
+                  <SelectItem value="thisMonth">This Month</SelectItem>
+                  <SelectItem value="lastMonth">Last Month</SelectItem>
+                </SelectContent>
+              </Select>
               </div>
               <div className="flex flex-col sm:flex-row items-stretch sm:items-center gap-4">
                 <div className="flex flex-col items-stretch sm:items-end gap-1">
