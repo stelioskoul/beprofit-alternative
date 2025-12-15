@@ -218,7 +218,7 @@ export default function StoreView() {
               >
                 <SelectTrigger className="w-[150px] h-9 bg-black/30 border-border">
                   <CalendarDays className="h-4 w-4 mr-2 text-primary" />
-                  <SelectValue placeholder="Select Range" />
+                  <SelectValue placeholder="Range" />
                 </SelectTrigger>
                 <SelectContent>
                   <SelectItem value="today">Today</SelectItem>
