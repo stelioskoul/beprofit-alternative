@@ -402,31 +402,6 @@ export default function StoreView() {
                     </CardContent>
                   </Card>
 
-                  {/* Total Disputes */}
-                  <Card className="glass">
-                    <CardContent className="p-4 space-y-2">
-                      <h3 className="font-semibold text-sm text-amber-500 mb-3">Total Disputes</h3>
-                      <div className="flex items-center justify-between">
-                        <span className="text-muted-foreground text-sm">Dispute Value</span>
-                        <div className="text-right">
-                          <div className="font-semibold text-sm">{formatCurrencyUSD(metrics.disputeValue || 0)}</div>
-                          <div className="text-xs text-muted-foreground">{formatCurrencyEUR((metrics.disputeValue || 0) / exchangeRate)}</div>
-                        </div>
-                      </div>
-                      <div className="flex items-center justify-between">
-                        <span className="text-muted-foreground text-sm">Dispute Fees</span>
-                        <div className="text-right">
-                          <div className="font-semibold text-sm">{formatCurrencyUSD(metrics.disputeFees || 0)}</div>
-                          <div className="text-xs text-muted-foreground">{formatCurrencyEUR((metrics.disputeFees || 0) / exchangeRate)}</div>
-                        </div>
-                      </div>
-                      <div className="border-t border-border/50 pt-2 mt-2 flex items-center justify-between">
-                        <span className="text-muted-foreground text-sm font-medium">Subtotal</span>
-                        <div className="font-semibold text-sm">{formatCurrencyUSD((metrics.disputeValue || 0) + (metrics.disputeFees || 0))}</div>
-                      </div>
-                    </CardContent>
-                  </Card>
-
                   {/* Disputes Won */}
                   <Card className="glass">
                     <CardContent className="p-4 space-y-2">
@@ -462,7 +437,7 @@ export default function StoreView() {
                     </CardContent>
                   </Card>
 
-                  {/* Disputes Lost (Total - Won) */}
+                  {/* Disputes Lost */}
                   <Card className="glass">
                     <CardContent className="p-4 space-y-2">
                       <h3 className="font-semibold text-sm text-red-500 mb-3">Disputes (Lost)</h3>
@@ -470,10 +445,10 @@ export default function StoreView() {
                         <span className="text-muted-foreground text-sm">Value Lost</span>
                         <div className="text-right">
                           <div className="font-semibold text-sm text-red-500">
-                            {formatCurrencyUSD(Math.max(0, (metrics.disputeValue || 0) - (metrics.disputeRecovered || 0)))}
+                            -{formatCurrencyUSD(metrics.disputeValue || 0)}
                           </div>
                           <div className="text-xs text-muted-foreground">
-                            {formatCurrencyEUR(Math.max(0, (metrics.disputeValue || 0) - (metrics.disputeRecovered || 0)) / exchangeRate)}
+                            -{formatCurrencyEUR((metrics.disputeValue || 0) / exchangeRate)}
                           </div>
                         </div>
                       </div>
@@ -481,17 +456,17 @@ export default function StoreView() {
                         <span className="text-muted-foreground text-sm">Fees Lost</span>
                         <div className="text-right">
                           <div className="font-semibold text-sm text-red-500">
-                            {formatCurrencyUSD(Math.max(0, (metrics.disputeFees || 0) - (metrics.disputeFeesRecovered || 0)))}
+                            -{formatCurrencyUSD(metrics.disputeFees || 0)}
                           </div>
                           <div className="text-xs text-muted-foreground">
-                            {formatCurrencyEUR(Math.max(0, (metrics.disputeFees || 0) - (metrics.disputeFeesRecovered || 0)) / exchangeRate)}
+                            -{formatCurrencyEUR((metrics.disputeFees || 0) / exchangeRate)}
                           </div>
                         </div>
                       </div>
                       <div className="border-t border-border/50 pt-2 mt-2 flex items-center justify-between">
                         <span className="text-muted-foreground text-sm font-medium">Subtotal</span>
                         <div className="font-semibold text-sm text-red-500">
-                          {formatCurrencyUSD(Math.max(0, ((metrics.disputeValue || 0) + (metrics.disputeFees || 0)) - ((metrics.disputeRecovered || 0) + (metrics.disputeFeesRecovered || 0))))}
+                          -{formatCurrencyUSD((metrics.disputeValue || 0) + (metrics.disputeFees || 0))}
                         </div>
                       </div>
                     </CardContent>
