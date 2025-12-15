@@ -4,7 +4,7 @@ import { Card, CardContent } from "@/components/ui/card";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { getLoginUrl } from "@/const";
 import { trpc } from "@/lib/trpc";
-import { ArrowLeft, Loader2 } from "lucide-react";
+import { ArrowLeft, Loader2, Clock } from "lucide-react";
 import { Link, useLocation, useParams } from "wouter";
 import { useState, useMemo } from "react";
 import Connections from "./Connections";
@@ -97,9 +97,13 @@ export default function StoreView() {
           </Link>
           <div>
             <h1 className="text-4xl font-bold gold-text">{store.name}</h1>
-            <p className="text-muted-foreground mt-1">
-              Track your store's profitability • Timezone: {store.timezone || "America/New_York"}
-            </p>
+            <div className="flex items-center gap-3 mt-2">
+              <p className="text-muted-foreground">Track your store's profitability</p>
+              <div className="flex items-center gap-1.5 px-2.5 py-1 rounded-full bg-primary/10 border border-primary/20">
+                <Clock className="h-3.5 w-3.5 text-primary" />
+                <span className="text-xs font-medium text-primary">{store.timezone?.replace(/_/g, ' ') || "America/New York"}</span>
+              </div>
+            </div>
           </div>
         </div>
 

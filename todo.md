@@ -381,3 +381,6 @@
 - [x] Add admin route to App.tsx
 - [x] Add Admin Panel link in Dashboard for admin users
 - [x] Write vitest tests for admin router
+
+## UI IMPROVEMENTS 🎨
+- [x] Improve timezone display in dashboard header (pill badge with clock icon)
