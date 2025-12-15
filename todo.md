@@ -314,9 +314,3 @@
 - [x] Test export with real shipping profile configuration
 - [x] Fix import to reconstruct Country→Method→Quantity→Cost structure
 - [x] Update CSV validation to use new column names
-
-## FIX TRPC HTML ERROR 🔧
-- [x] Check server logs for error details
-- [x] Identify which tRPC procedure is failing
-- [x] Fix the underlying server error (server restart + type assertion)
-- [x] Test dashboard loading
