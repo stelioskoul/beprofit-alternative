@@ -168,14 +168,14 @@ export default function Products() {
 
   return (
     <div className="space-y-6">
-      <div className="flex items-center justify-between">
+      <div className="flex flex-col md:flex-row md:items-center md:justify-between gap-4">
         <div>
           <h2 className="text-3xl font-bold gold-text">Products</h2>
           <p className="text-muted-foreground mt-1">
             Configure COGS and shipping costs for your products
           </p>
         </div>
-        <div className="flex items-center gap-2">
+        <div className="flex flex-col sm:flex-row items-stretch sm:items-center gap-2">
           <Button
             variant="outline"
             size="sm"
@@ -191,7 +191,7 @@ export default function Products() {
                 URL.revokeObjectURL(url);
               }
             }}
-            className="gold-gradient-border"
+            className="gold-gradient-border w-full sm:w-auto"
           >
             <Download className="h-4 w-4 mr-2" />
             Download COGS Template
@@ -213,7 +213,7 @@ export default function Products() {
               input.click();
             }}
             disabled={importCogsMutation.isPending}
-            className="gold-gradient-border"
+            className="gold-gradient-border w-full sm:w-auto"
           >
             {importCogsMutation.isPending ? (
               <Loader2 className="h-4 w-4 mr-2 animate-spin" />
@@ -222,13 +222,13 @@ export default function Products() {
             )}
             Import COGS CSV
           </Button>
-          <div className="relative">
+          <div className="relative w-full sm:w-64">
             <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
             <Input
               placeholder="Search products..."
               value={searchTerm}
               onChange={(e) => setSearchTerm(e.target.value)}
-              className="pl-9 w-64"
+              className="pl-9 w-full"
             />
           </div>
         </div>

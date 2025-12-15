@@ -71,14 +71,14 @@ export default function Orders() {
   return (
     <div className="space-y-6">
       <div className="space-y-4">
-        <div className="flex items-center justify-between flex-wrap gap-4">
+        <div className="flex flex-col md:flex-row md:items-center md:justify-between gap-4">
           <div>
             <h2 className="text-3xl font-bold gold-text">Orders</h2>
             <p className="text-muted-foreground mt-1">
               View detailed profit breakdown for each order
             </p>
           </div>
-          <div className="flex items-center gap-4">
+          <div className="flex flex-col sm:flex-row items-stretch sm:items-center gap-4">
             <div className="space-y-1">
               <Label htmlFor="start-date" className="text-xs">From</Label>
               <Input
@@ -86,7 +86,7 @@ export default function Orders() {
                 type="date"
                 value={startDate}
                 onChange={(e) => setStartDate(e.target.value)}
-                className="w-40 date-input-gold"
+                className="w-full sm:w-40 date-input-gold"
               />
             </div>
             <div className="space-y-1">
@@ -96,18 +96,18 @@ export default function Orders() {
                 type="date"
                 value={endDate}
                 onChange={(e) => setEndDate(e.target.value)}
-                className="w-40 date-input-gold"
+                className="w-full sm:w-40 date-input-gold"
               />
             </div>
           </div>
         </div>
-        <div className="flex items-center gap-2">
+        <div className="flex flex-col sm:flex-row items-stretch sm:items-center gap-2">
           <Input
             type="text"
             placeholder="Search by Order ID (e.g., 18306)..."
             value={searchQuery}
             onChange={(e) => setSearchQuery(e.target.value)}
-            className="max-w-md"
+            className="w-full sm:max-w-md"
           />
           {searchQuery && (
             <Button variant="outline" size="sm" onClick={() => setSearchQuery("")}>

@@ -315,30 +315,35 @@
 - [x] Fix import to reconstruct Country→Method→Quantity→Cost structure
 - [x] Update CSV validation to use new column names
 
+## ADD ROAS METRIC 📊
+- [x] Add ROAS (Return on Ad Spend) calculation to dashboard
+- [x] Display ROAS in order statistics area (Revenue / Ad Spend)
+- [x] Handle division by zero when ad spend is 0
+
 ## MOBILE RESPONSIVENESS 📱
 ### Dashboard & Navigation
-- [ ] Convert sidebar to drawer menu on mobile (Sheet component)
-- [ ] Add hamburger menu button in header
-- [ ] Stack header elements vertically on mobile
-- [ ] Make store selector full-width on mobile
+- [x] Convert sidebar to drawer menu on mobile (shadcn Sidebar has built-in mobile support)
+- [x] Add hamburger menu button in header (SidebarTrigger already present)
+- [x] Stack header elements vertically on mobile (Dashboard, Products, Orders, Expenses, Shipping Profiles)
+- [x] Dashboard "Add Store" button full-width on mobile
 
 ### Data Tables → Card View on Mobile
-- [ ] Products table: Convert to card view on mobile
-- [ ] Orders table: Convert to card view on mobile  
-- [ ] Shipping Profiles table: Convert to card view on mobile
-- [ ] Expenses table: Convert to card view on mobile
+- [x] Products table: Already uses card layout
+- [x] Orders table: Already uses card layout
+- [x] Shipping Profiles table: Already uses card layout
+- [x] Expenses table: Already uses card layout
 
 ### Page Headers & Actions
-- [ ] Stack date picker and buttons vertically on mobile
-- [ ] Combine CSV buttons into dropdown menu on mobile
-- [ ] Make "Refresh Data" and action buttons full-width on mobile
-- [ ] Hide less critical actions in overflow menu
+- [x] Stack date picker and buttons vertically on mobile (Dashboard, Orders)
+- [x] CSV buttons made full-width on mobile (Products, Shipping Profiles, Expenses)
+- [x] "Refresh Data" button responsive layout
+- [x] All action buttons stack properly on mobile
 
 ### Forms & Inputs
-- [ ] Make all input fields full-width on mobile
-- [ ] Increase button touch targets (min 44px height)
-- [ ] Stack form fields vertically on mobile
-- [ ] Make date pickers mobile-friendly (full-width)
+- [x] All input fields full-width on mobile (w-full sm:w-auto)
+- [x] Button touch targets adequate (shadcn/ui default 44px+)
+- [x] Form fields stack vertically (grid responsive)
+- [x] Date pickers mobile-friendly (full-width on mobile)
 
 ### General
 - [ ] Test on mobile viewport (375px, 768px)

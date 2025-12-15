@@ -137,9 +137,9 @@ export default function StoreView() {
 
           <TabsContent value="dashboard" className="space-y-6">
             {/* Date Range Picker */}
-            <div className="flex items-center justify-between gap-4 glass p-4 rounded-lg">
-              <div className="flex items-center gap-4">
-              <div className="flex items-center gap-2">
+            <div className="flex flex-col md:flex-row md:items-center md:justify-between gap-4 glass p-4 rounded-lg">
+              <div className="flex flex-col sm:flex-row items-stretch sm:items-center gap-4">
+              <div className="flex flex-col sm:flex-row sm:items-center gap-2">
                 <label htmlFor="start-date" className="text-sm font-medium">
                   From
                 </label>
@@ -149,11 +149,11 @@ export default function StoreView() {
                   value={startDate}
                   max={endDate}
                   onChange={(e) => setStartDate(e.target.value)}
-                  className="px-3 py-2 rounded-md border border-border bg-black/30 text-foreground date-input-gold"
+                  className="px-3 py-2 rounded-md border border-border bg-black/30 text-foreground date-input-gold w-full sm:w-auto"
                   style={{ colorScheme: 'dark' }}
                 />
               </div>
-              <div className="flex items-center gap-2">
+              <div className="flex flex-col sm:flex-row sm:items-center gap-2">
                 <label htmlFor="end-date" className="text-sm font-medium">
                   To
                 </label>
@@ -163,12 +163,12 @@ export default function StoreView() {
                   value={endDate}
                   min={startDate}
                   onChange={(e) => setEndDate(e.target.value)}
-                  className="px-3 py-2 rounded-md border border-border bg-black/30 text-foreground date-input-gold"
+                  className="px-3 py-2 rounded-md border border-border bg-black/30 text-foreground date-input-gold w-full sm:w-auto"
                   style={{ colorScheme: 'dark' }}
                 />
               </div>
               </div>
-              <div className="flex items-center gap-4">
+              <div className="flex flex-col sm:flex-row items-stretch sm:items-center gap-4">
                 <div className="flex flex-col items-end gap-1">
                   <Button
                     variant="outline"
@@ -360,6 +360,12 @@ export default function StoreView() {
                         <span className="text-muted-foreground">Average Profit Margin per Order</span>
                         <span className={`font-semibold ${(metrics.averageOrderProfitMargin || 0) >= 0 ? "text-green-500" : "text-red-500"}`}>
                           {(metrics.averageOrderProfitMargin || 0).toFixed(1)}%
+                        </span>
+                      </div>
+                      <div className="flex items-center justify-between">
+                        <span className="text-muted-foreground">ROAS (Return on Ad Spend)</span>
+                        <span className={`font-semibold ${(metrics.adSpend > 0 ? metrics.revenue / metrics.adSpend : 0) >= 1 ? "text-green-500" : "text-red-500"}`}>
+                          {metrics.adSpend > 0 ? (metrics.revenue / metrics.adSpend).toFixed(2) + 'x' : 'N/A'}
                         </span>
                       </div>
                     </CardContent>

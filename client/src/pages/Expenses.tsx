@@ -173,25 +173,25 @@ export default function Expenses() {
 
   return (
     <div className="space-y-6">
-      <div className="flex items-center justify-between">
+      <div className="flex flex-col md:flex-row md:items-center md:justify-between gap-4">
         <div>
           <h2 className="text-3xl font-bold gold-text">Operational Expenses</h2>
           <p className="text-muted-foreground mt-1">
             Manage one-time and recurring business expenses
           </p>
         </div>
-        <div className="flex items-center gap-2">
-          <Button variant="outline" size="sm" onClick={handleDownloadTemplate} className="gold-gradient-border">
+        <div className="flex flex-col sm:flex-row items-stretch sm:items-center gap-2">
+          <Button variant="outline" size="sm" onClick={handleDownloadTemplate} className="gold-gradient-border w-full sm:w-auto">
             <Download className="h-4 w-4 mr-2" />
             Download Template
           </Button>
-          <Button variant="outline" size="sm" onClick={handleImportCSV} disabled={importExpensesMutation.isPending} className="gold-gradient-border">
+          <Button variant="outline" size="sm" onClick={handleImportCSV} disabled={importExpensesMutation.isPending} className="gold-gradient-border w-full sm:w-auto">
             {importExpensesMutation.isPending ? <Loader2 className="h-4 w-4 mr-2 animate-spin" /> : <Upload className="h-4 w-4 mr-2" />}
             Import CSV
           </Button>
           <Dialog open={open} onOpenChange={setOpen}>
           <DialogTrigger asChild>
-            <Button className="gold-gradient">
+            <Button className="gold-gradient w-full sm:w-auto">
               <Plus className="h-4 w-4 mr-2" />
               Add Expense
             </Button>

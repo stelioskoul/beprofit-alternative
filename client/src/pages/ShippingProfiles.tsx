@@ -177,25 +177,25 @@ export default function ShippingProfiles() {
 
   return (
     <div className="container py-8 max-w-6xl">
-      <div className="flex items-center justify-between mb-6">
+      <div className="flex flex-col md:flex-row md:items-center md:justify-between gap-4 mb-6">
         <div>
           <h1 className="text-3xl font-bold">Shipping Profiles</h1>
           <p className="text-muted-foreground mt-1">
             Create reusable shipping configurations and assign them to multiple products
           </p>
         </div>
-        <div className="flex items-center gap-2">
-          <Button variant="outline" size="sm" onClick={handleDownloadTemplate} className="gold-gradient-border">
+        <div className="flex flex-col sm:flex-row items-stretch sm:items-center gap-2">
+          <Button variant="outline" size="sm" onClick={handleDownloadTemplate} className="gold-gradient-border w-full sm:w-auto">
             <Download className="h-4 w-4 mr-2" />
             Download Template
           </Button>
-          <Button variant="outline" size="sm" onClick={handleImportCSV} disabled={importShippingMutation.isPending} className="gold-gradient-border">
+          <Button variant="outline" size="sm" onClick={handleImportCSV} disabled={importShippingMutation.isPending} className="gold-gradient-border w-full sm:w-auto">
             {importShippingMutation.isPending ? <Loader2 className="h-4 w-4 mr-2 animate-spin" /> : <Upload className="h-4 w-4 mr-2" />}
             Import CSV
           </Button>
           <Dialog open={isCreateDialogOpen} onOpenChange={setIsCreateDialogOpen}>
           <DialogTrigger asChild>
-            <Button className="gold-gradient">
+            <Button className="gold-gradient w-full sm:w-auto">
               <Plus className="h-4 w-4 mr-2" />
               Create Profile
             </Button>

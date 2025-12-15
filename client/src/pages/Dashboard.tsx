@@ -126,14 +126,14 @@ export default function Dashboard() {
       </div>
 
       <div className="container py-8">
-        <div className="flex items-center justify-between mb-8">
+        <div className="flex flex-col md:flex-row md:items-center md:justify-between gap-4 mb-8">
           <div>
             <h2 className="text-3xl font-bold tracking-tight">Your Stores</h2>
             <p className="text-muted-foreground">Manage your e-commerce stores and track profitability</p>
           </div>
           <Dialog open={dialogOpen} onOpenChange={setDialogOpen}>
             <DialogTrigger asChild>
-              <Button className="gold-gradient">
+              <Button className="gold-gradient w-full md:w-auto">
                 <Plus className="h-4 w-4 mr-2" />
                 Add Store
               </Button>
