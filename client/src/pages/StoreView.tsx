@@ -166,6 +166,91 @@ export default function StoreView() {
                   style={{ colorScheme: 'dark' }}
                 />
               </div>
+              {/* Date Range Presets */}
+              <div className="flex flex-wrap items-center gap-2">
+                <Button
+                  variant="ghost"
+                  size="sm"
+                  onClick={() => {
+                    const today = new Date();
+                    const dateStr = today.toISOString().split('T')[0];
+                    setStartDate(dateStr);
+                    setEndDate(dateStr);
+                  }}
+                  className="text-xs h-8 px-3 hover:bg-primary/10"
+                >
+                  Today
+                </Button>
+                <Button
+                  variant="ghost"
+                  size="sm"
+                  onClick={() => {
+                    const yesterday = new Date();
+                    yesterday.setDate(yesterday.getDate() - 1);
+                    const dateStr = yesterday.toISOString().split('T')[0];
+                    setStartDate(dateStr);
+                    setEndDate(dateStr);
+                  }}
+                  className="text-xs h-8 px-3 hover:bg-primary/10"
+                >
+                  Yesterday
+                </Button>
+                <Button
+                  variant="ghost"
+                  size="sm"
+                  onClick={() => {
+                    const today = new Date();
+                    const last7 = new Date();
+                    last7.setDate(today.getDate() - 6);
+                    setStartDate(last7.toISOString().split('T')[0]);
+                    setEndDate(today.toISOString().split('T')[0]);
+                  }}
+                  className="text-xs h-8 px-3 hover:bg-primary/10"
+                >
+                  Last 7 Days
+                </Button>
+                <Button
+                  variant="ghost"
+                  size="sm"
+                  onClick={() => {
+                    const today = new Date();
+                    const last30 = new Date();
+                    last30.setDate(today.getDate() - 29);
+                    setStartDate(last30.toISOString().split('T')[0]);
+                    setEndDate(today.toISOString().split('T')[0]);
+                  }}
+                  className="text-xs h-8 px-3 hover:bg-primary/10"
+                >
+                  Last 30 Days
+                </Button>
+                <Button
+                  variant="ghost"
+                  size="sm"
+                  onClick={() => {
+                    const today = new Date();
+                    const firstDay = new Date(today.getFullYear(), today.getMonth(), 1);
+                    setStartDate(firstDay.toISOString().split('T')[0]);
+                    setEndDate(today.toISOString().split('T')[0]);
+                  }}
+                  className="text-xs h-8 px-3 hover:bg-primary/10"
+                >
+                  This Month
+                </Button>
+                <Button
+                  variant="ghost"
+                  size="sm"
+                  onClick={() => {
+                    const today = new Date();
+                    const firstDayLastMonth = new Date(today.getFullYear(), today.getMonth() - 1, 1);
+                    const lastDayLastMonth = new Date(today.getFullYear(), today.getMonth(), 0);
+                    setStartDate(firstDayLastMonth.toISOString().split('T')[0]);
+                    setEndDate(lastDayLastMonth.toISOString().split('T')[0]);
+                  }}
+                  className="text-xs h-8 px-3 hover:bg-primary/10"
+                >
+                  Last Month
+                </Button>
+              </div>
               </div>
               <div className="flex flex-col sm:flex-row items-stretch sm:items-center gap-4">
                 <div className="flex flex-col items-stretch sm:items-end gap-1">

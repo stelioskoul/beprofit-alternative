@@ -384,3 +384,4 @@
 
 ## UI IMPROVEMENTS 🎨
 - [x] Improve timezone display in dashboard header (pill badge with clock icon)
+- [x] Add date range presets (Today, Yesterday, Last 7 Days, Last 30 Days, This Month, Last Month)
