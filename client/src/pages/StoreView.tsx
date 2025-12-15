@@ -39,7 +39,7 @@ export default function StoreView() {
     { enabled: isAuthenticated && storeId > 0, retry: false }
   );
 
-  const metrics = metricsResponse?.metrics;
+  const metrics = metricsResponse?.metrics as any; // Type inference issue with cached response
   const lastRefreshed = metricsResponse?.lastRefreshed;
 
   const refreshMutation = trpc.metrics.refreshCache.useMutation({
