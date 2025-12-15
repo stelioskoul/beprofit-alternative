@@ -326,3 +326,21 @@
 - [x] Remove lastRefreshed timestamp display from UI
 - [x] Remove cached_metrics table from schema
 - [x] All caching logic completely removed - back to simple direct queries
+
+## ADD ROAS METRIC 📊
+- [x] Add ROAS calculation to backend (revenue / ad spend)
+- [x] Display ROAS in Order Statistics section on dashboard
+- [x] Format ROAS as ratio (e.g., "3.2x")
+
+## FIX AVERAGE PROFIT CALCULATIONS 🔧
+- [x] Add profit field to ProcessedOrder interface
+- [x] Calculate profit for each order in processOrders function
+- [x] Fix average profit per order calculation for date range
+- [x] Fix average profit margin per order calculation for date range
+- [x] Verify calculations show correct values instead of zero
+
+## COMPLETE MOBILE RESPONSIVENESS 📱
+- [x] Make navigation tabs scrollable horizontally on mobile
+- [x] Stack date picker and buttons vertically on mobile
+- [x] Make dashboard header responsive
+- [ ] Test on actual mobile viewport to verify all changes work

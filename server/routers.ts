@@ -684,6 +684,9 @@ export const appRouter = router({
           averageOrderProfit = orderProfits.reduce((sum: number, profit: number) => sum + profit, 0) / orderProfits.length;
         }
 
+        // Calculate ROAS (Return on Ad Spend)
+        const roas = adSpendUSD > 0 ? revenueUSD / adSpendUSD : 0;
+
         return {
           revenue: revenueUSD,
           orders: processed.ordersCount,
@@ -699,6 +702,7 @@ export const appRouter = router({
           processedOrders: processed.processedOrders,
           averageOrderProfitMargin: averageOrderProfitMargin,
           averageOrderProfit: averageOrderProfit,
+          roas: roas,
         };
       }),
 

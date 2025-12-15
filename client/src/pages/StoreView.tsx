@@ -104,7 +104,8 @@ export default function StoreView() {
         </div>
 
         <Tabs value={activeTab} onValueChange={setActiveTab} className="space-y-6">
-          <TabsList className="glass-strong">
+          <div className="w-full overflow-x-auto pb-2 -mb-2">
+            <TabsList className="glass-strong inline-flex w-auto min-w-full">
             <TabsTrigger value="dashboard" className="data-[state=active]:gold-gradient">
               Dashboard
             </TabsTrigger>
@@ -127,11 +128,12 @@ export default function StoreView() {
               Settings
             </TabsTrigger>
           </TabsList>
+          </div>
 
           <TabsContent value="dashboard" className="space-y-6">
             {/* Date Range Picker */}
-            <div className="flex items-center justify-between gap-4 glass p-4 rounded-lg">
-              <div className="flex items-center gap-4">
+            <div className="flex flex-col md:flex-row md:items-center md:justify-between gap-4 glass p-4 rounded-lg">
+              <div className="flex flex-col sm:flex-row items-stretch sm:items-center gap-4">
               <div className="flex items-center gap-2">
                 <label htmlFor="start-date" className="text-sm font-medium">
                   From
@@ -161,8 +163,8 @@ export default function StoreView() {
                 />
               </div>
               </div>
-              <div className="flex items-center gap-4">
-                <div className="flex flex-col items-end gap-1">
+              <div className="flex flex-col sm:flex-row items-stretch sm:items-center gap-4">
+                <div className="flex flex-col items-stretch sm:items-end gap-1">
                   <Button
                     variant="outline"
                     size="sm"
@@ -339,6 +341,12 @@ export default function StoreView() {
                         <span className="text-muted-foreground">Average Profit Margin per Order</span>
                         <span className={`font-semibold ${(metrics.averageOrderProfitMargin || 0) >= 0 ? "text-green-500" : "text-red-500"}`}>
                           {(metrics.averageOrderProfitMargin || 0).toFixed(1)}%
+                        </span>
+                      </div>
+                      <div className="flex items-center justify-between">
+                        <span className="text-muted-foreground">ROAS (Return on Ad Spend)</span>
+                        <span className={`font-semibold ${(metrics.roas || 0) >= 1 ? "text-green-500" : "text-red-500"}`}>
+                          {(metrics.roas || 0).toFixed(2)}x
                         </span>
                       </div>
                     </CardContent>

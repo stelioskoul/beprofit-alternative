@@ -208,6 +208,7 @@ export interface ProcessedOrder {
   cogs: number;
   shippingCost: number;
   processingFees: number;
+  profit: number; // Added: total - cogs - shippingCost - processingFees
   shippingType: string;
   region: string | null;
   items: LineItem[];
@@ -317,6 +318,9 @@ export function processOrders(
       }
     }
     
+    // Calculate profit for this order
+    const orderProfit = val - orderCogs - orderShipping - orderProcessingFees;
+    
     processedOrders.push({
       id: "#" + (order.order_number || order.id),
       orderNumber: order.order_number,
@@ -331,6 +335,7 @@ export function processOrders(
       cogs: orderCogs,
       shippingCost: orderShipping,
       processingFees: orderProcessingFees,
+      profit: orderProfit,
       shippingType,
       region,
       items: enrichedLineItems,
