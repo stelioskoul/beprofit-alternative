@@ -429,3 +429,21 @@
 - [x] Debug why "Chargeback Won" transactions not showing in Disputes Won
 - [x] Fixed transaction type matching (now case-insensitive, handles spaces)
 - [x] Normalized all transaction types: "Chargeback Won" -> "chargeback_won", "Dispute Reversal" -> "dispute_reversal"
+
+## FIX CHARGEBACK WON/LOST DETECTION ✅
+- [x] Debug: Added debug endpoint to show raw Shopify transaction types
+- [x] Discovered: Shopify returns only "dispute" type (not separate "chargeback_won" or "dispute_reversal")
+- [x] Fix: Detect won vs lost by amount sign (positive = won, negative = lost)
+- [x] Updated shopify-data.ts to use amount sign instead of transaction type names
+- [x] Positive amount → totalDisputeRecovered (Disputes Won)
+- [x] Negative amount → totalDisputeValue (Disputes Lost)
+- [ ] Test with real data (Oct 13 and Dec 3 chargeback won transactions)
+
+## DISPUTE TRACKING IMPROVEMENTS ✅
+- [x] Use Shopify Disputes API with status field for won/lost detection
+- [x] Include pending disputes (needs_response, under_review) in Total Disputes
+- [x] Hardcode €15 dispute fee per dispute (converted to USD)
+- [x] Lost disputes: disputeValueUSD from API, disputeFeesUSD = lostCount × €15
+- [x] Won disputes: disputeRecoveredUSD from API, disputeFeesRecoveredUSD = wonCount × €15
+- [x] Remove debug transaction types button from dashboard
+- [x] Verify profit formula: Net Profit = Revenue - Costs - Lost + Won

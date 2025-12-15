@@ -8,6 +8,7 @@ import { trpc } from "@/lib/trpc";
 import { ArrowLeft, Loader2, Clock, CalendarDays } from "lucide-react";
 import { Link, useLocation, useParams } from "wouter";
 import { useState, useMemo } from "react";
+import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger } from "@/components/ui/dialog";
 import Connections from "./Connections";
 import Products from "./Products";
 import Expenses from "./Expenses";
@@ -15,6 +16,7 @@ import Orders from "./Orders";
 import Settings from "./Settings";
 import ShippingProfiles from "./ShippingProfiles";
 import ExchangeRateDisplay from "@/components/ExchangeRateDisplay";
+
 
 export default function StoreView() {
   const { id } = useParams();

@@ -503,6 +503,94 @@ export const appRouter = router({
   }),
 
   metrics: router({
+    // Debug endpoint to see all transaction types from Shopify
+    debugTransactionTypes: protectedProcedure
+      .input(
+        z.object({
+          storeId: z.number(),
+          fromDate: z.string(),
+          toDate: z.string(),
+        })
+      )
+      .query(async ({ ctx, input }) => {
+        const store = await db.getStoreById(input.storeId);
+        if (!store || store.userId !== ctx.user.id) {
+          throw new TRPCError({
+            code: "NOT_FOUND",
+            message: "Store not found or access denied",
+          });
+        }
+
+        const shopifyConn = await db.getShopifyConnectionByStoreId(input.storeId);
+        if (!shopifyConn) {
+          return { transactions: [], types: [] };
+        }
+
+        // Fetch raw balance transactions
+        const baseUrl = `https://${shopifyConn.shopDomain}/admin/api/${shopifyConn.apiVersion || "2025-10"}/shopify_payments/balance/transactions.json`;
+        const allTransactions: any[] = [];
+        let hasMore = true;
+        let lastId: number | null = null;
+        let pageCount = 0;
+        const MAX_PAGES = 10;
+
+        while (hasMore && pageCount < MAX_PAGES) {
+          pageCount++;
+          const params = new URLSearchParams({ limit: "250" });
+          if (lastId) params.append("last_id", lastId.toString());
+
+          const response = await fetch(`${baseUrl}?${params.toString()}`, {
+            headers: {
+              "X-Shopify-Access-Token": shopifyConn.accessToken,
+              "Content-Type": "application/json",
+            },
+          });
+
+          if (!response.ok) break;
+          const data = await response.json();
+          const transactions = data.transactions || [];
+          if (transactions.length === 0) break;
+
+          // Filter by date range
+          const fromDate = new Date(input.fromDate + 'T00:00:00');
+          const toDate = new Date(input.toDate + 'T23:59:59');
+          
+          for (const txn of transactions) {
+            const txnDate = new Date(txn.processed_at);
+            if (txnDate >= fromDate && txnDate <= toDate) {
+              allTransactions.push({
+                id: txn.id,
+                type: txn.type,
+                source_type: txn.source_type,
+                amount: txn.amount,
+                fee: txn.fee,
+                net: txn.net,
+                currency: txn.currency,
+                processed_at: txn.processed_at,
+              });
+            }
+          }
+
+          lastId = transactions[transactions.length - 1].id;
+          hasMore = transactions.length === 250;
+        }
+
+        // Get unique transaction types
+        const types = Array.from(new Set(allTransactions.map(t => t.type)));
+        
+        // Filter to show only non-charge transactions (disputes, reversals, refunds)
+        const interestingTransactions = allTransactions.filter(t => 
+          t.type.toLowerCase() !== 'charge'
+        );
+
+        return { 
+          transactions: interestingTransactions,
+          types,
+          totalCount: allTransactions.length,
+          interestingCount: interestingTransactions.length
+        };
+      }),
+
     getProfit: protectedProcedure
       .input(
         z.object({
@@ -525,7 +613,7 @@ export const appRouter = router({
 
         // Initialize with zero values
         let orders: any[] = [];
-        let disputes = { totalAmount: 0, count: 0 };
+        let disputes = { totalAmount: 0, count: 0, wonAmount: 0, wonCount: 0, lostAmount: 0, lostCount: 0, pendingAmount: 0, pendingCount: 0 };
         let processed: any = { revenue: 0, totalCogs: 0, totalShipping: 0, ordersCount: 0, processedOrders: [] };
         let processingFees = 0;
         let totalDisputeValue = 0; // Initialize dispute value from balance transactions
@@ -653,13 +741,21 @@ export const appRouter = router({
         const cogsUSD = processed.totalCogs;
         const shippingUSD = processed.totalShipping;
         const processingFeesUSD = processingFees;
-        // Clamp dispute value to 0 minimum (reversals tracked separately)
-        const disputeValueUSD = Math.max(0, totalDisputeValue); // Chargeback amounts from balance transactions
-        const disputeFeesUSD = totalDisputeFees; // Dispute fees from balance transactions
-        const disputeRecoveredUSD = totalDisputeRecovered; // Money recovered from won chargebacks
-        const disputeFeesRecoveredUSD = totalDisputeFeesRecovered; // Fees recovered from won chargebacks
+        // Use Disputes API for won/lost amounts (more reliable than balance transaction signs)
+        // disputes.lostAmount = disputes with status "lost" (money taken from you)
+        // disputes.wonAmount = disputes with status "won" (money returned to you)
+        const disputeValueUSD = disputes.lostAmount; // Lost chargebacks from Disputes API
+        
+        // Hardcoded €15 dispute fee per dispute (Shopify standard fee)
+        const DISPUTE_FEE_EUR = 15;
+        const disputeFeesUSD = disputes.lostCount * DISPUTE_FEE_EUR * EXCHANGE_RATE_EUR_USD; // €15 per lost dispute
+        const disputeRecoveredUSD = disputes.wonAmount; // Won chargebacks from Disputes API
+        const disputeFeesRecoveredUSD = disputes.wonCount * DISPUTE_FEE_EUR * EXCHANGE_RATE_EUR_USD; // €15 recovered per won dispute
+        
         const totalDisputesUSD = disputeValueUSD + disputeFeesUSD; // Total disputes impact (not including recovered)
         const totalRecoveredUSD = disputeRecoveredUSD + disputeFeesRecoveredUSD; // Total recovered from won chargebacks
+        
+        console.log(`[Disputes Final] Lost: $${disputeValueUSD.toFixed(2)} (${disputes.lostCount} disputes, fee: $${disputeFeesUSD.toFixed(2)}), Won: $${disputeRecoveredUSD.toFixed(2)} (${disputes.wonCount} disputes, fee recovered: $${disputeFeesRecoveredUSD.toFixed(2)})`);
         const refundsUSD = totalRefunds; // Total refunds from balance transactions
         
         // Convert ad spend to USD if it was in EUR
