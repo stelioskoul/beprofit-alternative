@@ -206,3 +206,9 @@
 - [x] Update sdk.ts to verify sessions by user ID (not just openId)
 - [x] Set business.kdgroup@gmail.com (formerly stelioskouloulias@gmail.com) as admin
 - [ ] Test all three fixes
+
+## CHANGE ADMIN USER ✅
+- [x] Set business.kdgroup@gmail.com role to 'user' (not admin)
+- [x] Create new user stelioskouloulias@gmail.com with password $Koul112002
+- [x] Set stelioskouloulias@gmail.com role to 'admin'
+- [x] Verify both users work correctly
