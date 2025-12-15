@@ -764,16 +764,19 @@ export const appRouter = router({
         // Operational expenses are already in USD (converted when saved)
         const operationalExpensesUSD = operationalExpensesTotal;
 
+        // Profit formula: Only subtract Lost Disputes
+        // Won disputes don't affect profit because the revenue was never removed
+        // (Revenue already includes all completed orders, won disputes just mean you kept that revenue)
         const netProfitUSD =
           revenueUSD -
           cogsUSD -
           shippingUSD -
           processingFeesUSD -
           adSpendUSD -
-          totalDisputesUSD -
+          totalDisputesUSD - // Lost disputes (value + fees) - money actually taken from you
           refundsUSD -
-          operationalExpensesUSD +
-          totalRecoveredUSD; // Add back recovered dispute amounts and fees
+          operationalExpensesUSD;
+        // Note: Won disputes (totalRecoveredUSD) are NOT added back because revenue was never deducted
 
         // Calculate average order profit margin (average of individual order margins)
         let averageOrderProfitMargin = 0;
