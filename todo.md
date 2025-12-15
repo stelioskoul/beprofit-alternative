@@ -314,3 +314,26 @@
 - [x] Test export with real shipping profile configuration
 - [x] Fix import to reconstruct Country→Method→Quantity→Cost structure
 - [x] Update CSV validation to use new column names
+
+## MOBILE RESPONSIVENESS 📱
+### Dashboard & Navigation
+- [ ] Make DashboardLayout sidebar collapsible on mobile
+- [ ] Add hamburger menu for mobile navigation
+- [ ] Optimize header spacing for small screens
+- [ ] Make store selector dropdown mobile-friendly
+
+### Data Tables
+- [ ] Make Products table responsive (horizontal scroll or card view)
+- [ ] Make Orders table responsive
+- [ ] Make Shipping Profiles table responsive
+- [ ] Make Expenses table responsive
+
+### Forms & Modals
+- [ ] Optimize all forms for mobile (full-width inputs, larger touch targets)
+- [ ] Make modals responsive (full-screen on mobile)
+- [ ] Optimize date pickers for mobile
+- [ ] Make CSV upload buttons touch-friendly
+
+### General
+- [ ] Test on mobile viewport sizes
+- [ ] Push to GitHub

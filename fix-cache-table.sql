@@ -1,0 +1,10 @@
+DROP TABLE IF EXISTS cached_metrics;
+CREATE TABLE cached_metrics (
+  id INT AUTO_INCREMENT PRIMARY KEY,
+  storeId INT NOT NULL,
+  date VARCHAR(10) NOT NULL,
+  metricsData JSON NOT NULL,
+  lastRefreshedAt TIMESTAMP DEFAULT CURRENT_TIMESTAMP NOT NULL,
+  createdAt TIMESTAMP DEFAULT CURRENT_TIMESTAMP NOT NULL,
+  UNIQUE KEY uniqueStoreDate (storeId, date)
+);
