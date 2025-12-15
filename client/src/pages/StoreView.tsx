@@ -351,15 +351,17 @@ export default function StoreView() {
                           <div className="text-xs text-muted-foreground">{formatCurrencyEUR((metrics.disputeFees || 0) / exchangeRate)}</div>
                         </div>
                       </div>
-                      {((metrics.disputeRecovered || 0) + (metrics.disputeFeesRecovered || 0)) > 0 && (
-                        <div className="flex items-center justify-between">
-                          <span className="text-muted-foreground">Dispute Recovered</span>
-                          <div className="text-right">
-                            <div className="font-semibold text-green-500">+{formatCurrencyUSD((metrics.disputeRecovered || 0) + (metrics.disputeFeesRecovered || 0))}</div>
-                            <div className="text-xs text-muted-foreground">+{formatCurrencyEUR(((metrics.disputeRecovered || 0) + (metrics.disputeFeesRecovered || 0)) / exchangeRate)}</div>
+                      <div className="flex items-center justify-between">
+                        <span className="text-muted-foreground">Dispute Recovered</span>
+                        <div className="text-right">
+                          <div className={`font-semibold ${((metrics.disputeRecovered || 0) + (metrics.disputeFeesRecovered || 0)) > 0 ? 'text-green-500' : ''}`}>
+                            {((metrics.disputeRecovered || 0) + (metrics.disputeFeesRecovered || 0)) > 0 ? '+' : ''}{formatCurrencyUSD((metrics.disputeRecovered || 0) + (metrics.disputeFeesRecovered || 0))}
+                          </div>
+                          <div className="text-xs text-muted-foreground">
+                            {((metrics.disputeRecovered || 0) + (metrics.disputeFeesRecovered || 0)) > 0 ? '+' : ''}{formatCurrencyEUR(((metrics.disputeRecovered || 0) + (metrics.disputeFeesRecovered || 0)) / exchangeRate)}
                           </div>
                         </div>
-                      )}
+                      </div>
                       <div className="flex items-center justify-between">
                         <span className="text-muted-foreground">Refunds</span>
                         <div className="text-right">

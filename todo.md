@@ -408,3 +408,6 @@
 - [x] Add support for "chargeback_won" transaction type
 - [x] Add support for "dispute_reversal" transaction type
 - [x] All reversal types now handled: chargeback_reversal, chargeback_won, dispute_reversal
+
+## UI IMPROVEMENTS 🎨
+- [x] Always show Dispute Recovered row even when value is $0.00
