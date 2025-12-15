@@ -356,9 +356,17 @@ export default function Expenses() {
                     <span className="text-sm text-muted-foreground">
                       {getTypeLabel(expense.type)}
                     </span>
-                    <span className="text-sm text-muted-foreground">
-                      {expense.date ? new Date(expense.date).toLocaleDateString() : 'N/A'}
-                    </span>
+                    {expense.type === 'one_time' && expense.date && (
+                      <span className="text-sm text-muted-foreground">
+                        {new Date(expense.date).toLocaleDateString()}
+                      </span>
+                    )}
+                    {expense.type !== 'one_time' && expense.startDate && (
+                      <span className="text-sm text-muted-foreground">
+                        {new Date(expense.startDate).toLocaleDateString()}
+                        {expense.endDate && ` - ${new Date(expense.endDate).toLocaleDateString()}`}
+                      </span>
+                    )}
                   </div>
                 </div>
                 <div className="flex items-center gap-4">

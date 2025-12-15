@@ -166,7 +166,7 @@ export async function generateExpensesTemplate(storeId: number): Promise<string>
     .where(eq(operationalExpenses.storeId, storeId));
   
   const rows: any[] = expenses.map((exp: any) => ({
-    "Name": exp.name,
+    "Name": exp.title,
     "Amount (USD)": parseFloat(exp.amount),
     "Type": exp.type,
     "Date": exp.date || "",

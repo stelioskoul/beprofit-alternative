@@ -293,3 +293,10 @@
 - [x] All amounts in USD
 - [x] Include: Name, Amount (USD), Type, Date, Start/End Date, Is Active
 - [x] Import creates new expenses from CSV (all in USD)
+
+## FIX OPERATIONAL EXPENSES ISSUES 🔧
+- [x] Remove "N/A" display for empty descriptions in expenses UI
+- [x] Fix expense name not appearing in CSV export (title field)
+- [x] Clarify date field usage: Date for one_time expenses, Start/End Date for recurring
+- [x] Update CSV export to properly include expense names
+- [ ] Test CSV export/import with all expense types
