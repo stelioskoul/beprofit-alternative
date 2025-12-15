@@ -11,6 +11,7 @@ import Connections from "./pages/Connections";
 import DebugTransactions from "./pages/DebugTransactions";
 import SignIn from "./pages/SignIn";
 import SignUp from "./pages/SignUp";
+import AdminPanel from "./pages/AdminPanel";
 
 function Router() {
   return (
@@ -22,6 +23,7 @@ function Router() {
       <Route path={"/store/:id"} component={StoreView} />
       <Route path={"/store/:id/connections"} component={Connections} />
       <Route path={"/debug/transactions"} component={DebugTransactions} />
+      <Route path={"/admin"} component={AdminPanel} />
       <Route path={"/404"} component={NotFound} />
       <Route component={NotFound} />
     </Switch>

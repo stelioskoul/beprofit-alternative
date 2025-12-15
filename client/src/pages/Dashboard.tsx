@@ -7,7 +7,8 @@ import { Label } from "@/components/ui/label";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { getLoginUrl } from "@/const";
 import { trpc } from "@/lib/trpc";
-import { Loader2, Plus, Store } from "lucide-react";
+import { Loader2, Plus, Store, Shield } from "lucide-react";
+import { Link } from "wouter";
 import { useState } from "react";
 import { useLocation } from "wouter";
 import { toast } from "sonner";
@@ -131,13 +132,22 @@ export default function Dashboard() {
             <h2 className="text-3xl font-bold tracking-tight">Your Stores</h2>
             <p className="text-muted-foreground">Manage your e-commerce stores and track profitability</p>
           </div>
-          <Dialog open={dialogOpen} onOpenChange={setDialogOpen}>
-            <DialogTrigger asChild>
-              <Button className="gold-gradient">
-                <Plus className="h-4 w-4 mr-2" />
-                Add Store
-              </Button>
-            </DialogTrigger>
+          <div className="flex items-center gap-3">
+            {user?.role === "admin" && (
+              <Link href="/admin">
+                <Button variant="outline" className="gold-gradient-border">
+                  <Shield className="h-4 w-4 mr-2" />
+                  Admin Panel
+                </Button>
+              </Link>
+            )}
+            <Dialog open={dialogOpen} onOpenChange={setDialogOpen}>
+              <DialogTrigger asChild>
+                <Button className="gold-gradient">
+                  <Plus className="h-4 w-4 mr-2" />
+                  Add Store
+                </Button>
+              </DialogTrigger>
             <DialogContent>
               <DialogHeader>
                 <DialogTitle>Add New Store</DialogTitle>
@@ -180,7 +190,8 @@ export default function Dashboard() {
                 </Button>
               </DialogFooter>
             </DialogContent>
-          </Dialog>
+            </Dialog>
+          </div>
         </div>
 
         {isLoading ? (

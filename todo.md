@@ -344,3 +344,40 @@
 - [x] Stack date picker and buttons vertically on mobile
 - [x] Make dashboard header responsive
 - [ ] Test on actual mobile viewport to verify all changes work
+
+## ADMIN PANEL 🔐
+
+### 1. User Management
+- [x] List all users (name, email, signup date, last login)
+- [x] Show store count per user
+- [x] Delete/suspend user functionality
+- [x] Update user role (make admin / remove admin)
+- [ ] Impersonate user (view as them for support) - Future enhancement
+
+### 2. Store Overview
+- [x] List all stores across all users
+- [x] Show Shopify/Facebook connection status
+- [x] Show store owner info
+- [x] Show store creation date
+
+### 3. System Health & Metrics
+- [x] Total users count
+- [x] Total stores count
+- [x] Shopify connections count
+- [x] Facebook connections count
+- [x] Users by role breakdown
+- [x] Recent signups (last 7 days)
+- [x] Active users (last 7 days)
+
+### 4. Configuration Management
+- [x] Display current exchange rate (EUR/USD)
+- [x] Display default processing fee percentages
+- [x] Show system information (API versions, database status)
+- [ ] Manage announcement banners - Future enhancement
+
+### Backend
+- [x] Create adminProcedure middleware (already existed)
+- [x] Create admin tRPC router with all endpoints
+- [x] Add admin route to App.tsx
+- [x] Add Admin Panel link in Dashboard for admin users
+- [x] Write vitest tests for admin router
