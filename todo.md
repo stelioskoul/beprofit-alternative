@@ -388,3 +388,11 @@
 - [x] Convert date range presets from buttons to dropdown menu
 - [x] Fix "This Month" calculation (now uses local timezone formatting)
 - [x] Add "Select Range" placeholder text to dropdown
+
+## DISPUTE RECOVERED METRIC 💰
+- [x] Add disputeRecovered tracking in shopify-data.ts
+- [x] Clamp disputeValue to minimum 0
+- [x] Return disputeRecovered in API response
+- [x] Display Dispute Recovered in dashboard UI (green, only shows when > 0)
+- [x] Update profit calculation to include recovered amount
+- [x] Update Total Costs calculation to subtract recovered amount
