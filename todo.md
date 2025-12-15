@@ -300,3 +300,9 @@
 - [x] Clarify date field usage: Date for one_time expenses, Start/End Date for recurring
 - [x] Update CSV export to properly include expense names
 - [ ] Test CSV export/import with all expense types
+
+## FIX SHIPPING PROFILES CSV EXPORT 🚢
+- [x] Investigate shipping profiles CSV export issue - methods were nested in countries not tiers
+- [x] Fix data structure to properly flatten quantity tiers, countries, and methods
+- [ ] Test export with real shipping profile data
+- [ ] Verify import can reconstruct profiles correctly

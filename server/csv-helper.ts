@@ -1,6 +1,3 @@
-/**
- * CSV Helper for bulk import/export operations
- */
 import Papa from "papaparse";
 
 /**
@@ -68,35 +65,46 @@ export async function generateCogsTemplate(storeId: number): Promise<string> {
   const cogsMap = new Map(cogsConfigs.map((c: any) => [c.variantId, c.cogsValue]));
   
   // Get shipping profile assignments
-  const { productShippingProfiles } = await import("../drizzle/schema");
+  const { shippingConfig } = await import("../drizzle/schema");
   const { eq } = await import("drizzle-orm");
   const database = await db.getDb();
   if (!database) throw new Error("Database not available");
   
-  const assignments = await database
+  const shippingAssignments = await database
     .select()
-    .from(productShippingProfiles)
-    .where(eq(productShippingProfiles.storeId, storeId));
-    
-  const assignmentMap = new Map();
-  for (const assignment of assignments) {
-    const profile = await db.getShippingProfileById(assignment.profileId);
-    if (profile) {
-      assignmentMap.set(assignment.variantId, profile.name);
-    }
+    .from(shippingConfig)
+    .where(eq(shippingConfig.storeId, storeId));
+  
+  const shippingMap = new Map();
+  for (const assignment of shippingAssignments) {
+    try {
+      const config = JSON.parse(assignment.configJson);
+      if (config.profileId) {
+        shippingMap.set(assignment.variantId, config.profileId);
+      }
+    } catch {}
   }
+  
+  // Get shipping profiles to map ID to name
+  const profiles = await db.getShippingProfilesByStoreId(storeId);
+  const profileMap = new Map(profiles.map((p: any) => [p.id, p.name]));
   
   // Build CSV rows
   const rows: any[] = [];
   for (const product of products) {
-    for (const variant of product.variants) {
+    for (const variant of product.variants || []) {
+      const variantId = variant.id.toString();
+      const cogsValue = cogsMap.get(variantId) || "";
+      const profileId = shippingMap.get(variantId);
+      const profileName = profileId ? profileMap.get(profileId) || "" : "";
+      
       rows.push({
         "SKU": variant.sku || "",
         "Product Title": product.title,
         "Variant Title": variant.title,
-        "Variant ID": variant.id,
-        "Current COGS (USD)": cogsMap.get(variant.id.toString()) || "",
-        "Shipping Profile Name": assignmentMap.get(variant.id.toString()) || "",
+        "Variant ID": variantId,
+        "Current COGS (USD)": cogsValue,
+        "Shipping Profile Name": profileName,
       });
     }
   }
@@ -122,14 +130,57 @@ export async function generateShippingTemplate(storeId: number): Promise<string>
       config = {};
     }
     
-    // Export each quantity tier as a separate row
-    const tiers = config.quantityTiers || [{}];
+    // Export each quantity tier, country, and method as a separate row
+    const tiers = config.quantityTiers || [];
+    
+    if (tiers.length === 0) {
+      // Empty profile, add placeholder row
+      rows.push({
+        "Profile Name": profile.name,
+        "Min Quantity": 1,
+        "Max Quantity": 999,
+        "Country Code": "ALL",
+        "Country Name": "All Countries",
+        "Shipping Method": "Standard",
+        "Cost (USD)": 0,
+      });
+      continue;
+    }
+    
     for (const tier of tiers) {
-      // Export each country as a separate row
-      const countries = tier.countries || [{ code: "ALL", name: "All Countries" }];
+      const countries = tier.countries || [];
+      
+      if (countries.length === 0) {
+        // No countries, add placeholder
+        rows.push({
+          "Profile Name": profile.name,
+          "Min Quantity": tier.minQuantity || 1,
+          "Max Quantity": tier.maxQuantity || 999,
+          "Country Code": "ALL",
+          "Country Name": "All Countries",
+          "Shipping Method": "Standard",
+          "Cost (USD)": 0,
+        });
+        continue;
+      }
+      
       for (const country of countries) {
-        // Export each method as a separate row
-        const methods = tier.methods || [{ name: "Standard", cost: 0 }];
+        const methods = country.methods || [];
+        
+        if (methods.length === 0) {
+          // No methods, add placeholder
+          rows.push({
+            "Profile Name": profile.name,
+            "Min Quantity": tier.minQuantity || 1,
+            "Max Quantity": tier.maxQuantity || 999,
+            "Country Code": country.code || "ALL",
+            "Country Name": country.name || "All Countries",
+            "Shipping Method": "Standard",
+            "Cost (USD)": 0,
+          });
+          continue;
+        }
+        
         for (const method of methods) {
           rows.push({
             "Profile Name": profile.name,
@@ -221,7 +272,7 @@ export function parseShippingCSV(csvText: string): { success: boolean; data?: an
   
   // Validate required columns
   const firstRow = data[0];
-  const requiredColumns = ["Profile Name", "Min Quantity", "Max Quantity", "Country Code", "Shipping Method", "Cost (USD)"];
+  const requiredColumns = ["Profile Name", "Min Quantity", "Max Quantity", "Cost (USD)"];
   const missing = requiredColumns.filter(col => !(col in firstRow));
   if (missing.length > 0) {
     return { success: false, errors: [`Missing required columns: ${missing.join(", ")}`] };
