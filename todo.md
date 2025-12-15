@@ -199,3 +199,10 @@
 - [x] Find getLoginUrl function and update to return /signin
 - [x] Remove Manus OAuth redirect from auth context
 - [ ] Test complete login flow (signin → dashboard → logout → signin)
+
+## THREE CRITICAL FIXES ✅
+- [x] Make name field required on signup (not optional)
+- [x] Fix login not redirecting to dashboard - Added getUserById to support custom auth
+- [x] Update sdk.ts to verify sessions by user ID (not just openId)
+- [x] Set business.kdgroup@gmail.com (formerly stelioskouloulias@gmail.com) as admin
+- [ ] Test all three fixes

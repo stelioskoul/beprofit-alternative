@@ -29,7 +29,7 @@ export default function SignUp() {
     e.preventDefault();
     setError("");
 
-    if (!email || !password || !confirmPassword) {
+    if (!name || !email || !password || !confirmPassword) {
       setError("Please fill in all required fields");
       return;
     }
@@ -44,7 +44,7 @@ export default function SignUp() {
       return;
     }
 
-    signupMutation.mutate({ email, password, name: name || undefined });
+    signupMutation.mutate({ email, password, name });
   };
 
   return (
@@ -93,15 +93,16 @@ export default function SignUp() {
               )}
 
               <div className="space-y-2">
-                <Label htmlFor="name" className="text-gray-200">Name (optional)</Label>
+                <Label htmlFor="name" className="text-gray-200">Name</Label>
                 <Input
-                  id="name"
-                  type="text"
-                  placeholder="John Doe"
-                  value={name}
-                  onChange={(e) => setName(e.target.value)}
-                  disabled={signupMutation.isPending}
-                  className="bg-gray-800/50 border-gray-700 text-white placeholder:text-gray-500 focus:border-yellow-500/50 focus:ring-yellow-500/20"
+                id="name"
+                type="text"
+                placeholder="John Doe"
+                value={name}
+                onChange={(e) => setName(e.target.value)}
+                disabled={signupMutation.isPending}
+                required
+                className="bg-gray-800/50 border-gray-700 text-white placeholder:text-gray-500 focus:border-yellow-500/50 focus:ring-yellow-500/20"
                 />
               </div>
 
