@@ -419,3 +419,8 @@
   - Card 5: Disputes Lost (Value + Fees)
   - Card 6: Disputes Won (Value Recovered + Fees Recovered)
 - [x] Split "Dispute Recovered" into "Value Recovered" and "Fees Recovered"
+
+## FIX DISPUTE CARDS STRUCTURE 🔧
+- [x] Rename current "Disputes (Lost)" to "Total Disputes" (all chargebacks) - amber color
+- [x] Keep "Disputes (Won)" as is (recovered amounts) - green color
+- [x] Add new "Disputes (Lost)" card calculated as Total - Won - red color

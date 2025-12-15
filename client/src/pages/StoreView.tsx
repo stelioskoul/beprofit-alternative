@@ -400,10 +400,10 @@ export default function StoreView() {
                     </CardContent>
                   </Card>
 
-                  {/* Disputes */}
+                  {/* Total Disputes */}
                   <Card className="glass">
                     <CardContent className="p-4 space-y-2">
-                      <h3 className="font-semibold text-sm text-red-500 mb-3">Disputes (Lost)</h3>
+                      <h3 className="font-semibold text-sm text-amber-500 mb-3">Total Disputes</h3>
                       <div className="flex items-center justify-between">
                         <span className="text-muted-foreground text-sm">Dispute Value</span>
                         <div className="text-right">
@@ -420,12 +420,12 @@ export default function StoreView() {
                       </div>
                       <div className="border-t border-border/50 pt-2 mt-2 flex items-center justify-between">
                         <span className="text-muted-foreground text-sm font-medium">Subtotal</span>
-                        <div className="font-semibold text-sm text-red-500">{formatCurrencyUSD((metrics.disputeValue || 0) + (metrics.disputeFees || 0))}</div>
+                        <div className="font-semibold text-sm">{formatCurrencyUSD((metrics.disputeValue || 0) + (metrics.disputeFees || 0))}</div>
                       </div>
                     </CardContent>
                   </Card>
 
-                  {/* Disputes Recovered */}
+                  {/* Disputes Won */}
                   <Card className="glass">
                     <CardContent className="p-4 space-y-2">
                       <h3 className="font-semibold text-sm text-green-500 mb-3">Disputes (Won)</h3>
@@ -455,6 +455,41 @@ export default function StoreView() {
                         <span className="text-muted-foreground text-sm font-medium">Subtotal</span>
                         <div className={`font-semibold text-sm ${((metrics.disputeRecovered || 0) + (metrics.disputeFeesRecovered || 0)) > 0 ? 'text-green-500' : ''}`}>
                           {((metrics.disputeRecovered || 0) + (metrics.disputeFeesRecovered || 0)) > 0 ? '+' : ''}{formatCurrencyUSD((metrics.disputeRecovered || 0) + (metrics.disputeFeesRecovered || 0))}
+                        </div>
+                      </div>
+                    </CardContent>
+                  </Card>
+
+                  {/* Disputes Lost (Total - Won) */}
+                  <Card className="glass">
+                    <CardContent className="p-4 space-y-2">
+                      <h3 className="font-semibold text-sm text-red-500 mb-3">Disputes (Lost)</h3>
+                      <div className="flex items-center justify-between">
+                        <span className="text-muted-foreground text-sm">Value Lost</span>
+                        <div className="text-right">
+                          <div className="font-semibold text-sm text-red-500">
+                            {formatCurrencyUSD(Math.max(0, (metrics.disputeValue || 0) - (metrics.disputeRecovered || 0)))}
+                          </div>
+                          <div className="text-xs text-muted-foreground">
+                            {formatCurrencyEUR(Math.max(0, (metrics.disputeValue || 0) - (metrics.disputeRecovered || 0)) / exchangeRate)}
+                          </div>
+                        </div>
+                      </div>
+                      <div className="flex items-center justify-between">
+                        <span className="text-muted-foreground text-sm">Fees Lost</span>
+                        <div className="text-right">
+                          <div className="font-semibold text-sm text-red-500">
+                            {formatCurrencyUSD(Math.max(0, (metrics.disputeFees || 0) - (metrics.disputeFeesRecovered || 0)))}
+                          </div>
+                          <div className="text-xs text-muted-foreground">
+                            {formatCurrencyEUR(Math.max(0, (metrics.disputeFees || 0) - (metrics.disputeFeesRecovered || 0)) / exchangeRate)}
+                          </div>
+                        </div>
+                      </div>
+                      <div className="border-t border-border/50 pt-2 mt-2 flex items-center justify-between">
+                        <span className="text-muted-foreground text-sm font-medium">Subtotal</span>
+                        <div className="font-semibold text-sm text-red-500">
+                          {formatCurrencyUSD(Math.max(0, ((metrics.disputeValue || 0) + (metrics.disputeFees || 0)) - ((metrics.disputeRecovered || 0) + (metrics.disputeFeesRecovered || 0))))}
                         </div>
                       </div>
                     </CardContent>
