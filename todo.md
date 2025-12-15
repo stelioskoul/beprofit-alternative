@@ -386,3 +386,5 @@
 - [x] Improve timezone display in dashboard header (pill badge with clock icon)
 - [x] Add date range presets (Today, Yesterday, Last 7 Days, Last 30 Days, This Month, Last Month)
 - [x] Convert date range presets from buttons to dropdown menu
+- [x] Fix "This Month" calculation (now uses local timezone formatting)
+- [x] Add "Select Range" placeholder text to dropdown

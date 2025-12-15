@@ -169,20 +169,19 @@ export default function StoreView() {
               </div>
               {/* Date Range Presets Dropdown */}
               <Select
-                value="custom"
                 onValueChange={(value) => {
                   const today = new Date();
                   let fromDate: Date;
-                  let toDate: Date = today;
+                  let toDate: Date = new Date(today);
                   
                   switch (value) {
                     case 'today':
-                      fromDate = today;
+                      fromDate = new Date(today);
                       break;
                     case 'yesterday':
                       fromDate = new Date(today);
                       fromDate.setDate(today.getDate() - 1);
-                      toDate = fromDate;
+                      toDate = new Date(fromDate);
                       break;
                     case 'last7':
                       fromDate = new Date(today);
@@ -193,7 +192,9 @@ export default function StoreView() {
                       fromDate.setDate(today.getDate() - 29);
                       break;
                     case 'thisMonth':
+                      // Create date for 1st of current month in local timezone
                       fromDate = new Date(today.getFullYear(), today.getMonth(), 1);
+                      toDate = new Date(today);
                       break;
                     case 'lastMonth':
                       fromDate = new Date(today.getFullYear(), today.getMonth() - 1, 1);
@@ -203,13 +204,21 @@ export default function StoreView() {
                       return;
                   }
                   
-                  setStartDate(fromDate.toISOString().split('T')[0]);
-                  setEndDate(toDate.toISOString().split('T')[0]);
+                  // Format dates in local timezone
+                  const formatDate = (d: Date) => {
+                    const year = d.getFullYear();
+                    const month = String(d.getMonth() + 1).padStart(2, '0');
+                    const day = String(d.getDate()).padStart(2, '0');
+                    return `${year}-${month}-${day}`;
+                  };
+                  
+                  setStartDate(formatDate(fromDate));
+                  setEndDate(formatDate(toDate));
                 }}
               >
-                <SelectTrigger className="w-[140px] h-9 bg-black/30 border-border">
+                <SelectTrigger className="w-[150px] h-9 bg-black/30 border-border">
                   <CalendarDays className="h-4 w-4 mr-2 text-primary" />
-                  <SelectValue placeholder="Quick Select" />
+                  <SelectValue placeholder="Select Range" />
                 </SelectTrigger>
                 <SelectContent>
                   <SelectItem value="today">Today</SelectItem>
