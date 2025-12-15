@@ -719,7 +719,8 @@ export const appRouter = router({
         if (!cache.isCacheable(input.fromDate, input.toDate)) {
           console.log(`[Cache] Date range includes today or is too old, fetching fresh data`);
           // Calculate fresh metrics
-          return await calculateMetrics(ctx, input);
+          const metrics = await calculateMetrics(ctx, input);
+          return { metrics, lastRefreshed: Date.now() };
         }
 
         // Try to get from cache
@@ -731,9 +732,9 @@ export const appRouter = router({
 
         // Not in cache, fetch fresh and cache it
         console.log(`[Cache] Cache miss, fetching and caching...`);
-        const result = await calculateMetrics(ctx, input);
-        await cache.setCachedMetrics(input.storeId, input.fromDate, input.toDate, result);
-        return result;
+        const metrics = await calculateMetrics(ctx, input);
+        await cache.setCachedMetrics(input.storeId, input.fromDate, input.toDate, metrics);
+        return { metrics, lastRefreshed: Date.now() };
       }),
 
     // Manual refresh - clears cache and fetches fresh data
@@ -862,7 +863,8 @@ export const appRouter = router({
         }
 
         const { generateExpensesTemplate } = await import("./csv-helper");
-        return { csv: generateExpensesTemplate() };
+        const csv = await generateExpensesTemplate(input.storeId);
+        return { csv };
       }),
 
     importExpensesBulk: protectedProcedure
@@ -894,23 +896,26 @@ export const appRouter = router({
         // Bulk create operational expenses
         let successCount = 0;
         for (const item of parseResult.data || []) {
-          // Convert EUR to USD if needed
-          let amountUSD = parseFloat(item.amount);
-          if (item.currency === "EUR") {
-            const exchangeRate = await getEurUsdRate();
-            amountUSD = amountUSD * exchangeRate;
-          }
+          const name = item["Name"];
+          const amount = parseFloat(item["Amount (USD)"]);
+          const type = item["Type"];
+          const date = item["Date"];
+          const startDate = item["Start Date"];
+          const endDate = item["End Date"];
+          const isActive = item["Is Active"] === "true" ? 1 : 0;
+          
+          if (!name || !amount || !type) continue;
 
           await db.createOperationalExpense({
             storeId: input.storeId,
-            type: item.type,
-            title: item.title,
-            amount: amountUSD.toFixed(2),
+            type,
+            title: name,
+            amount: amount.toFixed(2),
             currency: "USD",
-            date: item.date ? new Date(item.date) : undefined,
-            startDate: item.startDate ? new Date(item.startDate) : undefined,
-            endDate: item.endDate ? new Date(item.endDate) : undefined,
-            isActive: item.isActive,
+            date: date ? new Date(date) : undefined,
+            startDate: startDate ? new Date(startDate) : undefined,
+            endDate: endDate ? new Date(endDate) : undefined,
+            isActive,
           });
           successCount++;
         }
@@ -1295,7 +1300,8 @@ export const appRouter = router({
         }
 
         const { generateCogsTemplate } = await import("./csv-helper");
-        return { csv: generateCogsTemplate() };
+        const csv = await generateCogsTemplate(input.storeId);
+        return { csv };
       }),
 
     downloadShippingTemplate: protectedProcedure
@@ -1310,7 +1316,8 @@ export const appRouter = router({
         }
 
         const { generateShippingTemplate } = await import("./csv-helper");
-        return { csv: generateShippingTemplate() };
+        const csv = await generateShippingTemplate(input.storeId);
+        return { csv };
       }),
 
     importCogsBulk: protectedProcedure
@@ -1339,16 +1346,41 @@ export const appRouter = router({
           });
         }
 
-        // Bulk upsert COGS configurations
+        // Bulk upsert COGS configurations and shipping profile assignments
         let successCount = 0;
         for (const item of parseResult.data || []) {
-          await db.upsertCogsConfig({
-            storeId: input.storeId,
-            variantId: item.variantId,
-            productTitle: item.productTitle,
-            cogsValue: item.cogsValue.toString(),
-            currency: item.currency,
-          });
+          const variantId = item["Variant ID"];
+          const cogsValue = item["Current COGS (USD)"];
+          const shippingProfileName = item["Shipping Profile Name"];
+          
+          if (!variantId) continue;
+          
+          // Update COGS if provided
+          if (cogsValue && cogsValue !== "") {
+            await db.upsertCogsConfig({
+              storeId: input.storeId,
+              variantId: variantId.toString(),
+              productTitle: item["Product Title"] || "",
+              cogsValue: parseFloat(cogsValue).toString(),
+              currency: "USD",
+            });
+          }
+          
+          // Update shipping profile assignment if provided
+          if (shippingProfileName && shippingProfileName !== "") {
+            // Find profile by name
+            const profiles = await db.getShippingProfilesByStoreId(input.storeId);
+            const profile = profiles.find((p: any) => p.name === shippingProfileName);
+            
+            if (profile) {
+              await db.assignShippingProfile({
+                storeId: input.storeId,
+                variantId: variantId.toString(),
+                profileId: profile.id,
+              });
+            }
+          }
+          
           successCount++;
         }
 
@@ -1386,15 +1418,78 @@ export const appRouter = router({
           });
         }
 
-        // Bulk upsert shipping configurations
-        let successCount = 0;
+        // Reconstruct shipping profiles from flat CSV rows
+        const profilesMap = new Map<string, any>();
+        
         for (const item of parseResult.data || []) {
-          await db.upsertShippingConfig({
-            storeId: input.storeId,
-            variantId: item.variantId,
-            productTitle: item.productTitle,
-            configJson: item.configJson,
+          const profileName = item["Profile Name"];
+          if (!profileName) continue;
+          
+          if (!profilesMap.has(profileName)) {
+            profilesMap.set(profileName, {
+              name: profileName,
+              quantityTiers: new Map(),
+            });
+          }
+          
+          const profile = profilesMap.get(profileName);
+          const tierKey = `${item["Min Quantity"]}-${item["Max Quantity"]}`;
+          
+          if (!profile.quantityTiers.has(tierKey)) {
+            profile.quantityTiers.set(tierKey, {
+              minQuantity: parseInt(item["Min Quantity"]) || 1,
+              maxQuantity: parseInt(item["Max Quantity"]) || 999,
+              countries: new Map(),
+            });
+          }
+          
+          const tier = profile.quantityTiers.get(tierKey);
+          const countryCode = item["Country Code"] || "ALL";
+          
+          if (!tier.countries.has(countryCode)) {
+            tier.countries.set(countryCode, {
+              code: countryCode,
+              name: item["Country Name"] || "All Countries",
+              methods: [],
+            });
+          }
+          
+          const country = tier.countries.get(countryCode);
+          country.methods.push({
+            name: item["Shipping Method"] || "Standard",
+            cost: parseFloat(item["Cost (USD)"]) || 0,
           });
+        }
+        
+        // Create or update profiles
+        let successCount = 0;
+        for (const [profileName, profileData] of Array.from(profilesMap.entries())) {
+          const quantityTiers = Array.from(profileData.quantityTiers.values()).map((tier: any) => ({
+            minQuantity: tier.minQuantity,
+            maxQuantity: tier.maxQuantity,
+            countries: Array.from(tier.countries.values()),
+          }));
+          
+          const configJson = JSON.stringify({ quantityTiers });
+          
+          // Check if profile exists
+          const existingProfiles = await db.getShippingProfilesByStoreId(input.storeId);
+          const existing = existingProfiles.find((p: any) => p.name === profileName);
+          
+          if (existing) {
+            // Update existing profile
+            await db.updateShippingProfile(existing.id, {
+              configJson,
+            });
+          } else {
+            // Create new profile
+            await db.createShippingProfile({
+              storeId: input.storeId,
+              name: profileName,
+              description: null,
+              configJson,
+            });
+          }
           successCount++;
         }
 

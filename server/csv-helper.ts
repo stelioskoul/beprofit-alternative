@@ -1,90 +1,206 @@
 /**
  * CSV Helper for bulk import/export operations
  */
+import Papa from "papaparse";
 
 /**
- * Generate CSV template for COGS bulk import
+ * Generate CSV template with actual products data for COGS bulk import/export
  */
-export function generateCogsTemplate(): string {
-  const headers = ["SKU", "Product Name", "COGS Value (EUR)", "Currency"];
-  const exampleRow = ["12345678", "Example Product", "15.50", "EUR"];
+export async function generateCogsTemplate(storeId: number): Promise<string> {
+  const db = await import("./db");
   
-  return [headers.join(","), exampleRow.join(",")].join("\n");
+  // Get store and Shopify connection
+  const store = await db.getStoreById(storeId);
+  if (!store) throw new Error("Store not found");
+  
+  const shopifyConn = await db.getShopifyConnectionByStoreId(storeId);
+  if (!shopifyConn) throw new Error("Shopify connection not found");
+  
+  // Fetch ALL products from Shopify with pagination (same as products.list)
+  const allProducts: any[] = [];
+  let nextPageInfo: string | null = null;
+  let pageCount = 0;
+  const MAX_PAGES = 20;
+
+  while (pageCount < MAX_PAGES) {
+    pageCount++;
+    const url = new URL(`https://${shopifyConn.shopDomain}/admin/api/${shopifyConn.apiVersion || "2025-10"}/products.json`);
+    
+    if (nextPageInfo) {
+      url.searchParams.set("page_info", nextPageInfo);
+      url.searchParams.set("limit", "250");
+    } else {
+      url.searchParams.set("limit", "250");
+    }
+
+    const response = await fetch(url.toString(), {
+      headers: {
+        "X-Shopify-Access-Token": shopifyConn.accessToken,
+      },
+    });
+
+    if (!response.ok) {
+      throw new Error("Failed to fetch products from Shopify");
+    }
+
+    const data = await response.json();
+    const products = data.products || [];
+    allProducts.push(...products);
+
+    // Check for next page
+    const linkHeader = response.headers.get("link");
+    if (linkHeader && linkHeader.includes('rel="next"')) {
+      const nextMatch = linkHeader.match(/<[^>]*page_info=([^&>]+)[^>]*>; rel="next"/);
+      if (nextMatch) {
+        nextPageInfo = nextMatch[1];
+      } else {
+        break;
+      }
+    } else {
+      break;
+    }
+  }
+  
+  const products = allProducts;
+  
+  // Get existing COGS configurations
+  const cogsConfigs = await db.getCogsConfigByStoreId(storeId);
+  const cogsMap = new Map(cogsConfigs.map((c: any) => [c.variantId, c.cogsValue]));
+  
+  // Get shipping profile assignments
+  const { productShippingProfiles } = await import("../drizzle/schema");
+  const { eq } = await import("drizzle-orm");
+  const database = await db.getDb();
+  if (!database) throw new Error("Database not available");
+  
+  const assignments = await database
+    .select()
+    .from(productShippingProfiles)
+    .where(eq(productShippingProfiles.storeId, storeId));
+    
+  const assignmentMap = new Map();
+  for (const assignment of assignments) {
+    const profile = await db.getShippingProfileById(assignment.profileId);
+    if (profile) {
+      assignmentMap.set(assignment.variantId, profile.name);
+    }
+  }
+  
+  // Build CSV rows
+  const rows: any[] = [];
+  for (const product of products) {
+    for (const variant of product.variants) {
+      rows.push({
+        "SKU": variant.sku || "",
+        "Product Title": product.title,
+        "Variant Title": variant.title,
+        "Variant ID": variant.id,
+        "Current COGS (USD)": cogsMap.get(variant.id.toString()) || "",
+        "Shipping Profile Name": assignmentMap.get(variant.id.toString()) || "",
+      });
+    }
+  }
+  
+  return Papa.unparse(rows);
 }
 
 /**
- * Generate CSV template for Shipping Profiles bulk import
+ * Generate CSV template with actual shipping profiles for bulk import/export
  */
-export function generateShippingTemplate(): string {
-  const headers = ["SKU", "Product Name", "Shipping Profile", "Base Cost (EUR)", "Per Unit Cost (EUR)"];
-  const exampleRow = ["12345678", "Example Product", "Standard", "3.50", "0.50"];
+export async function generateShippingTemplate(storeId: number): Promise<string> {
+  const db = await import("./db");
   
-  return [headers.join(","), exampleRow.join(",")].join("\n");
+  // Get all shipping profiles
+  const profiles = await db.getShippingProfilesByStoreId(storeId);
+  
+  const rows: any[] = [];
+  for (const profile of profiles) {
+    let config: any = {};
+    try {
+      config = JSON.parse(profile.configJson);
+    } catch {
+      config = {};
+    }
+    
+    // Export each quantity tier as a separate row
+    const tiers = config.quantityTiers || [{}];
+    for (const tier of tiers) {
+      // Export each country as a separate row
+      const countries = tier.countries || [{ code: "ALL", name: "All Countries" }];
+      for (const country of countries) {
+        // Export each method as a separate row
+        const methods = tier.methods || [{ name: "Standard", cost: 0 }];
+        for (const method of methods) {
+          rows.push({
+            "Profile Name": profile.name,
+            "Min Quantity": tier.minQuantity || 1,
+            "Max Quantity": tier.maxQuantity || 999,
+            "Country Code": country.code || "ALL",
+            "Country Name": country.name || "All Countries",
+            "Shipping Method": method.name || "Standard",
+            "Cost (USD)": method.cost || 0,
+          });
+        }
+      }
+    }
+  }
+  
+  return Papa.unparse(rows);
 }
 
 /**
- * Generate CSV template for Operational Expenses bulk import
+ * Generate CSV template with actual expenses for bulk import/export
  */
-export function generateExpensesTemplate(): string {
-  const headers = ["Title", "Amount", "Currency", "Type", "Date (YYYY-MM-DD)", "Start Date (YYYY-MM-DD)", "End Date (YYYY-MM-DD)", "Active"];
-  const exampleRow1 = ["Office Rent", "1500", "USD", "monthly", "", "2025-01-01", "2025-12-31", "true"];
-  const exampleRow2 = ["Marketing Campaign", "500", "EUR", "one_time", "2025-01-15", "", "", "true"];
+export async function generateExpensesTemplate(storeId: number): Promise<string> {
+  const db = await import("./db");
+  const { operationalExpenses } = await import("../drizzle/schema");
+  const { eq } = await import("drizzle-orm");
   
-  return [headers.join(","), exampleRow1.join(","), exampleRow2.join(",")].join("\n");
+  // Get all expenses
+  const database = await db.getDb();
+  if (!database) throw new Error("Database not available");
+  
+  const expenses = await database
+    .select()
+    .from(operationalExpenses)
+    .where(eq(operationalExpenses.storeId, storeId));
+  
+  const rows: any[] = expenses.map((exp: any) => ({
+    "Name": exp.name,
+    "Amount (USD)": parseFloat(exp.amount),
+    "Type": exp.type,
+    "Date": exp.date || "",
+    "Start Date": exp.startDate || "",
+    "End Date": exp.endDate || "",
+    "Is Active": exp.isActive ? "true" : "false",
+  }));
+  
+  return Papa.unparse(rows);
 }
 
 /**
  * Parse COGS CSV data
  */
 export function parseCogsCSV(csvText: string): { success: boolean; data?: any[]; errors?: string[] } {
-  const lines = csvText.trim().split("\n");
-  if (lines.length < 2) {
-    return { success: false, errors: ["CSV file is empty or has no data rows"] };
-  }
-
-  const headers = lines[0].split(",").map(h => h.trim());
-  const expectedHeaders = ["SKU", "Product Name", "COGS Value (EUR)", "Currency"];
+  const parsed = Papa.parse(csvText, { header: true, skipEmptyLines: true });
   
-  // Validate headers
-  if (!expectedHeaders.every(h => headers.includes(h))) {
-    return { success: false, errors: [`Invalid headers. Expected: ${expectedHeaders.join(", ")}`] };
+  if (parsed.errors.length > 0) {
+    return { success: false, errors: parsed.errors.map(e => e.message) };
   }
-
-  const data: any[] = [];
-  const errors: string[] = [];
-
-  for (let i = 1; i < lines.length; i++) {
-    const line = lines[i].trim();
-    if (!line) continue;
-
-    const values = line.split(",").map(v => v.trim());
-    const sku = values[0];
-    const productName = values[1];
-    const cogsValue = values[2];
-    const currency = values[3] || "EUR";
-
-    // Validate row
-    if (!sku) {
-      errors.push(`Row ${i + 1}: SKU is required`);
-      continue;
-    }
-    if (!cogsValue || isNaN(parseFloat(cogsValue))) {
-      errors.push(`Row ${i + 1}: Invalid COGS value "${cogsValue}"`);
-      continue;
-    }
-
-    data.push({
-      variantId: sku,
-      productTitle: productName || null,
-      cogsValue: parseFloat(cogsValue),
-      currency: currency.toUpperCase(),
-    });
+  
+  const data = parsed.data as any[];
+  if (data.length === 0) {
+    return { success: false, errors: ["CSV file is empty"] };
   }
-
-  if (errors.length > 0) {
-    return { success: false, errors };
+  
+  // Validate required columns
+  const firstRow = data[0];
+  const requiredColumns = ["Variant ID", "Current COGS (USD)"];
+  const missing = requiredColumns.filter(col => !(col in firstRow));
+  if (missing.length > 0) {
+    return { success: false, errors: [`Missing required columns: ${missing.join(", ")}`] };
   }
-
+  
   return { success: true, data };
 }
 
@@ -92,132 +208,50 @@ export function parseCogsCSV(csvText: string): { success: boolean; data?: any[];
  * Parse Shipping Profiles CSV data
  */
 export function parseShippingCSV(csvText: string): { success: boolean; data?: any[]; errors?: string[] } {
-  const lines = csvText.trim().split("\n");
-  if (lines.length < 2) {
-    return { success: false, errors: ["CSV file is empty or has no data rows"] };
-  }
-
-  const headers = lines[0].split(",").map(h => h.trim());
-  const expectedHeaders = ["SKU", "Product Name", "Shipping Profile", "Base Cost (EUR)", "Per Unit Cost (EUR)"];
+  const parsed = Papa.parse(csvText, { header: true, skipEmptyLines: true });
   
-  if (!expectedHeaders.every(h => headers.includes(h))) {
-    return { success: false, errors: [`Invalid headers. Expected: ${expectedHeaders.join(", ")}`] };
+  if (parsed.errors.length > 0) {
+    return { success: false, errors: parsed.errors.map(e => e.message) };
   }
-
-  const data: any[] = [];
-  const errors: string[] = [];
-
-  for (let i = 1; i < lines.length; i++) {
-    const line = lines[i].trim();
-    if (!line) continue;
-
-    const values = line.split(",").map(v => v.trim());
-    const sku = values[0];
-    const productName = values[1];
-    const profileName = values[2];
-    const baseCost = values[3];
-    const perUnitCost = values[4];
-
-    if (!sku) {
-      errors.push(`Row ${i + 1}: SKU is required`);
-      continue;
-    }
-    if (!profileName) {
-      errors.push(`Row ${i + 1}: Shipping Profile is required`);
-      continue;
-    }
-    if (!baseCost || isNaN(parseFloat(baseCost))) {
-      errors.push(`Row ${i + 1}: Invalid Base Cost "${baseCost}"`);
-      continue;
-    }
-    if (!perUnitCost || isNaN(parseFloat(perUnitCost))) {
-      errors.push(`Row ${i + 1}: Invalid Per Unit Cost "${perUnitCost}"`);
-      continue;
-    }
-
-    data.push({
-      variantId: sku,
-      productTitle: productName || null,
-      configJson: JSON.stringify({
-        profileName,
-        baseCost: parseFloat(baseCost),
-        perUnitCost: parseFloat(perUnitCost),
-      }),
-    });
+  
+  const data = parsed.data as any[];
+  if (data.length === 0) {
+    return { success: false, errors: ["CSV file is empty"] };
   }
-
-  if (errors.length > 0) {
-    return { success: false, errors };
+  
+  // Validate required columns
+  const firstRow = data[0];
+  const requiredColumns = ["Profile Name", "Min Quantity", "Max Quantity", "Country Code", "Shipping Method", "Cost (USD)"];
+  const missing = requiredColumns.filter(col => !(col in firstRow));
+  if (missing.length > 0) {
+    return { success: false, errors: [`Missing required columns: ${missing.join(", ")}`] };
   }
-
+  
   return { success: true, data };
 }
 
 /**
- * Parse Operational Expenses CSV data
+ * Parse Expenses CSV data
  */
 export function parseExpensesCSV(csvText: string): { success: boolean; data?: any[]; errors?: string[] } {
-  const lines = csvText.trim().split("\n");
-  if (lines.length < 2) {
-    return { success: false, errors: ["CSV file is empty or has no data rows"] };
-  }
-
-  const headers = lines[0].split(",").map(h => h.trim());
-  const expectedHeaders = ["Title", "Amount", "Currency", "Type", "Date (YYYY-MM-DD)", "Start Date (YYYY-MM-DD)", "End Date (YYYY-MM-DD)", "Active"];
+  const parsed = Papa.parse(csvText, { header: true, skipEmptyLines: true });
   
-  if (!expectedHeaders.every(h => headers.includes(h))) {
-    return { success: false, errors: [`Invalid headers. Expected: ${expectedHeaders.join(", ")}`] };
+  if (parsed.errors.length > 0) {
+    return { success: false, errors: parsed.errors.map(e => e.message) };
   }
-
-  const data: any[] = [];
-  const errors: string[] = [];
-
-  for (let i = 1; i < lines.length; i++) {
-    const line = lines[i].trim();
-    if (!line) continue;
-
-    const values = line.split(",").map(v => v.trim());
-    const title = values[0];
-    const amount = values[1];
-    const currency = values[2] || "USD";
-    const type = values[3];
-    const date = values[4];
-    const startDate = values[5];
-    const endDate = values[6];
-    const active = values[7] || "true";
-
-    if (!title) {
-      errors.push(`Row ${i + 1}: Title is required`);
-      continue;
-    }
-    if (!amount || isNaN(parseFloat(amount))) {
-      errors.push(`Row ${i + 1}: Invalid Amount "${amount}"`);
-      continue;
-    }
-    if (!["one_time", "monthly", "yearly"].includes(type)) {
-      errors.push(`Row ${i + 1}: Type must be one of: one_time, monthly, yearly`);
-      continue;
-    }
-    if (!["USD", "EUR"].includes(currency.toUpperCase())) {
-      errors.push(`Row ${i + 1}: Currency must be USD or EUR`);
-      continue;
-    }
-
-    data.push({
-      title,
-      amount,
-      currency: currency.toUpperCase(),
-      type,
-      date: date || undefined,
-      startDate: startDate || undefined,
-      endDate: endDate || undefined,
-      isActive: active.toLowerCase() === "true" ? 1 : 0,
-    });
+  
+  const data = parsed.data as any[];
+  if (data.length === 0) {
+    return { success: false, errors: ["CSV file is empty"] };
   }
-
-  if (errors.length > 0) {
-    return { success: false, errors };
+  
+  // Validate required columns
+  const firstRow = data[0];
+  const requiredColumns = ["Name", "Amount (USD)", "Type"];
+  const missing = requiredColumns.filter(col => !(col in firstRow));
+  if (missing.length > 0) {
+    return { success: false, errors: [`Missing required columns: ${missing.join(", ")}`] };
   }
-
+  
   return { success: true, data };
 }

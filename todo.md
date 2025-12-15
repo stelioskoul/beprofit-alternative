@@ -266,3 +266,30 @@
 - [x] Add "Download Template" and "Import CSV" buttons in Expenses tab
 - [x] Implement file upload and CSV reading
 - [x] Show success/error messages after import
+
+## FIX CSV TEMPLATES & TIMESTAMP 🔧
+### Timestamp Display
+- [x] Add "Last refreshed X minutes ago" display in dashboard
+- [x] Show timestamp next to Refresh Data button
+- [x] Format timestamp as "X minutes/hours ago" or "Just now"
+
+### Products CSV Export (Real Data)
+- [x] Export all products with variants from Shopify
+- [x] Include current COGS values for each variant
+- [x] Include assigned shipping profile name
+- [x] Structure: SKU, Product Title, Variant Title, Variant ID, Current COGS (USD), Shipping Profile Name
+- [x] Import should match by Variant ID and update COGS + shipping profile assignment
+
+### Shipping Profiles CSV Export (Real Data)
+- [x] Export all existing shipping profiles
+- [x] Include quantity tiers (min/max quantity)
+- [x] Include countries configuration
+- [x] Include shipping methods (standard/express/etc)
+- [x] Structure: Profile Name, Min/Max Quantity, Country Code/Name, Shipping Method, Cost (USD)
+- [x] Import should reconstruct profiles from flat CSV rows
+
+### Expenses CSV Export (Real Data)
+- [x] Export all existing operational expenses
+- [x] All amounts in USD
+- [x] Include: Name, Amount (USD), Type, Date, Start/End Date, Is Active
+- [x] Import creates new expenses from CSV (all in USD)

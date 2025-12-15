@@ -33,7 +33,10 @@ export async function getCachedMetrics(storeId: number, startDate: string, endDa
     return null; // Cache expired
   }
 
-  return cache.metricsData;
+  return {
+    metrics: cache.metricsData,
+    lastRefreshed: new Date(cache.lastRefreshedAt).getTime(),
+  };
 }
 
 /**
