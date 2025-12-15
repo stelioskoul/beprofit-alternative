@@ -702,76 +702,7 @@ export const appRouter = router({
         };
       }),
 
-    // Cached version of getProfit - checks cache first for historical data
-    getProfitCached: protectedProcedure
-      .input(
-        z.object({
-          storeId: z.number(),
-          fromDate: z.string(),
-          toDate: z.string(),
-        })
-      )
-      .query(async ({ ctx, input }) => {
-        const cache = await import("./cache");
-        const { calculateMetrics } = await import("./metrics-calculator");
-        
-        // Check if this date range should use cache
-        if (!cache.isCacheable(input.fromDate, input.toDate)) {
-          console.log(`[Cache] Date range includes today or is too old, fetching fresh data`);
-          // Calculate fresh metrics
-          const metrics = await calculateMetrics(ctx, input);
-          return { metrics, lastRefreshed: Date.now() };
-        }
-
-        // Try to get from cache
-        const cached = await cache.getCachedMetrics(input.storeId, input.fromDate, input.toDate);
-        if (cached) {
-          console.log(`[Cache] ✓ Using cached metrics for store ${input.storeId}`);
-          return cached;
-        }
-
-        // Not in cache, fetch fresh and cache it
-        console.log(`[Cache] Cache miss, fetching and caching...`);
-        const metrics = await calculateMetrics(ctx, input);
-        await cache.setCachedMetrics(input.storeId, input.fromDate, input.toDate, metrics);
-        return { metrics, lastRefreshed: Date.now() };
-      }),
-
-    // Manual refresh - clears cache and fetches fresh data
-    refreshCache: protectedProcedure
-      .input(
-        z.object({
-          storeId: z.number(),
-          fromDate: z.string(),
-          toDate: z.string(),
-        })
-      )
-      .mutation(async ({ ctx, input }) => {
-        const store = await db.getStoreById(input.storeId);
-        if (!store || store.userId !== ctx.user.id) {
-          throw new TRPCError({
-            code: "NOT_FOUND",
-            message: "Store not found or access denied",
-          });
-        }
-
-        const cache = await import("./cache");
-        const { calculateMetrics } = await import("./metrics-calculator");
-        
-        // Clear cache for this date range
-        console.log(`[Cache] Manual refresh requested for store ${input.storeId}`);
-        await cache.clearStoreCache(input.storeId);
-        
-        // Fetch fresh data
-        const result = await calculateMetrics(ctx, input);
-        
-        // Cache it if it's a historical date range
-        if (cache.isCacheable(input.fromDate, input.toDate)) {
-          await cache.setCachedMetrics(input.storeId, input.fromDate, input.toDate, result);
-        }
-        
-        return result;
-      }),
+    // Removed caching procedures - using direct getProfit only
   }),
 
   expenses: router({
@@ -829,10 +760,7 @@ export const appRouter = router({
           isActive: input.isActive,
         });
 
-        // Invalidate cache when expense created
-        const cache = await import("./cache");
-        await cache.clearStoreCache(input.storeId);
-        console.log(`[Cache] Cleared cache for store ${input.storeId} after expense create`);
+        // Cache invalidation removed
 
         return { success: true };
       }),
@@ -842,10 +770,7 @@ export const appRouter = router({
       .mutation(async ({ input }) => {
         await db.deleteOperationalExpense(input.id);
         
-        // Invalidate cache when expense deleted
-        const cache = await import("./cache");
-        await cache.clearStoreCache(input.storeId);
-        console.log(`[Cache] Cleared cache for store ${input.storeId} after expense delete`);
+        // Cache invalidation removed
         
         return { success: true };
       }),
@@ -920,10 +845,7 @@ export const appRouter = router({
           successCount++;
         }
 
-        // Invalidate cache after bulk update
-        const cache = await import("./cache");
-        await cache.clearStoreCache(input.storeId);
-        console.log(`[Cache] Cleared cache for store ${input.storeId} after bulk expenses import`);
+        // Cache invalidation removed
 
         return { success: true, count: successCount };
       }),
@@ -1179,10 +1101,7 @@ export const appRouter = router({
           currency: "EUR",
         });
 
-        // Invalidate cache when COGS updated
-        const cache = await import("./cache");
-        await cache.clearStoreCache(input.storeId);
-        console.log(`[Cache] Cleared cache for store ${input.storeId} after COGS update`);
+        // Cache invalidation removed
 
         return { success: true };
       }),
@@ -1211,10 +1130,7 @@ export const appRouter = router({
           configJson: input.configJson,
         });
 
-        // Invalidate cache when shipping updated
-        const cache = await import("./cache");
-        await cache.clearStoreCache(input.storeId);
-        console.log(`[Cache] Cleared cache for store ${input.storeId} after shipping update`);
+        // Cache invalidation removed
 
         return { success: true };
       }),
@@ -1243,10 +1159,7 @@ export const appRouter = router({
           currency: input.currency,
         });
 
-        // Invalidate cache when COGS updated
-        const cache = await import("./cache");
-        await cache.clearStoreCache(input.storeId);
-        console.log(`[Cache] Cleared cache for store ${input.storeId} after COGS update`);
+        // Cache invalidation removed
 
         return { success: true };
       }),
@@ -1384,10 +1297,7 @@ export const appRouter = router({
           successCount++;
         }
 
-        // Invalidate cache after bulk update
-        const cache = await import("./cache");
-        await cache.clearStoreCache(input.storeId);
-        console.log(`[Cache] Cleared cache for store ${input.storeId} after bulk COGS import`);
+        // Cache invalidation removed
 
         return { success: true, count: successCount };
       }),
@@ -1472,10 +1382,7 @@ export const appRouter = router({
           successCount++;
         }
 
-        // Invalidate cache after bulk update
-        const cache = await import("./cache");
-        await cache.clearStoreCache(input.storeId);
-        console.log(`[Cache] Cleared cache for store ${input.storeId} after bulk shipping import`);
+        // Cache invalidation removed
 
         return { success: true, count: successCount };
       }),

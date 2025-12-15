@@ -34,19 +34,12 @@ export default function StoreView() {
     { enabled: isAuthenticated && storeId > 0 }
   );
 
-  const { data: metricsResponse, isLoading: metricsLoading, error, refetch } = trpc.metrics.getProfitCached.useQuery(
+  const { data: metrics, isLoading: metricsLoading, error, refetch } = trpc.metrics.getProfit.useQuery(
     { storeId, fromDate: startDate, toDate: endDate },
     { enabled: isAuthenticated && storeId > 0, retry: false }
   );
 
-  const metrics = metricsResponse?.metrics;
-  const lastRefreshed = metricsResponse?.lastRefreshed;
-
-  const refreshMutation = trpc.metrics.refreshCache.useMutation({
-    onSuccess: () => {
-      refetch();
-    },
-  });
+  // Removed caching - using direct getProfit for always fresh data
 
   const { data: exchangeRateData } = trpc.exchangeRate.getCurrent.useQuery();
   const exchangeRate = exchangeRateData?.rate || 1.1588;
@@ -173,30 +166,16 @@ export default function StoreView() {
                   <Button
                     variant="outline"
                     size="sm"
-                    onClick={() => refreshMutation.mutate({ storeId, fromDate: startDate, toDate: endDate })}
-                    disabled={refreshMutation.isPending || metricsLoading}
+                    onClick={() => refetch()}
+                    disabled={metricsLoading}
                     className="gold-gradient-border"
                   >
-                    {refreshMutation.isPending ? (
+                    {metricsLoading ? (
                       <Loader2 className="h-4 w-4 animate-spin mr-2" />
                     ) : null}
                     Refresh Data
                   </Button>
-                  {lastRefreshed && (
-                    <span className="text-xs text-muted-foreground">
-                      {(() => {
-                        const now = Date.now();
-                        const diff = now - lastRefreshed;
-                        const minutes = Math.floor(diff / 60000);
-                        const hours = Math.floor(minutes / 60);
-                        const days = Math.floor(hours / 24);
-                        if (minutes < 1) return "Just now";
-                        if (minutes < 60) return `${minutes} min ago`;
-                        if (hours < 24) return `${hours} hr ago`;
-                        return `${days} day${days > 1 ? 's' : ''} ago`;
-                      })()}
-                    </span>
-                  )}
+                  {/* Removed lastRefreshed display - no caching */}
                 </div>
                 <ExchangeRateDisplay />
               </div>

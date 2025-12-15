@@ -314,3 +314,15 @@
 - [x] Test export with real shipping profile configuration
 - [x] Fix import to reconstruct Country→Method→Quantity→Cost structure
 - [x] Update CSV validation to use new column names
+
+## REMOVE CACHING SYSTEM ✅
+- [x] Remove cache.ts module
+- [x] Remove metrics-calculator.ts module
+- [x] Remove scheduler.ts module
+- [x] Remove scheduler initialization from server
+- [x] Remove getProfitCached and refreshCache procedures
+- [x] Remove all cache invalidation calls from CSV imports
+- [x] Update frontend to use getProfit instead of getProfitCached
+- [x] Remove lastRefreshed timestamp display from UI
+- [x] Remove cached_metrics table from schema
+- [x] All caching logic completely removed - back to simple direct queries
