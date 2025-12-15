@@ -312,79 +312,157 @@ export default function StoreView() {
                   </Card>
                 </div>
 
-                <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                {/* Cost Breakdown Cards */}
+                <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4">
+                  {/* Product Costs */}
                   <Card className="glass">
-                    <CardContent className="p-6 space-y-3">
-                      <h3 className="font-semibold text-lg mb-4">Cost Breakdown</h3>
+                    <CardContent className="p-4 space-y-2">
+                      <h3 className="font-semibold text-sm text-amber-500 mb-3">Product Costs</h3>
                       <div className="flex items-center justify-between">
-                        <span className="text-muted-foreground">COGS</span>
+                        <span className="text-muted-foreground text-sm">COGS</span>
                         <div className="text-right">
-                          <div className="font-semibold">{formatCurrencyUSD(metrics.cogs)}</div>
+                          <div className="font-semibold text-sm">{formatCurrencyUSD(metrics.cogs)}</div>
                           <div className="text-xs text-muted-foreground">{formatCurrencyEUR(metrics.cogs / exchangeRate)}</div>
                         </div>
                       </div>
                       <div className="flex items-center justify-between">
-                        <span className="text-muted-foreground">Shipping</span>
+                        <span className="text-muted-foreground text-sm">Shipping</span>
                         <div className="text-right">
-                          <div className="font-semibold">{formatCurrencyUSD(metrics.shipping)}</div>
+                          <div className="font-semibold text-sm">{formatCurrencyUSD(metrics.shipping)}</div>
                           <div className="text-xs text-muted-foreground">{formatCurrencyEUR(metrics.shipping / exchangeRate)}</div>
                         </div>
                       </div>
+                      <div className="border-t border-border/50 pt-2 mt-2 flex items-center justify-between">
+                        <span className="text-muted-foreground text-sm font-medium">Subtotal</span>
+                        <div className="font-semibold text-sm">{formatCurrencyUSD(metrics.cogs + metrics.shipping)}</div>
+                      </div>
+                    </CardContent>
+                  </Card>
+
+                  {/* Transaction Fees */}
+                  <Card className="glass">
+                    <CardContent className="p-4 space-y-2">
+                      <h3 className="font-semibold text-sm text-amber-500 mb-3">Transaction Fees</h3>
                       <div className="flex items-center justify-between">
-                        <span className="text-muted-foreground">Processing Fees</span>
+                        <span className="text-muted-foreground text-sm">Processing Fees</span>
                         <div className="text-right">
-                          <div className="font-semibold">{formatCurrencyUSD(metrics.processingFees)}</div>
+                          <div className="font-semibold text-sm">{formatCurrencyUSD(metrics.processingFees)}</div>
                           <div className="text-xs text-muted-foreground">{formatCurrencyEUR(metrics.processingFees / exchangeRate)}</div>
                         </div>
                       </div>
                       <div className="flex items-center justify-between">
-                        <span className="text-muted-foreground">Dispute Value</span>
+                        <span className="text-muted-foreground text-sm">Refunds</span>
                         <div className="text-right">
-                          <div className="font-semibold">{formatCurrencyUSD(metrics.disputeValue || 0)}</div>
+                          <div className="font-semibold text-sm">{formatCurrencyUSD(metrics.refunds || 0)}</div>
+                          <div className="text-xs text-muted-foreground">{formatCurrencyEUR((metrics.refunds || 0) / exchangeRate)}</div>
+                        </div>
+                      </div>
+                      <div className="border-t border-border/50 pt-2 mt-2 flex items-center justify-between">
+                        <span className="text-muted-foreground text-sm font-medium">Subtotal</span>
+                        <div className="font-semibold text-sm">{formatCurrencyUSD(metrics.processingFees + (metrics.refunds || 0))}</div>
+                      </div>
+                    </CardContent>
+                  </Card>
+
+                  {/* Marketing */}
+                  <Card className="glass">
+                    <CardContent className="p-4 space-y-2">
+                      <h3 className="font-semibold text-sm text-amber-500 mb-3">Marketing</h3>
+                      <div className="flex items-center justify-between">
+                        <span className="text-muted-foreground text-sm">Ad Spend</span>
+                        <div className="text-right">
+                          <div className="font-semibold text-sm">{formatCurrencyUSD(metrics.adSpend)}</div>
+                          <div className="text-xs text-muted-foreground">{formatCurrencyEUR(metrics.adSpend / exchangeRate)}</div>
+                        </div>
+                      </div>
+                      <div className="border-t border-border/50 pt-2 mt-2 flex items-center justify-between">
+                        <span className="text-muted-foreground text-sm font-medium">Subtotal</span>
+                        <div className="font-semibold text-sm">{formatCurrencyUSD(metrics.adSpend)}</div>
+                      </div>
+                    </CardContent>
+                  </Card>
+
+                  {/* Operational */}
+                  <Card className="glass">
+                    <CardContent className="p-4 space-y-2">
+                      <h3 className="font-semibold text-sm text-amber-500 mb-3">Operational</h3>
+                      <div className="flex items-center justify-between">
+                        <span className="text-muted-foreground text-sm">Operational Expenses</span>
+                        <div className="text-right">
+                          <div className="font-semibold text-sm">{formatCurrencyUSD(metrics.operationalExpenses)}</div>
+                          <div className="text-xs text-muted-foreground">{formatCurrencyEUR(metrics.operationalExpenses / exchangeRate)}</div>
+                        </div>
+                      </div>
+                      <div className="border-t border-border/50 pt-2 mt-2 flex items-center justify-between">
+                        <span className="text-muted-foreground text-sm font-medium">Subtotal</span>
+                        <div className="font-semibold text-sm">{formatCurrencyUSD(metrics.operationalExpenses)}</div>
+                      </div>
+                    </CardContent>
+                  </Card>
+
+                  {/* Disputes */}
+                  <Card className="glass">
+                    <CardContent className="p-4 space-y-2">
+                      <h3 className="font-semibold text-sm text-red-500 mb-3">Disputes (Lost)</h3>
+                      <div className="flex items-center justify-between">
+                        <span className="text-muted-foreground text-sm">Dispute Value</span>
+                        <div className="text-right">
+                          <div className="font-semibold text-sm">{formatCurrencyUSD(metrics.disputeValue || 0)}</div>
                           <div className="text-xs text-muted-foreground">{formatCurrencyEUR((metrics.disputeValue || 0) / exchangeRate)}</div>
                         </div>
                       </div>
                       <div className="flex items-center justify-between">
-                        <span className="text-muted-foreground">Dispute Fees</span>
+                        <span className="text-muted-foreground text-sm">Dispute Fees</span>
                         <div className="text-right">
-                          <div className="font-semibold">{formatCurrencyUSD(metrics.disputeFees || 0)}</div>
+                          <div className="font-semibold text-sm">{formatCurrencyUSD(metrics.disputeFees || 0)}</div>
                           <div className="text-xs text-muted-foreground">{formatCurrencyEUR((metrics.disputeFees || 0) / exchangeRate)}</div>
                         </div>
                       </div>
+                      <div className="border-t border-border/50 pt-2 mt-2 flex items-center justify-between">
+                        <span className="text-muted-foreground text-sm font-medium">Subtotal</span>
+                        <div className="font-semibold text-sm text-red-500">{formatCurrencyUSD((metrics.disputeValue || 0) + (metrics.disputeFees || 0))}</div>
+                      </div>
+                    </CardContent>
+                  </Card>
+
+                  {/* Disputes Recovered */}
+                  <Card className="glass">
+                    <CardContent className="p-4 space-y-2">
+                      <h3 className="font-semibold text-sm text-green-500 mb-3">Disputes (Won)</h3>
                       <div className="flex items-center justify-between">
-                        <span className="text-muted-foreground">Dispute Recovered</span>
+                        <span className="text-muted-foreground text-sm">Value Recovered</span>
                         <div className="text-right">
-                          <div className={`font-semibold ${((metrics.disputeRecovered || 0) + (metrics.disputeFeesRecovered || 0)) > 0 ? 'text-green-500' : ''}`}>
-                            {((metrics.disputeRecovered || 0) + (metrics.disputeFeesRecovered || 0)) > 0 ? '+' : ''}{formatCurrencyUSD((metrics.disputeRecovered || 0) + (metrics.disputeFeesRecovered || 0))}
+                          <div className={`font-semibold text-sm ${(metrics.disputeRecovered || 0) > 0 ? 'text-green-500' : ''}`}>
+                            {(metrics.disputeRecovered || 0) > 0 ? '+' : ''}{formatCurrencyUSD(metrics.disputeRecovered || 0)}
                           </div>
                           <div className="text-xs text-muted-foreground">
-                            {((metrics.disputeRecovered || 0) + (metrics.disputeFeesRecovered || 0)) > 0 ? '+' : ''}{formatCurrencyEUR(((metrics.disputeRecovered || 0) + (metrics.disputeFeesRecovered || 0)) / exchangeRate)}
+                            {(metrics.disputeRecovered || 0) > 0 ? '+' : ''}{formatCurrencyEUR((metrics.disputeRecovered || 0) / exchangeRate)}
                           </div>
                         </div>
                       </div>
                       <div className="flex items-center justify-between">
-                        <span className="text-muted-foreground">Refunds</span>
+                        <span className="text-muted-foreground text-sm">Fees Recovered</span>
                         <div className="text-right">
-                          <div className="font-semibold">{formatCurrencyUSD(metrics.refunds || 0)}</div>
-                          <div className="text-xs text-muted-foreground">{formatCurrencyEUR((metrics.refunds || 0) / exchangeRate)}</div>
+                          <div className={`font-semibold text-sm ${(metrics.disputeFeesRecovered || 0) > 0 ? 'text-green-500' : ''}`}>
+                            {(metrics.disputeFeesRecovered || 0) > 0 ? '+' : ''}{formatCurrencyUSD(metrics.disputeFeesRecovered || 0)}
+                          </div>
+                          <div className="text-xs text-muted-foreground">
+                            {(metrics.disputeFeesRecovered || 0) > 0 ? '+' : ''}{formatCurrencyEUR((metrics.disputeFeesRecovered || 0) / exchangeRate)}
+                          </div>
                         </div>
                       </div>
-                      <div className="flex items-center justify-between">
-                        <span className="text-muted-foreground">Ad Spend</span>
-                        <div className="text-right">
-                          <div className="font-semibold">{formatCurrencyUSD(metrics.adSpend)}</div>
-                          <div className="text-xs text-muted-foreground">{formatCurrencyEUR(metrics.adSpend / exchangeRate)}</div>
-                        </div>
-                      </div>
-                      <div className="flex items-center justify-between">
-                        <span className="text-muted-foreground">Operational Expenses</span>
-                        <div className="text-right">
-                          <div className="font-semibold">{formatCurrencyUSD(metrics.operationalExpenses)}</div>
-                          <div className="text-xs text-muted-foreground">{formatCurrencyEUR(metrics.operationalExpenses / exchangeRate)}</div>
+                      <div className="border-t border-border/50 pt-2 mt-2 flex items-center justify-between">
+                        <span className="text-muted-foreground text-sm font-medium">Subtotal</span>
+                        <div className={`font-semibold text-sm ${((metrics.disputeRecovered || 0) + (metrics.disputeFeesRecovered || 0)) > 0 ? 'text-green-500' : ''}`}>
+                          {((metrics.disputeRecovered || 0) + (metrics.disputeFeesRecovered || 0)) > 0 ? '+' : ''}{formatCurrencyUSD((metrics.disputeRecovered || 0) + (metrics.disputeFeesRecovered || 0))}
                         </div>
                       </div>
                     </CardContent>
                   </Card>
+                </div>
+
+                {/* Order Statistics */}
+                <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
 
                   <Card className="glass">
                     <CardContent className="p-6 space-y-3">

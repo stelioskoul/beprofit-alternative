@@ -411,3 +411,11 @@
 
 ## UI IMPROVEMENTS 🎨
 - [x] Always show Dispute Recovered row even when value is $0.00
+- [x] Reorganize cost breakdown into separate cards:
+  - Card 1: Product Costs (COGS + Shipping)
+  - Card 2: Transaction Fees (Processing Fees + Refunds)
+  - Card 3: Marketing (Ad Spend)
+  - Card 4: Operational Expenses
+  - Card 5: Disputes Lost (Value + Fees)
+  - Card 6: Disputes Won (Value Recovered + Fees Recovered)
+- [x] Split "Dispute Recovered" into "Value Recovered" and "Fees Recovered"
