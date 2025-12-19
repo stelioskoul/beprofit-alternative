@@ -447,3 +447,9 @@
 - [x] Won disputes: disputeRecoveredUSD from API, disputeFeesRecoveredUSD = wonCount × €15
 - [x] Remove debug transaction types button from dashboard
 - [x] Verify profit formula: Net Profit = Revenue - Costs - Lost + Won
+
+## ADD EDIT FUNCTIONALITY FOR EXPENSES
+- [x] Add update mutation in routers.ts for expenses
+- [x] Add update function in db.ts for expenses
+- [x] Add Edit button and dialog in Expenses.tsx
+- [x] Allow changing isActive status and endDate for recurring expenses

@@ -14,7 +14,7 @@ import { Label } from "@/components/ui/label";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { getLoginUrl } from "@/const";
 import { trpc } from "@/lib/trpc";
-import { Download, Loader2, Plus, Trash2, Upload } from "lucide-react";
+import { Download, Edit, Loader2, Plus, Trash2, Upload } from "lucide-react";
 import { useParams } from "wouter";
 import { useState } from "react";
 import { toast } from "sonner";
@@ -24,6 +24,8 @@ export default function Expenses() {
   const storeId = parseInt(id || "0");
   const { isAuthenticated, loading } = useAuth();
   const [open, setOpen] = useState(false);
+  const [editOpen, setEditOpen] = useState(false);
+  const [editingExpense, setEditingExpense] = useState<any>(null);
   const [name, setName] = useState("");
   const [amount, setAmount] = useState("");
   const [currency, setCurrency] = useState<"USD" | "EUR">("USD");
@@ -50,6 +52,18 @@ export default function Expenses() {
       setIsActive(true);
       setStartDate(new Date().toISOString().split("T")[0]);
       setEndDate("");
+      refetch();
+    },
+    onError: (error: any) => {
+      toast.error(error.message);
+    },
+  });
+
+  const updateMutation = trpc.expenses.update.useMutation({
+    onSuccess: () => {
+      toast.success("Expense updated successfully");
+      setEditOpen(false);
+      setEditingExpense(null);
       refetch();
     },
     onError: (error: any) => {
@@ -328,6 +342,83 @@ export default function Expenses() {
             </div>
           </DialogContent>
         </Dialog>
+
+        {/* Edit Expense Dialog */}
+        <Dialog open={editOpen} onOpenChange={setEditOpen}>
+          <DialogContent className="glass-strong">
+            <DialogHeader>
+              <DialogTitle>Edit Expense</DialogTitle>
+              <DialogDescription>
+                Update end date or deactivate this recurring expense
+              </DialogDescription>
+            </DialogHeader>
+            <div className="space-y-4 mt-4">
+              <div className="space-y-2">
+                <Label>Expense Name</Label>
+                <p className="text-sm text-muted-foreground">{editingExpense?.title}</p>
+              </div>
+
+              <div className="space-y-2">
+                <Label>Amount</Label>
+                <p className="text-sm text-muted-foreground">{formatCurrency(editingExpense?.amount || "0")}</p>
+              </div>
+
+              <div className="space-y-2">
+                <Label>Type</Label>
+                <p className="text-sm text-muted-foreground">{getTypeLabel(editingExpense?.type || "monthly")}</p>
+              </div>
+
+              <div className="space-y-2">
+                <Label>Start Date</Label>
+                <p className="text-sm text-muted-foreground">
+                  {editingExpense?.startDate ? new Date(editingExpense.startDate).toLocaleDateString() : "N/A"}
+                </p>
+              </div>
+
+              <div className="space-y-2">
+                <Label htmlFor="edit-endDate">End Date (Deactivate)</Label>
+                <Input
+                  id="edit-endDate"
+                  type="date"
+                  defaultValue={editingExpense?.endDate ? new Date(editingExpense.endDate).toISOString().split("T")[0] : ""}
+                  onChange={(e) => {
+                    if (editingExpense) {
+                      setEditingExpense({ ...editingExpense, endDate: e.target.value });
+                    }
+                  }}
+                />
+                <p className="text-xs text-muted-foreground">
+                  Set an end date to stop this expense from being calculated after that date
+                </p>
+              </div>
+
+              <div className="flex gap-2">
+                <Button
+                  onClick={() => {
+                    if (!editingExpense?.endDate) {
+                      toast.error("Please set an end date to deactivate the expense");
+                      return;
+                    }
+                    updateMutation.mutate({
+                      id: editingExpense.id,
+                      storeId,
+                      endDate: editingExpense.endDate,
+                      isActive: 0,
+                    });
+                  }}
+                  disabled={updateMutation.isPending}
+                  className="gold-gradient flex-1"
+                >
+                  {updateMutation.isPending && <Loader2 className="h-4 w-4 mr-2 animate-spin" />}
+                  Save Changes
+                </Button>
+                <Button variant="outline" onClick={() => setEditOpen(false)}>
+                  Cancel
+                </Button>
+              </div>
+            </div>
+          </DialogContent>
+        </Dialog>
         </div>
       </div>
 
@@ -373,6 +464,18 @@ export default function Expenses() {
                   <p className="text-xl font-semibold text-primary">
                     {formatCurrency(expense.amount)}
                   </p>
+                  {expense.type !== 'one_time' && (
+                    <Button
+                      variant="ghost"
+                      size="icon"
+                      onClick={() => {
+                        setEditingExpense(expense);
+                        setEditOpen(true);
+                      }}
+                    >
+                      <Edit className="h-4 w-4 text-muted-foreground" />
+                    </Button>
+                  )}
                   <Button
                     variant="ghost"
                     size="icon"

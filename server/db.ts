@@ -354,6 +354,15 @@ export async function getOperationalExpensesByStoreId(storeId: number) {
   return await db.select().from(operationalExpenses).where(eq(operationalExpenses.storeId, storeId));
 }
 
+export async function updateOperationalExpense(expenseId: number, updates: Partial<InsertOperationalExpense>) {
+  const db = await getDb();
+  if (!db) throw new Error("Database not available");
+
+  await db.update(operationalExpenses)
+    .set(updates)
+    .where(eq(operationalExpenses.id, expenseId));
+}
+
 export async function deleteOperationalExpense(expenseId: number) {
   const db = await getDb();
   if (!db) throw new Error("Database not available");

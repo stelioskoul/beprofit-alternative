@@ -881,6 +881,49 @@ export const appRouter = router({
         return { success: true };
       }),
 
+    update: protectedProcedure
+      .input(
+        z.object({
+          id: z.number(),
+          storeId: z.number(),
+          title: z.string().optional(),
+          amount: z.string().optional(),
+          currency: z.enum(["USD", "EUR"]).optional(),
+          endDate: z.string().optional(),
+          isActive: z.number().optional(),
+        })
+      )
+      .mutation(async ({ ctx, input }) => {
+        const store = await db.getStoreById(input.storeId);
+        if (!store || store.userId !== ctx.user.id) {
+          throw new TRPCError({
+            code: "NOT_FOUND",
+            message: "Store not found or access denied",
+          });
+        }
+
+        const updates: any = {};
+        
+        if (input.title) updates.title = input.title;
+        if (input.endDate) updates.endDate = new Date(input.endDate);
+        if (input.isActive !== undefined) updates.isActive = input.isActive;
+        
+        // Convert amount if provided
+        if (input.amount && input.currency) {
+          let amountUSD = parseFloat(input.amount);
+          if (input.currency === "EUR") {
+            const exchangeRate = await getEurUsdRate();
+            amountUSD = amountUSD * exchangeRate;
+          }
+          updates.amount = amountUSD.toFixed(2);
+          updates.currency = "USD";
+        }
+
+        await db.updateOperationalExpense(input.id, updates);
+        
+        return { success: true };
+      }),
+
     delete: protectedProcedure
       .input(z.object({ id: z.number(), storeId: z.number() }))
       .mutation(async ({ input }) => {
