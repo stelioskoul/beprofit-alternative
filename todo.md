@@ -453,3 +453,8 @@
 - [x] Add update function in db.ts for expenses
 - [x] Add Edit button and dialog in Expenses.tsx
 - [x] Allow changing isActive status and endDate for recurring expenses
+
+## ADD GOLD GRADIENT BACKGROUND TO ENTIRE APP
+- [x] Check SignIn/SignUp page background styles
+- [x] Apply same background to main app layout
+- [x] Keep all buttons and elements unchanged
