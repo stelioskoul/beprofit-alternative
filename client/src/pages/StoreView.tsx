@@ -6,6 +6,7 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@
 import { getLoginUrl } from "@/const";
 import { trpc } from "@/lib/trpc";
 import { ArrowLeft, Loader2, Clock, CalendarDays } from "lucide-react";
+import { GoldCoinSpinner } from "@/components/GoldLoader";
 import { Link, useLocation, useParams } from "wouter";
 import { useState, useMemo } from "react";
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger } from "@/components/ui/dialog";
@@ -50,7 +51,7 @@ export default function StoreView() {
   if (loading || storeLoading) {
     return (
       <div className="min-h-screen flex items-center justify-center">
-        <Loader2 className="h-8 w-8 animate-spin text-primary" />
+        <GoldCoinSpinner />
       </div>
     );
   }
@@ -254,7 +255,7 @@ export default function StoreView() {
 
             {metricsLoading ? (
               <div className="flex items-center justify-center py-12">
-                <Loader2 className="h-8 w-8 animate-spin text-primary" />
+                <GoldCoinSpinner />
               </div>
             ) : error ? (
               <Card className="glass">

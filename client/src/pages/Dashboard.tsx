@@ -8,6 +8,7 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@
 import { getLoginUrl } from "@/const";
 import { trpc } from "@/lib/trpc";
 import { Loader2, Plus, Store, Shield } from "lucide-react";
+import { GoldCoinSpinner } from "@/components/GoldLoader";
 import { Link } from "wouter";
 import { useState } from "react";
 import { useLocation } from "wouter";
@@ -80,7 +81,7 @@ export default function Dashboard() {
   if (loading) {
     return (
       <div className="min-h-screen flex items-center justify-center">
-        <Loader2 className="h-8 w-8 animate-spin" />
+        <GoldCoinSpinner />
       </div>
     );
   }
@@ -196,7 +197,7 @@ export default function Dashboard() {
 
         {isLoading ? (
           <div className="flex items-center justify-center py-12">
-            <Loader2 className="h-8 w-8 animate-spin" />
+            <GoldCoinSpinner />
           </div>
         ) : stores && stores.length > 0 ? (
           <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-3">

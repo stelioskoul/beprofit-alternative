@@ -1,6 +1,7 @@
 import { useAuth } from "@/_core/hooks/useAuth";
 import { Button } from "@/components/ui/button";
 import { Loader2 } from "lucide-react";
+import { GoldCoinSpinner } from "@/components/GoldLoader";
 import { Link } from "wouter";
 
 export default function Home() {
@@ -9,7 +10,7 @@ export default function Home() {
   if (loading) {
     return (
       <div className="min-h-screen flex items-center justify-center">
-        <Loader2 className="h-8 w-8 animate-spin" />
+        <GoldCoinSpinner />
       </div>
     );
   }
