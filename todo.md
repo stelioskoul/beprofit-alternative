@@ -465,3 +465,9 @@
 - [x] Create skeleton loaders with gold shimmer effect
 - [x] Replace Loader2 icons with gold-themed loaders throughout app
 - [x] Add custom loading states for dashboard metrics
+
+## FIX REFRESH DATA BUTTON
+- [x] Review current refresh implementation in StoreView.tsx
+- [x] Fixed pointer-events blocking clicks on background
+- [x] Button already triggers fresh data fetch from Shopify/Facebook
+- [x] Button shows loading state during refresh

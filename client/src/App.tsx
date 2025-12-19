@@ -45,7 +45,7 @@ function App() {
       <ThemeProvider defaultTheme="dark">
         <TooltipProvider>
           {/* Animated gradient background */}
-          <div className="fixed inset-0 bg-gradient-to-br from-gray-900 via-gray-800 to-black -z-10">
+          <div className="fixed inset-0 bg-gradient-to-br from-gray-900 via-gray-800 to-black -z-10 pointer-events-none">
             <div className="absolute inset-0 bg-[radial-gradient(circle_at_30%_50%,rgba(218,165,32,0.25)_0%,transparent_50%)] animate-breathe" />
             <div className="absolute inset-0 bg-[radial-gradient(circle_at_70%_50%,rgba(218,165,32,0.22)_0%,transparent_50%)] animate-breathe" style={{ animationDelay: '1s' }} />
             <div className="absolute inset-0 bg-[radial-gradient(circle_at_50%_80%,rgba(218,165,32,0.20)_0%,transparent_50%)] animate-breathe" style={{ animationDelay: '2s' }} />
