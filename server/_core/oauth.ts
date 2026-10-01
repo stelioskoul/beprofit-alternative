@@ -1,126 +1,83 @@
-import { COOKIE_NAME, ONE_YEAR_MS } from "@shared/const";
 import type { Express, Request, Response } from "express";
 import * as db from "../db";
-import { exchangeShopifyCode } from "../shopify-oauth";
+import { verifyOAuthState } from "../oauth-state";
+import { exchangeShopifyCode, normalizeShopDomain, verifyShopifyHmac } from "../shopify-oauth";
 import { exchangeFacebookCode, exchangeForLongLivedToken, getFacebookAdAccounts } from "../facebook-oauth";
-import { getSessionCookieOptions } from "./cookies";
-import { sdk } from "./sdk";
+import { getSessionUserId } from "./sdk";
 
-function getQueryParam(req: Request, key: string): string | undefined {
+function queryString(req: Request, key: string): string | undefined {
   const value = req.query[key];
   return typeof value === "string" ? value : undefined;
 }
 
+async function authorizedStore(req: Request, state: string, provider: "shopify" | "facebook") {
+  const { userId, storeId } = await verifyOAuthState(state, provider);
+  const sessionUserId = await getSessionUserId(req);
+  if (sessionUserId !== userId) throw new Error("OAuth session does not match state");
+  const [user, store] = await Promise.all([db.getUserById(userId), db.getStoreById(storeId)]);
+  if (!user || !store || store.userId !== user.id) throw new Error("Store access denied");
+  return storeId;
+}
+
 export function registerOAuthRoutes(app: Express) {
-  app.get("/api/oauth/callback", async (req: Request, res: Response) => {
-    const code = getQueryParam(req, "code");
-    const state = getQueryParam(req, "state");
-
-    if (!code || !state) {
-      res.status(400).json({ error: "code and state are required" });
-      return;
-    }
-
-    try {
-      const tokenResponse = await sdk.exchangeCodeForToken(code, state);
-      const userInfo = await sdk.getUserInfo(tokenResponse.accessToken);
-
-      if (!userInfo.openId) {
-        res.status(400).json({ error: "openId missing from user info" });
-        return;
-      }
-
-      await db.upsertUser({
-        email: userInfo.email || `${userInfo.openId}@oauth.local`, // Fallback email for OAuth users
-        openId: userInfo.openId,
-        name: userInfo.name || null,
-        loginMethod: userInfo.loginMethod ?? userInfo.platform ?? "oauth",
-        lastSignedIn: new Date(),
-      });
-
-      const sessionToken = await sdk.createSessionToken(userInfo.openId, {
-        name: userInfo.name || "",
-        expiresInMs: ONE_YEAR_MS,
-      });
-
-      const cookieOptions = getSessionCookieOptions(req);
-      res.cookie(COOKIE_NAME, sessionToken, { ...cookieOptions, maxAge: ONE_YEAR_MS });
-
-      res.redirect(302, "/");
-    } catch (error) {
-      console.error("[OAuth] Callback failed", error);
-      res.status(500).json({ error: "OAuth callback failed" });
-    }
-  });
-
-  // Shopify OAuth callback
+  // The old /api/oauth/callback exchanged tokens with the discontinued Manus
+  // identity service. It must not be registered for this Supabase-backed app.
   app.get("/api/oauth/shopify/callback", async (req: Request, res: Response) => {
-    const shop = getQueryParam(req, "shop");
-    const code = getQueryParam(req, "code");
-    const state = getQueryParam(req, "state");
-
-    if (!shop || !code || !state) {
-      res.status(400).json({ error: "Missing required parameters" });
-      return;
-    }
+    const shop = queryString(req, "shop");
+    const code = queryString(req, "code");
+    const state = queryString(req, "state");
+    const hmac = queryString(req, "hmac");
+    if (!shop || !code || !state || !hmac) return res.status(400).json({ error: "Missing OAuth parameters" });
 
     try {
-      const { storeId } = JSON.parse(state);
-      const tokenData = await exchangeShopifyCode(shop, code);
-
+      const query = Object.fromEntries(
+        Object.entries(req.query).filter((entry): entry is [string, string] => typeof entry[1] === "string")
+      );
+      if (!verifyShopifyHmac(query, hmac)) throw new Error("Invalid Shopify callback HMAC");
+      const storeId = await authorizedStore(req, state, "shopify");
+      const domain = normalizeShopDomain(shop);
+      const token = await exchangeShopifyCode(domain, code);
       await db.upsertShopifyConnection({
         storeId,
-        shopDomain: shop,
-        accessToken: tokenData.access_token,
-        scopes: tokenData.scope,
-        apiVersion: "2025-10",
+        shopDomain: domain,
+        accessToken: token.access_token,
+        scopes: token.scope,
+        apiVersion: "2026-07",
       });
-
-      res.redirect(302, `/store/${storeId}/connections`);
+      return res.redirect(302, `/store/${storeId}/connections`);
     } catch (error) {
-      console.error("[Shopify OAuth] Callback failed", error);
-      res.status(500).json({ error: "Shopify OAuth callback failed" });
+      console.error("[Shopify OAuth] Callback rejected:", error instanceof Error ? error.message : String(error));
+      return res.status(403).json({ error: "Shopify connection failed; sign in and retry" });
     }
   });
 
-  // Facebook OAuth callback
   app.get("/api/oauth/facebook/callback", async (req: Request, res: Response) => {
-    const code = getQueryParam(req, "code");
-    const state = getQueryParam(req, "state");
-
-    if (!code || !state) {
-      res.status(400).json({ error: "Missing required parameters" });
-      return;
-    }
+    const code = queryString(req, "code");
+    const state = queryString(req, "state");
+    if (!code || !state) return res.status(400).json({ error: "Missing OAuth parameters" });
 
     try {
-      const { storeId } = JSON.parse(state);
-      const baseUrl = process.env.APP_URL || "http://localhost:3000";
-      const redirectUri = `${baseUrl}/api/oauth/facebook/callback`;
-
+      const storeId = await authorizedStore(req, state, "facebook");
+      const baseUrl = process.env.APP_URL;
+      if (!baseUrl) throw new Error("APP_URL is not configured");
+      const redirectUri = `${baseUrl.replace(/\/$/, "")}/api/oauth/facebook/callback`;
       const shortToken = await exchangeFacebookCode(code, redirectUri);
-      const longToken = await exchangeForLongLivedToken(shortToken.access_token);
-      const adAccounts = await getFacebookAdAccounts(longToken.access_token);
-
-      if (adAccounts.length > 0) {
-        const account = adAccounts[0];
-        const expiresAt = new Date(Date.now() + (longToken.expires_in || 5184000) * 1000);
-
-        await db.upsertFacebookConnection({
-          storeId,
-          adAccountId: account.id,
-          accessToken: longToken.access_token,
-          tokenExpiresAt: expiresAt,
-          apiVersion: "v21.0",
-          timezoneOffset: -300,
-        });
-      }
-
-      res.redirect(302, `/store/${storeId}/connections`);
+      const token = await exchangeForLongLivedToken(shortToken.access_token);
+      const accounts = await getFacebookAdAccounts(token.access_token);
+      if (accounts.length === 0) return res.status(400).json({ error: "No Facebook ad accounts found" });
+      const expiresAt = new Date(Date.now() + (token.expires_in || 5184000) * 1000);
+      await db.upsertFacebookConnection({
+        storeId,
+        adAccountId: accounts[0].id,
+        accessToken: token.access_token,
+        tokenExpiresAt: expiresAt,
+        apiVersion: "v25.0",
+        timezoneOffset: -300,
+      });
+      return res.redirect(302, `/store/${storeId}/connections`);
     } catch (error) {
-      console.error("[Facebook OAuth] Callback failed:", error);
-      console.error("[Facebook OAuth] Error details:", error instanceof Error ? error.message : String(error));
-      res.status(500).json({ error: "Facebook OAuth callback failed" });
+      console.error("[Facebook OAuth] Callback rejected:", error instanceof Error ? error.message : String(error));
+      return res.status(403).json({ error: "Facebook connection failed; sign in and retry" });
     }
   });
 }

@@ -12,7 +12,7 @@ export async function fetchFacebookAdSpend(
   adAccountId: string,
   accessToken: string,
   dateRange: DateRange,
-  apiVersion: string = "v21.0"
+  apiVersion: string = "v25.0"
 ): Promise<{ spend: number; currency: string }> {
   // Ensure account ID has act_ prefix
   const accountId = adAccountId.startsWith("act_") ? adAccountId : `act_${adAccountId}`;

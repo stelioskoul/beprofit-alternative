@@ -21,7 +21,7 @@ export async function generateCogsTemplate(storeId: number): Promise<string> {
 
   while (pageCount < MAX_PAGES) {
     pageCount++;
-    const url = new URL(`https://${shopifyConn.shopDomain}/admin/api/${shopifyConn.apiVersion || "2025-10"}/products.json`);
+    const url = new URL(`https://${shopifyConn.shopDomain}/admin/api/${shopifyConn.apiVersion || "2026-07"}/products.json`);
     
     if (nextPageInfo) {
       url.searchParams.set("page_info", nextPageInfo);

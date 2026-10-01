@@ -5,8 +5,9 @@ import { publicProcedure, router, protectedProcedure } from "./_core/trpc";
 import { TRPCError } from "@trpc/server";
 import { z } from "zod";
 import * as db from "./db";
-import { getShopifyAuthUrl, exchangeShopifyCode } from "./shopify-oauth";
-import { getFacebookAuthUrl, exchangeFacebookCode, exchangeForLongLivedToken, getFacebookAdAccounts } from "./facebook-oauth";
+import { getShopifyAuthUrl, normalizeShopDomain } from "./shopify-oauth";
+import { getFacebookAuthUrl, getFacebookAdAccounts } from "./facebook-oauth";
+import { createOAuthState } from "./oauth-state";
 import { fetchShopifyOrders, fetchShopifyDisputes, fetchShopifyBalanceTransactions } from "./shopify-data";
 import { fetchFacebookAdSpend } from "./facebook-data";
 import { processOrders, calculateProcessingFees, calculateOperationalExpensesForPeriod } from "./profit-calculator";
@@ -18,7 +19,11 @@ export const appRouter = router({
   system: systemRouter,
   admin: adminRouter,
   auth: router({
-    me: publicProcedure.query(opts => opts.ctx.user),
+    me: publicProcedure.query(({ ctx }) => {
+      if (!ctx.user) return null;
+      const { passwordHash: _passwordHash, ...safeUser } = ctx.user;
+      return safeUser;
+    }),
     
     signup: publicProcedure
       .input(
@@ -75,12 +80,12 @@ export const appRouter = router({
         const { sdk } = await import("./_core/sdk");
         const sessionToken = await sdk.createSessionToken(user.id.toString(), {
           name: user.name || "",
-          expiresInMs: 365 * 24 * 60 * 60 * 1000, // 1 year
+          expiresInMs: 7 * 24 * 60 * 60 * 1000,
         });
 
         // Set session cookie
         const cookieOptions = getSessionCookieOptions(ctx.req);
-        ctx.res.cookie(COOKIE_NAME, sessionToken, cookieOptions);
+        ctx.res.cookie(COOKIE_NAME, sessionToken, { ...cookieOptions, maxAge: 7 * 24 * 60 * 60 * 1000 });
 
         return {
           success: true,
@@ -131,12 +136,12 @@ export const appRouter = router({
         const { sdk } = await import("./_core/sdk");
         const sessionToken = await sdk.createSessionToken(user.id.toString(), {
           name: user.name || "",
-          expiresInMs: 365 * 24 * 60 * 60 * 1000, // 1 year
+          expiresInMs: 7 * 24 * 60 * 60 * 1000,
         });
 
         // Set session cookie
         const cookieOptions = getSessionCookieOptions(ctx.req);
-        ctx.res.cookie(COOKIE_NAME, sessionToken, cookieOptions);
+        ctx.res.cookie(COOKIE_NAME, sessionToken, { ...cookieOptions, maxAge: 7 * 24 * 60 * 60 * 1000 });
 
         return {
           success: true,
@@ -204,14 +209,11 @@ export const appRouter = router({
         };
         const timezoneOffset = timezoneOffsets[input.timezone] || -300;
 
-        await db.createStore({
+        const newStore = await db.createStore({
           userId: ctx.user.id,
           ...input,
           timezoneOffset,
         });
-
-        const stores = await db.getStoresByUserId(ctx.user.id);
-        const newStore = stores[stores.length - 1];
         if (newStore) {
           await db.upsertProcessingFeesConfig({
             storeId: newStore.id,
@@ -262,11 +264,13 @@ export const appRouter = router({
   shopify: router({
     getAuthUrl: protectedProcedure
       .input(z.object({ storeId: z.number(), shop: z.string() }))
-      .mutation(({ input }) => {
+      .mutation(async ({ ctx, input }) => {
+        const store = await db.getStoreById(input.storeId);
+        if (!store || store.userId !== ctx.user.id) throw new TRPCError({ code: "NOT_FOUND" });
         const baseUrl = process.env.APP_URL || "http://localhost:3000";
-        const redirectUri = `${baseUrl}/api/oauth/shopify/callback`;
-        const state = JSON.stringify({ storeId: input.storeId });
-        const authUrl = getShopifyAuthUrl(input.shop, redirectUri, state);
+        const redirectUri = `${baseUrl.replace(/\/$/, "")}/api/oauth/shopify/callback`;
+        const state = await createOAuthState("shopify", input.storeId, ctx.user.id);
+        const authUrl = getShopifyAuthUrl(input.shop, state, redirectUri);
         return { authUrl };
       }),
 
@@ -278,9 +282,12 @@ export const appRouter = router({
           accessToken: z.string(),
         })
       )
-      .mutation(async ({ input }) => {
+      .mutation(async ({ ctx, input }) => {
+        const store = await db.getStoreById(input.storeId);
+        if (!store || store.userId !== ctx.user.id) throw new TRPCError({ code: "NOT_FOUND" });
+        const domain = normalizeShopDomain(input.shopDomain);
         // Verify token works by making a test API call
-        const testUrl = `https://${input.shopDomain}/admin/api/2025-10/shop.json`;
+        const testUrl = `https://${domain}/admin/api/2026-07/shop.json`;
         const response = await fetch(testUrl, {
           headers: {
             "X-Shopify-Access-Token": input.accessToken,
@@ -296,33 +303,10 @@ export const appRouter = router({
 
         await db.upsertShopifyConnection({
           storeId: input.storeId,
-          shopDomain: input.shopDomain,
+          shopDomain: domain,
           accessToken: input.accessToken,
           scopes: "read_orders,read_products,read_customers,read_shopify_payments_disputes",
-          apiVersion: "2025-10",
-        });
-
-        return { success: true };
-      }),
-
-    handleCallback: publicProcedure
-      .input(
-        z.object({
-          shop: z.string(),
-          code: z.string(),
-          state: z.string(),
-        })
-      )
-      .mutation(async ({ input }) => {
-        const { storeId } = JSON.parse(input.state);
-        const tokenData = await exchangeShopifyCode(input.shop, input.code);
-
-        await db.upsertShopifyConnection({
-          storeId,
-          shopDomain: input.shop,
-          accessToken: tokenData.access_token,
-          scopes: tokenData.scope,
-          apiVersion: "2025-10",
+          apiVersion: "2026-07",
         });
 
         return { success: true };
@@ -380,7 +364,7 @@ export const appRouter = router({
         const fromDate = new Date();
         fromDate.setDate(fromDate.getDate() - 30);
 
-        const baseUrl = `https://${connection.shopDomain}/admin/api/2025-10/shopify_payments/balance/transactions.json`;
+        const baseUrl = `https://${connection.shopDomain}/admin/api/2026-07/shopify_payments/balance/transactions.json`;
         const params = new URLSearchParams({ limit: "250" });
         
         const response = await fetch(`${baseUrl}?${params.toString()}`, {
@@ -400,7 +384,7 @@ export const appRouter = router({
         // If orderNumber specified, also fetch orders to find the order ID
         let targetOrderId = null;
         if (input.orderNumber) {
-          const ordersUrl = `https://${connection.shopDomain}/admin/api/2025-10/orders.json?limit=250&status=any`;
+          const ordersUrl = `https://${connection.shopDomain}/admin/api/2026-07/orders.json?limit=250&status=any`;
           const ordersResponse = await fetch(ordersUrl, {
             headers: {
               "X-Shopify-Access-Token": connection.accessToken,
@@ -433,10 +417,12 @@ export const appRouter = router({
   facebook: router({
     getAuthUrl: protectedProcedure
       .input(z.object({ storeId: z.number() }))
-      .mutation(({ input }) => {
+      .mutation(async ({ ctx, input }) => {
+        const store = await db.getStoreById(input.storeId);
+        if (!store || store.userId !== ctx.user.id) throw new TRPCError({ code: "NOT_FOUND" });
         const baseUrl = process.env.APP_URL || "http://localhost:3000";
-        const redirectUri = `${baseUrl}/api/oauth/facebook/callback`;
-        const state = JSON.stringify({ storeId: input.storeId });
+        const redirectUri = `${baseUrl.replace(/\/$/, "")}/api/oauth/facebook/callback`;
+        const state = await createOAuthState("facebook", input.storeId, ctx.user.id);
         const authUrl = getFacebookAuthUrl(redirectUri, state);
         return { authUrl };
       }),
@@ -449,7 +435,9 @@ export const appRouter = router({
           adAccountId: z.string(),
         })
       )
-      .mutation(async ({ input }) => {
+      .mutation(async ({ ctx, input }) => {
+        const store = await db.getStoreById(input.storeId);
+        if (!store || store.userId !== ctx.user.id) throw new TRPCError({ code: "NOT_FOUND" });
         // Verify token works by fetching ad account info
         const adAccounts = await getFacebookAdAccounts(input.accessToken);
         const account = adAccounts.find((acc: any) => acc.id === input.adAccountId);
@@ -469,7 +457,7 @@ export const appRouter = router({
           adAccountId: input.adAccountId,
           accessToken: input.accessToken,
           tokenExpiresAt: expiresAt,
-          apiVersion: "v21.0",
+          apiVersion: "v25.0",
           timezoneOffset: -300,
         });
 
@@ -496,7 +484,10 @@ export const appRouter = router({
 
     disconnect: protectedProcedure
       .input(z.object({ connectionId: z.number() }))
-      .mutation(async ({ input }) => {
+      .mutation(async ({ ctx, input }) => {
+        const connection = await db.getFacebookConnectionById(input.connectionId);
+        const store = connection && await db.getStoreById(connection.storeId);
+        if (!store || store.userId !== ctx.user.id) throw new TRPCError({ code: "NOT_FOUND" });
         await db.deleteFacebookConnection(input.connectionId);
         return { success: true };
       }),
@@ -527,7 +518,7 @@ export const appRouter = router({
         }
 
         // Fetch raw balance transactions
-        const baseUrl = `https://${shopifyConn.shopDomain}/admin/api/${shopifyConn.apiVersion || "2025-10"}/shopify_payments/balance/transactions.json`;
+        const baseUrl = `https://${shopifyConn.shopDomain}/admin/api/${shopifyConn.apiVersion || "2026-07"}/shopify_payments/balance/transactions.json`;
         const allTransactions: any[] = [];
         let hasMore = true;
         let lastId: number | null = null;
@@ -634,7 +625,7 @@ export const appRouter = router({
             shopifyConn.accessToken,
             { fromDate: input.fromDate, toDate: input.toDate },
             store.timezoneOffset || -300,
-            shopifyConn.apiVersion || "2025-10"
+            shopifyConn.apiVersion || "2026-07"
           );
 
           disputes = await fetchShopifyDisputes(
@@ -642,7 +633,7 @@ export const appRouter = router({
             shopifyConn.accessToken,
             { fromDate: input.fromDate, toDate: input.toDate },
             store.timezoneOffset || -300,
-            shopifyConn.apiVersion || "2025-10"
+            shopifyConn.apiVersion || "2026-07"
           );
 
           const cogsConfigList = await db.getCogsConfigByStoreId(input.storeId);
@@ -674,7 +665,7 @@ export const appRouter = router({
               shopifyConn.shopDomain,
               shopifyConn.accessToken,
               { fromDate: input.fromDate, toDate: input.toDate },
-              shopifyConn.apiVersion || "2025-10",
+              shopifyConn.apiVersion || "2026-07",
               EXCHANGE_RATE_EUR_USD,
               store.timezoneOffset || -300 // Use store's timezone offset
             );
@@ -711,7 +702,7 @@ export const appRouter = router({
             fbConn.adAccountId,
             fbConn.accessToken,
             { fromDate: input.fromDate, toDate: input.toDate },
-            fbConn.apiVersion || "v21.0"
+            fbConn.apiVersion || "v25.0"
           );
 
           if (currency === "USD") {
@@ -902,6 +893,8 @@ export const appRouter = router({
           });
         }
 
+        const expense = await db.getOperationalExpenseById(input.id);
+        if (!expense || expense.storeId !== input.storeId) throw new TRPCError({ code: "NOT_FOUND" });
         const updates: any = {};
         
         if (input.title) updates.title = input.title;
@@ -926,7 +919,12 @@ export const appRouter = router({
 
     delete: protectedProcedure
       .input(z.object({ id: z.number(), storeId: z.number() }))
-      .mutation(async ({ input }) => {
+      .mutation(async ({ ctx, input }) => {
+        const expense = await db.getOperationalExpenseById(input.id);
+        const store = await db.getStoreById(input.storeId);
+        if (!expense || expense.storeId !== input.storeId || !store || store.userId !== ctx.user.id) {
+          throw new TRPCError({ code: "NOT_FOUND" });
+        }
         await db.deleteOperationalExpense(input.id);
         
         // Cache invalidation removed
@@ -1035,7 +1033,7 @@ export const appRouter = router({
 
         while (pageCount < MAX_PAGES) {
           pageCount++;
-          const url = new URL(`https://${shopifyConn.shopDomain}/admin/api/${shopifyConn.apiVersion || "2025-10"}/products.json`);
+          const url = new URL(`https://${shopifyConn.shopDomain}/admin/api/${shopifyConn.apiVersion || "2026-07"}/products.json`);
           
           if (nextPageInfo) {
             url.searchParams.set("page_info", nextPageInfo);
@@ -1108,7 +1106,7 @@ export const appRouter = router({
           shopifyConn.accessToken,
           { fromDate: input.startDate, toDate: input.endDate },
           store.timezoneOffset || -300,
-          shopifyConn.apiVersion || "2025-10"
+          shopifyConn.apiVersion || "2026-07"
         );
 
         const cogsConfigList = await db.getCogsConfigByStoreId(input.storeId);
@@ -1141,7 +1139,7 @@ export const appRouter = router({
             shopifyConn.shopDomain,
             shopifyConn.accessToken,
             { fromDate: input.startDate, toDate: input.endDate },
-            shopifyConn.apiVersion || "2025-10",
+            shopifyConn.apiVersion || "2026-07",
             EXCHANGE_RATE_EUR_USD,
             store.timezoneOffset || -300 // Use store's timezone offset
           );
@@ -1690,6 +1688,8 @@ export const appRouter = router({
           });
         }
 
+        const profile = await db.getShippingProfileById(input.profileId);
+        if (!profile || profile.storeId !== input.storeId) throw new TRPCError({ code: "NOT_FOUND" });
         await db.assignShippingProfile({
           storeId: input.storeId,
           variantId: input.variantId,

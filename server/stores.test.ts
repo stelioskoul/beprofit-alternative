@@ -1,70 +1,51 @@
-import { describe, expect, it } from "vitest";
-import { appRouter } from "./routers";
+import { beforeEach, describe, expect, it, vi } from "vitest";
 import type { TrpcContext } from "./_core/context";
 
-type AuthenticatedUser = NonNullable<TrpcContext["user"]>;
+const mocks = vi.hoisted(() => ({
+  createStore: vi.fn(),
+  upsertProcessingFeesConfig: vi.fn(),
+  getStoresByUserId: vi.fn(),
+  getStoreById: vi.fn(),
+}));
+vi.mock("./db", async importOriginal => ({
+  ...(await importOriginal<typeof import("./db")>()),
+  ...mocks,
+}));
 
-function createAuthContext(): TrpcContext {
-  const user: AuthenticatedUser = {
-    id: 1,
-    openId: "test-user",
-    email: "test@example.com",
-    name: "Test User",
-    loginMethod: "manus",
-    role: "user",
-    createdAt: new Date(),
-    updatedAt: new Date(),
-    lastSignedIn: new Date(),
+import { appRouter } from "./routers";
+
+function context(userId = 1): TrpcContext {
+  return {
+    user: { id: userId, role: "user", email: `user${userId}@example.invalid` } as TrpcContext["user"],
+    req: { protocol: "https", headers: {} } as TrpcContext["req"],
+    res: { clearCookie: () => {}, cookie: () => {} } as TrpcContext["res"],
   };
-
-  const ctx: TrpcContext = {
-    user,
-    req: {
-      protocol: "https",
-      headers: {},
-    } as TrpcContext["req"],
-    res: {
-      clearCookie: () => {},
-      cookie: () => {},
-    } as TrpcContext["res"],
-  };
-
-  return ctx;
 }
 
+beforeEach(() => {
+  vi.clearAllMocks();
+  mocks.createStore.mockResolvedValue({ id: 42 });
+  mocks.upsertProcessingFeesConfig.mockResolvedValue(undefined);
+  mocks.getStoresByUserId.mockResolvedValue([{ id: 42, userId: 1, name: "Test Store", platform: "shopify" }]);
+  mocks.getStoreById.mockResolvedValue({ id: 42, userId: 1, name: "Test Store", platform: "shopify" });
+});
+
 describe("stores procedures", () => {
-  it("can create a store", async () => {
-    const ctx = createAuthContext();
-    const caller = appRouter.createCaller(ctx);
-
-    const result = await caller.stores.create({
-      name: "Test Store",
-      platform: "shopify",
-      currency: "USD",
-      timezoneOffset: -300,
+  it("creates a store using the current user ID and configures its returned ID", async () => {
+    const result = await appRouter.createCaller(context()).stores.create({
+      name: "Test Store", platform: "shopify", currency: "USD", timezone: "Europe/Athens",
     });
-
     expect(result).toEqual({ success: true });
+    expect(mocks.createStore).toHaveBeenCalledWith(expect.objectContaining({ userId: 1, timezoneOffset: 120 }));
+    expect(mocks.upsertProcessingFeesConfig).toHaveBeenCalledWith(expect.objectContaining({ storeId: 42 }));
   });
-
-  it("can list stores for authenticated user", async () => {
-    const ctx = createAuthContext();
-    const caller = appRouter.createCaller(ctx);
-
-    // Create a store first
-    await caller.stores.create({
-      name: "Test Store 2",
-      platform: "shopify",
-      currency: "USD",
-      timezoneOffset: -300,
-    });
-
-    const stores = await caller.stores.list();
-
-    expect(Array.isArray(stores)).toBe(true);
-    expect(stores.length).toBeGreaterThan(0);
-    expect(stores[0]).toHaveProperty("id");
-    expect(stores[0]).toHaveProperty("name");
-    expect(stores[0]).toHaveProperty("platform");
+  it("only lists the authenticated user's stores", async () => {
+    const stores = await appRouter.createCaller(context()).stores.list();
+    expect(stores).toHaveLength(1);
+    expect(mocks.getStoresByUserId).toHaveBeenCalledWith(1);
+  });
+  it("rejects a different user's store ID", async () => {
+    await expect(appRouter.createCaller(context(2)).stores.getById({ id: 42 }))
+      .rejects.toMatchObject({ code: "NOT_FOUND" });
   });
 });

@@ -5,12 +5,9 @@ import { eq, sql, desc, count } from "drizzle-orm";
 import { getDb } from "./db";
 import { 
   users, 
-  stores, 
-  shopifyConnections, 
+  stores,
+  shopifyConnections,
   facebookConnections,
-  cogsConfig,
-  shippingConfig,
-  operationalExpenses 
 } from "../drizzle/schema";
 
 export const adminRouter = router({
@@ -30,7 +27,7 @@ export const adminRouter = router({
       role: users.role,
       createdAt: users.createdAt,
       lastSignedIn: users.lastSignedIn,
-    }).from(users).orderBy(desc(users.createdAt));
+    }).from(users).orderBy(desc(users.createdAt)).limit(500);
 
     // Get store counts for each user
     const storeCounts = await db.select({
@@ -53,7 +50,17 @@ export const adminRouter = router({
       const db = await getDb();
       if (!db) throw new TRPCError({ code: "INTERNAL_SERVER_ERROR", message: "Database not available" });
 
-      const [user] = await db.select().from(users).where(eq(users.id, input.userId));
+      const [user] = await db.select({
+        id: users.id,
+        openId: users.openId,
+        email: users.email,
+        name: users.name,
+        loginMethod: users.loginMethod,
+        role: users.role,
+        createdAt: users.createdAt,
+        updatedAt: users.updatedAt,
+        lastSignedIn: users.lastSignedIn,
+      }).from(users).where(eq(users.id, input.userId)).limit(1);
       if (!user) throw new TRPCError({ code: "NOT_FOUND", message: "User not found" });
 
       const userStores = await db.select().from(stores).where(eq(stores.userId, input.userId));
@@ -73,23 +80,8 @@ export const adminRouter = router({
         throw new TRPCError({ code: "BAD_REQUEST", message: "Cannot delete your own account" });
       }
 
-      // Get user's stores first
-      const userStores = await db.select({ id: stores.id }).from(stores).where(eq(stores.userId, input.userId));
-      const storeIds = userStores.map(s => s.id);
-
-      // Delete related data for each store
-      for (const storeId of storeIds) {
-        await db.delete(shopifyConnections).where(eq(shopifyConnections.storeId, storeId));
-        await db.delete(facebookConnections).where(eq(facebookConnections.storeId, storeId));
-        await db.delete(cogsConfig).where(eq(cogsConfig.storeId, storeId));
-        await db.delete(shippingConfig).where(eq(shippingConfig.storeId, storeId));
-        await db.delete(operationalExpenses).where(eq(operationalExpenses.storeId, storeId));
-      }
-
-      // Delete stores
-      await db.delete(stores).where(eq(stores.userId, input.userId));
-
-      // Delete user
+      // Store and dependent records are removed by the schema's ON DELETE CASCADE
+      // constraints. A single delete avoids partial manual cleanup.
       await db.delete(users).where(eq(users.id, input.userId));
 
       return { success: true };
@@ -128,10 +120,9 @@ export const adminRouter = router({
       platform: stores.platform,
       currency: stores.currency,
       createdAt: stores.createdAt,
-    }).from(stores).orderBy(desc(stores.createdAt));
+    }).from(stores).orderBy(desc(stores.createdAt)).limit(500);
 
     // Get user info for each store
-    const userIds = Array.from(new Set(allStores.map(s => s.userId)));
     const storeUsers = await db.select({
       id: users.id,
       email: users.email,

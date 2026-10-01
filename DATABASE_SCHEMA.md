@@ -1,284 +1,111 @@
-# Database Schema Design - Multi-User BeProfit Alternative
+# Database Schema
 
-## Overview
+## Scope and source of truth
 
-This document defines the complete database schema for the multi-user profit tracking application. The schema supports multiple users, each with multiple stores, and each store can have connections to Shopify, Facebook Ads, and TikTok Ads.
+The PostgreSQL schema is defined in:
 
-## Core Principles
+- **Deployment migration:** `supabase/migrations/20261001_initial.sql`
+- **Drizzle TypeScript schema:** `drizzle/schema.ts`
 
-1. **Multi-tenancy**: All data is scoped to users and stores
-2. **Security**: Row-level isolation through foreign keys
-3. **Flexibility**: JSON columns for complex configurations
-4. **Performance**: Indexed foreign keys and timestamps
+The SQL migration is the **deployment source of truth**. It is a one-shot migration for a **new, empty Supabase project** and must be applied through the Supabase migration workflow by a project administrator. It must **not** be run against an existing database that already contains these tables or types.
 
-## Tables
+This is an intentionally **fresh-data** migration. It contains no MySQL data dump, schema conversion, or automatic data transfer. Any production MySQL data requires a separately planned export, transform, import, reconciliation, and cutover. Do not point a running application at the new database until connection setup and data migration (if needed) are complete.
 
-### 1. users (Already exists from template)
+`drizzle.config.ts` uses the PostgreSQL dialect and writes any future Drizzle Kit generated metadata to `drizzle/pg`, not the legacy `drizzle/meta` MySQL journal. Do not use Drizzle Kit generation as a substitute for applying the checked-in Supabase migration.
 
-```sql
-CREATE TABLE users (
-  id INT AUTO_INCREMENT PRIMARY KEY,
-  openId VARCHAR(64) NOT NULL UNIQUE,
-  name TEXT,
-  email VARCHAR(320),
-  loginMethod VARCHAR(64),
-  role ENUM('user', 'admin') DEFAULT 'user' NOT NULL,
-  createdAt TIMESTAMP DEFAULT CURRENT_TIMESTAMP NOT NULL,
-  updatedAt TIMESTAMP DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP NOT NULL,
-  lastSignedIn TIMESTAMP DEFAULT CURRENT_TIMESTAMP NOT NULL
-);
-```
+## Authentication model
 
-### 2. stores
+> **Supabase Auth is not used by this application.**
 
-Represents a user's e-commerce store (can be Shopify, WooCommerce, etc.)
+`public.users` remains the application-owned identity table:
 
-```sql
-CREATE TABLE stores (
-  id INT AUTO_INCREMENT PRIMARY KEY,
-  userId INT NOT NULL,
-  name VARCHAR(255) NOT NULL,
-  platform VARCHAR(50) NOT NULL, -- 'shopify', 'woocommerce', etc.
-  currency VARCHAR(3) DEFAULT 'USD',
-  timezoneOffset INT DEFAULT -300, -- Store timezone in minutes from UTC
-  createdAt TIMESTAMP DEFAULT CURRENT_TIMESTAMP NOT NULL,
-  updatedAt TIMESTAMP DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP NOT NULL,
-  FOREIGN KEY (userId) REFERENCES users(id) ON DELETE CASCADE,
-  INDEX idx_userId (userId)
-);
-```
+- `id` remains an integer `serial` primary key.
+- `email` remains required and unique.
+- `passwordHash` remains the custom email/password hash used by the Express server.
+- `openId`, `loginMethod`, `role`, and `lastSignedIn` remain application fields.
 
-### 3. shopify_connections
+There is deliberately no `auth.users` foreign key, Auth trigger, Supabase Auth policy, or data migration. The existing Express login/session flow continues to own authentication and authorization.
 
-OAuth connection details for Shopify stores
+## Tables and relationships
 
-```sql
-CREATE TABLE shopify_connections (
-  id INT AUTO_INCREMENT PRIMARY KEY,
-  storeId INT NOT NULL UNIQUE, -- One Shopify connection per store
-  shopDomain VARCHAR(255) NOT NULL,
-  accessToken TEXT NOT NULL, -- Encrypted access token
-  scopes TEXT, -- Comma-separated OAuth scopes
-  apiVersion VARCHAR(20) DEFAULT '2025-10',
-  connectedAt TIMESTAMP DEFAULT CURRENT_TIMESTAMP NOT NULL,
-  lastSyncAt TIMESTAMP NULL,
-  FOREIGN KEY (storeId) REFERENCES stores(id) ON DELETE CASCADE,
-  INDEX idx_storeId (storeId)
-);
-```
+All physical table and column names retain their existing casing. Camel-case PostgreSQL identifiers are quoted in SQL and are represented with the same names in Drizzle.
 
-### 4. facebook_connections
+| Table                       | Primary key | Main relationships and constraints                                                                                                                     |
+| --------------------------- | ----------: | ------------------------------------------------------------------------------------------------------------------------------------------------------ |
+| `users`                     |        `id` | Unique `email`; optional unique `openId`.                                                                                                              |
+| `stores`                    |        `id` | `userId` → `users.id`, cascade delete.                                                                                                                 |
+| `shopify_connections`       |        `id` | Unique `storeId`; `storeId` → `stores.id`, cascade delete.                                                                                             |
+| `facebook_connections`      |        `id` | Unique (`storeId`, `adAccountId`); `storeId` → `stores.id`, cascade delete.                                                                            |
+| `cogs_config`               |        `id` | Unique (`storeId`, `variantId`); `storeId` → `stores.id`, cascade delete.                                                                              |
+| `shipping_config`           |        `id` | Unique (`storeId`, `variantId`); `storeId` → `stores.id`, cascade delete.                                                                              |
+| `operational_expenses`      |        `id` | `storeId` → `stores.id`, cascade delete.                                                                                                               |
+| `processing_fees_config`    |        `id` | Unique `storeId`; `storeId` → `stores.id`, cascade delete.                                                                                             |
+| `exchange_rates`            |        `id` | Unique (`fromCurrency`, `toCurrency`, `effectiveDate`).                                                                                                |
+| `shipping_profiles`         |        `id` | `storeId` → `stores.id`, cascade delete; unique (`storeId`, `id`) supports the tenant-safe composite child FK.                                         |
+| `product_shipping_profiles` |        `id` | Unique (`storeId`, `variantId`); `storeId` → `stores.id`, cascade delete; (`storeId`, `profileId`) → `shipping_profiles(storeId, id)`, cascade delete. |
 
-OAuth connection details for Facebook Ad accounts
+The composite `product_shipping_profiles` foreign key is intentional: a variant cannot refer to a shipping profile belonging to a different store.
 
-```sql
-CREATE TABLE facebook_connections (
-  id INT AUTO_INCREMENT PRIMARY KEY,
-  storeId INT NOT NULL,
-  adAccountId VARCHAR(255) NOT NULL,
-  accessToken TEXT NOT NULL, -- Long-lived user access token
-  tokenExpiresAt TIMESTAMP NULL,
-  apiVersion VARCHAR(20) DEFAULT 'v21.0',
-  timezoneOffset INT DEFAULT -300, -- Ad account timezone
-  connectedAt TIMESTAMP DEFAULT CURRENT_TIMESTAMP NOT NULL,
-  lastSyncAt TIMESTAMP NULL,
-  FOREIGN KEY (storeId) REFERENCES stores(id) ON DELETE CASCADE,
-  INDEX idx_storeId (storeId),
-  UNIQUE KEY unique_store_account (storeId, adAccountId)
-);
-```
+## PostgreSQL type and response compatibility
 
-### 5. tiktok_connections
+| Existing data meaning                    | PostgreSQL storage         | Drizzle result behavior                                                                                                                                                                                                              |
+| ---------------------------------------- | -------------------------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------ |
+| Integer IDs and counters                 | `serial` / `integer`       | JavaScript `number`.                                                                                                                                                                                                                 |
+| Money, fees, and exchange rates          | Fixed-precision `numeric`  | **String**, avoiding floating-point rounding changes.                                                                                                                                                                                |
+| Expense and exchange-rate calendar dates | `date`                     | Configured with `mode: "date"`, therefore returned by Drizzle as JavaScript `Date`. Preserve date-only API contracts at the Express response boundary (for example, format as `YYYY-MM-DD`) if existing callers expect date strings. |
+| Audit/connection timestamps              | `timestamp with time zone` | JavaScript `Date`; values are timezone-aware in PostgreSQL.                                                                                                                                                                          |
+| JSON-shaped shipping configuration       | `text`                     | Unchanged: `configJson` remains a text payload.                                                                                                                                                                                      |
 
-OAuth connection details for TikTok Ad accounts
+The currency and fee defaults are retained. Provider versions were updated in the separate `20261001_provider_api_versions.sql` migration: Shopify `2026-07` and Meta Marketing `v25.0`; the initial migration records the original versions. `user_role` and `operational_expense_type` are PostgreSQL enums that preserve the original allowed values.
+
+## Automatic `updatedAt`
+
+PostgreSQL has no MySQL-style `ON UPDATE CURRENT_TIMESTAMP` column clause. The migration creates `public.set_updated_at()` and attaches `BEFORE UPDATE` triggers to every table that originally has an `updatedAt` column:
+
+- `users`
+- `stores`
+- `cogs_config`
+- `shipping_config`
+- `operational_expenses`
+- `processing_fees_config`
+- `shipping_profiles`
+- `product_shipping_profiles`
+
+`shopify_connections`, `facebook_connections`, and `exchange_rates` intentionally have no `updatedAt` column because none existed in the original schema; their existing `lastSyncAt` or `createdAt` fields remain unchanged.
+
+## Security and Row Level Security
+
+Every application table in `public` has RLS enabled. There are **no policies for `anon` or `authenticated`**, and their table and sequence privileges are revoked. Browser clients must not query these tables through Supabase's Data API.
+
+The migration creates this dedicated role if it does not already exist:
 
 ```sql
-CREATE TABLE tiktok_connections (
-  id INT AUTO_INCREMENT PRIMARY KEY,
-  storeId INT NOT NULL,
-  advertiserId VARCHAR(255) NOT NULL,
-  accessToken TEXT NOT NULL,
-  refreshToken TEXT,
-  tokenExpiresAt TIMESTAMP NULL,
-  connectedAt TIMESTAMP DEFAULT CURRENT_TIMESTAMP NOT NULL,
-  lastSyncAt TIMESTAMP NULL,
-  FOREIGN KEY (storeId) REFERENCES stores(id) ON DELETE CASCADE,
-  INDEX idx_storeId (storeId),
-  UNIQUE KEY unique_store_advertiser (storeId, advertiserId)
-);
+beprofit_app NOLOGIN NOSUPERUSER NOCREATEDB NOCREATEROLE NOINHERIT
 ```
 
-### 6. cogs_config
+It receives only:
 
-Cost of Goods Sold configuration per store variant
+- `USAGE` on schema `public`;
+- `SELECT`, `INSERT`, `UPDATE`, and `DELETE` on the eleven application tables;
+- `USAGE` and `SELECT` on the associated `serial` sequences;
+- execution of the `updatedAt` trigger function; and
+- one `FOR ALL` RLS policy per application table, **to `beprofit_app` only**.
 
-```sql
-CREATE TABLE cogs_config (
-  id INT AUTO_INCREMENT PRIMARY KEY,
-  storeId INT NOT NULL,
-  variantId VARCHAR(255) NOT NULL, -- Shopify variant ID or product ID
-  productTitle TEXT, -- For reference
-  cogsValue DECIMAL(10, 2) NOT NULL,
-  currency VARCHAR(3) DEFAULT 'USD',
-  createdAt TIMESTAMP DEFAULT CURRENT_TIMESTAMP NOT NULL,
-  updatedAt TIMESTAMP DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP NOT NULL,
-  FOREIGN KEY (storeId) REFERENCES stores(id) ON DELETE CASCADE,
-  INDEX idx_storeId (storeId),
-  UNIQUE KEY unique_store_variant (storeId, variantId)
-);
-```
+The initial migration creates `beprofit_app` with `NOLOGIN` so no plaintext password enters source control. A separate **private** Supabase migration enabled `LOGIN` with a locally generated SCRAM verifier. The Express server connects directly as this role through the verified IPv4 session pooler. Its raw password is not part of either committed migration. Do not grant this role to `anon`, `authenticated`, browser clients, or public API keys. Keep its connection string only in server-side secret configuration; never expose it in client code or committed files.
 
-### 7. shipping_config
+## Fresh-project setup checklist
 
-Shipping cost configuration per store (complex tiered structure)
+1. Create or select an empty Supabase project.
+2. Apply `supabase/migrations/20261001_initial.sql` once through the administrator-controlled Supabase migration process. Do not apply it through a public browser endpoint.
+3. Apply `supabase/migrations/20261001_provider_api_versions.sql` to update provider connection defaults.
+4. Create a strong private credential and enable the already-created role from an **administrator-only** SQL session: `ALTER ROLE beprofit_app WITH LOGIN PASSWORD '<new-random-password>';`. Supply the actual password only in a protected SQL editor or private migration input, **never in a committed migration, shell history or chat**. A precomputed SCRAM verifier can be used as the `PASSWORD` value instead, as was done for this recovered project. Verify `rolcanlogin` afterward. A fresh baseline intentionally leaves this role `NOLOGIN` until this explicit secret-dependent step occurs.
+5. Configure the Express server with a private **session-pooler** PostgreSQL `DATABASE_URL` and separate `JWT_SECRET` and `TOKEN_ENCRYPTION_KEY` values in a protected secret manager; startup now refuses to listen without valid values.
+6. Keep application login on the existing Express email/password flow. Do not enable or substitute Supabase Auth as part of this migration.
+7. If moving existing data, complete a separate validated ETL/cutover before serving traffic. This migration provides schema only.
 
-```sql
-CREATE TABLE shipping_config (
-  id INT AUTO_INCREMENT PRIMARY KEY,
-  storeId INT NOT NULL,
-  variantId VARCHAR(255) NOT NULL,
-  productTitle TEXT, -- For reference
-  configJson TEXT NOT NULL, -- JSON structure: { shippingType: { region: { quantity: cost } } }
-  createdAt TIMESTAMP DEFAULT CURRENT_TIMESTAMP NOT NULL,
-  updatedAt TIMESTAMP DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP NOT NULL,
-  FOREIGN KEY (storeId) REFERENCES stores(id) ON DELETE CASCADE,
-  INDEX idx_storeId (storeId),
-  UNIQUE KEY unique_store_variant_shipping (storeId, variantId)
-);
-```
+## Operational caveats
 
-**Example configJson structure:**
-```json
-{
-  "free": {
-    "USA": { "1": 4.5, "2": 6.0, "3": 7.5 },
-    "CANADA": { "1": 6.0, "2": 8.0, "3": 10.0 },
-    "EU": { "1": 8.0, "2": 12.0, "3": 16.0 }
-  },
-  "express": {
-    "USA": { "1": 12.0, "2": 15.0, "3": 18.0 },
-    "CANADA": { "1": 15.0, "2": 18.0, "3": 21.0 },
-    "EU": { "1": 20.0, "2": 25.0, "3": 30.0 }
-  }
-}
-```
-
-### 8. operational_expenses
-
-Store-specific operational expenses
-
-```sql
-CREATE TABLE operational_expenses (
-  id INT AUTO_INCREMENT PRIMARY KEY,
-  storeId INT NOT NULL,
-  type ENUM('one_time', 'monthly', 'yearly') NOT NULL,
-  title VARCHAR(255) NOT NULL,
-  amount DECIMAL(10, 2) NOT NULL,
-  currency VARCHAR(3) DEFAULT 'USD',
-  date DATE NULL, -- For one_time expenses
-  startDate DATE NULL, -- For recurring expenses
-  endDate DATE NULL, -- Optional end date for recurring
-  createdAt TIMESTAMP DEFAULT CURRENT_TIMESTAMP NOT NULL,
-  updatedAt TIMESTAMP DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP NOT NULL,
-  FOREIGN KEY (storeId) REFERENCES stores(id) ON DELETE CASCADE,
-  INDEX idx_storeId (storeId),
-  INDEX idx_dates (startDate, endDate)
-);
-```
-
-### 9. processing_fees_config
-
-Payment processing fee configuration per store
-
-```sql
-CREATE TABLE processing_fees_config (
-  id INT AUTO_INCREMENT PRIMARY KEY,
-  storeId INT NOT NULL UNIQUE,
-  percentFee DECIMAL(5, 4) DEFAULT 0.0280, -- 2.8%
-  fixedFee DECIMAL(10, 2) DEFAULT 0.29, -- $0.29 per transaction
-  currency VARCHAR(3) DEFAULT 'USD',
-  createdAt TIMESTAMP DEFAULT CURRENT_TIMESTAMP NOT NULL,
-  updatedAt TIMESTAMP DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP NOT NULL,
-  FOREIGN KEY (storeId) REFERENCES stores(id) ON DELETE CASCADE
-);
-```
-
-### 10. exchange_rates
-
-Currency exchange rates (optional, for multi-currency support)
-
-```sql
-CREATE TABLE exchange_rates (
-  id INT AUTO_INCREMENT PRIMARY KEY,
-  fromCurrency VARCHAR(3) NOT NULL,
-  toCurrency VARCHAR(3) NOT NULL,
-  rate DECIMAL(10, 6) NOT NULL,
-  effectiveDate DATE NOT NULL,
-  createdAt TIMESTAMP DEFAULT CURRENT_TIMESTAMP NOT NULL,
-  UNIQUE KEY unique_currency_pair_date (fromCurrency, toCurrency, effectiveDate),
-  INDEX idx_currencies (fromCurrency, toCurrency)
-);
-```
-
-### 11. metrics_cache (Optional - Performance Optimization)
-
-Cache for expensive metric calculations
-
-```sql
-CREATE TABLE metrics_cache (
-  id INT AUTO_INCREMENT PRIMARY KEY,
-  storeId INT NOT NULL,
-  dateFrom DATE NOT NULL,
-  dateTo DATE NOT NULL,
-  metricsJson TEXT NOT NULL, -- Cached calculation results
-  calculatedAt TIMESTAMP DEFAULT CURRENT_TIMESTAMP NOT NULL,
-  FOREIGN KEY (storeId) REFERENCES stores(id) ON DELETE CASCADE,
-  INDEX idx_store_dates (storeId, dateFrom, dateTo)
-);
-```
-
-## Data Flow
-
-### User Registration Flow
-1. User signs up via Manus OAuth
-2. User record created in `users` table
-3. User redirected to dashboard
-
-### Store Connection Flow
-1. User creates a store entry in `stores` table
-2. User initiates OAuth for Shopify/Facebook/TikTok
-3. OAuth callback stores tokens in respective connection tables
-4. Store is now ready to fetch data
-
-### Profit Calculation Flow
-1. Fetch orders from Shopify (via `shopify_connections`)
-2. Fetch ad spend from Facebook (via `facebook_connections`)
-3. Fetch ad spend from TikTok (via `tiktok_connections`)
-4. Calculate COGS using `cogs_config`
-5. Calculate shipping using `shipping_config`
-6. Calculate processing fees using `processing_fees_config`
-7. Fetch operational expenses from `operational_expenses`
-8. Compute: Revenue - COGS - Shipping - Processing Fees - Ad Spend - OpEx = Net Profit
-
-## Security Considerations
-
-1. **Access Tokens**: All OAuth tokens stored encrypted in TEXT fields
-2. **User Isolation**: All queries must filter by `userId` or `storeId`
-3. **Cascading Deletes**: When user deleted, all related data removed
-4. **Foreign Keys**: Enforce referential integrity
-5. **Indexes**: Optimize query performance for user-scoped data
-
-## Migration Strategy
-
-1. Create all tables in order (respecting foreign key dependencies)
-2. Seed default processing fee config for new stores
-3. Migrate existing single-store data (if needed) to first user's store
-4. Test multi-user isolation with sample data
-
-## Next Steps
-
-1. Create Drizzle schema definitions
-2. Generate and apply migrations
-3. Implement tRPC procedures for CRUD operations
-4. Build OAuth integration handlers
-5. Create UI for store and connection management
+- The migration is **not idempotent**: a migration runner should record it as applied, and it is only safe on a fresh project.
+- Application code that relied on MySQL driver date strings should explicitly preserve the desired date-only JSON format, because the required Drizzle `mode: "date"` maps to JavaScript `Date`.
+- The RLS policy grants broad table access to the trusted server role; user/store-level authorization continues to be enforced by the Express application, not by a Supabase Auth identity policy.
+- New Shopify/Facebook OAuth tokens are encrypted with AES-256-GCM before storage; the server requires a separate `TOKEN_ENCRYPTION_KEY` and fails closed if it is missing. Back up this key separately from the database. Treat database backups, logs, and administrative access as sensitive regardless.
