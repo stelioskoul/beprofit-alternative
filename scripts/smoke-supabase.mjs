@@ -25,7 +25,7 @@ async function call(who, procedure, input, mutation = false) {
   const cookie = response.headers.get("set-cookie");
   if (who && cookie) who.cookie = cookie.split(";")[0];
   const body = await response.json();
-  return { status: response.status, data: body.result?.data?.json, error: body.error?.json || body.error };
+  return { status: response.status, cookieHeader: cookie, data: body.result?.data?.json, error: body.error?.json || body.error };
 }
 
 function assert(condition, message) {
@@ -38,6 +38,11 @@ try {
       email: emails[i], password: `test-only-${randomUUID()}!`, name: `Smoke ${i}`,
     }, true);
     assert(response.status === 200 && response.data?.success && users[i].cookie, `Signup ${i} failed: ${JSON.stringify(response.error)}`);
+    if (origin.startsWith("https://")) {
+      const cookie = response.cookieHeader || "";
+      assert(cookie.startsWith("beprofit_session=") && /;\s*Secure\b/i.test(cookie) && /;\s*SameSite=None\b/i.test(cookie),
+        "HTTPS Preview did not issue an app-owned Secure, SameSite=None session cookie");
+    }
   }
   const me = await call(users[0], "auth.me");
   assert(me.status === 200 && me.data?.email === emails[0] && !("passwordHash" in me.data), "auth.me exposed credentials or failed");
