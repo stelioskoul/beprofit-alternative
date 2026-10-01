@@ -7,8 +7,10 @@ if (!connectionString) {
 
 export default defineConfig({
   schema: "./drizzle/schema.ts",
-  out: "./drizzle",
-  dialect: "mysql",
+  // Keep generated PostgreSQL metadata separate from the legacy MySQL journal.
+  // The deployable source-of-truth migration is supabase/migrations/20261001_initial.sql.
+  out: "./drizzle/pg",
+  dialect: "postgresql",
   dbCredentials: {
     url: connectionString,
   },

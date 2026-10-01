@@ -15,14 +15,14 @@ export function getFacebookAuthUrl(redirectUri: string, state: string): string {
     scope: FACEBOOK_SCOPES,
   });
 
-  return `https://www.facebook.com/v21.0/dialog/oauth?${params.toString()}`;
+  return `https://www.facebook.com/v25.0/dialog/oauth?${params.toString()}`;
 }
 
 export async function exchangeFacebookCode(
   code: string,
   redirectUri: string
 ): Promise<{ access_token: string; token_type: string; expires_in?: number }> {
-  const url = `https://graph.facebook.com/v21.0/oauth/access_token`;
+  const url = `https://graph.facebook.com/v25.0/oauth/access_token`;
 
   const params = new URLSearchParams({
     client_id: FACEBOOK_APP_ID,
@@ -44,7 +44,7 @@ export async function exchangeFacebookCode(
 export async function exchangeForLongLivedToken(
   shortLivedToken: string
 ): Promise<{ access_token: string; token_type: string; expires_in: number }> {
-  const url = `https://graph.facebook.com/v21.0/oauth/access_token`;
+  const url = `https://graph.facebook.com/v25.0/oauth/access_token`;
 
   const params = new URLSearchParams({
     grant_type: "fb_exchange_token",
@@ -64,7 +64,7 @@ export async function exchangeForLongLivedToken(
 }
 
 export async function getFacebookAdAccounts(accessToken: string): Promise<any[]> {
-  const url = `https://graph.facebook.com/v21.0/me/adaccounts`;
+  const url = `https://graph.facebook.com/v25.0/me/adaccounts`;
 
   const params = new URLSearchParams({
     access_token: accessToken,

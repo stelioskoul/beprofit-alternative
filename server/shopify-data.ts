@@ -38,7 +38,7 @@ export async function fetchShopifyOrders(
   accessToken: string,
   dateRange: DateRange,
   timezoneOffset: number = -300,
-  apiVersion: string = "2025-10"
+  apiVersion: string = "2026-07"
 ): Promise<ShopifyOrder[]> {
   const tz = offsetToTzString(timezoneOffset);
   const createdMin = `${dateRange.fromDate}T00:00:00${tz}`;
@@ -109,7 +109,7 @@ export async function fetchShopifyDisputes(
   accessToken: string,
   dateRange: DateRange,
   timezoneOffset: number = -300,
-  apiVersion: string = "2025-10"
+  apiVersion: string = "2026-07"
 ): Promise<{ 
   totalAmount: number; 
   count: number;
@@ -243,7 +243,7 @@ export async function fetchShopifyBalanceTransactions(
   shopDomain: string,
   accessToken: string,
   dateRange: DateRange,
-  apiVersion: string = "2025-10",
+  apiVersion: string = "2026-07",
   eurToUsdRate: number = 1.1665,
   timezoneOffsetMinutes: number = -300 // Default: EST (UTC-5)
 ): Promise<{ orderFees: Map<number, number>; totalDisputeValue: number; totalDisputeFees: number; totalDisputeRecovered: number; totalDisputeFeesRecovered: number; totalRefunds: number; pageCount: number }> {

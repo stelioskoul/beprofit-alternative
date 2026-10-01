@@ -1,5 +1,6 @@
 import { eq, and } from "drizzle-orm";
-import { drizzle } from "drizzle-orm/mysql2";
+import { drizzle } from "drizzle-orm/postgres-js";
+import postgres from "postgres";
 import { 
   InsertUser, 
   users,
@@ -22,21 +23,42 @@ import {
   processingFeesConfig,
   InsertProcessingFeesConfig,
 } from "../drizzle/schema";
-import { ENV } from './_core/env';
+import { decryptToken, encryptToken } from "./token-crypto";
 
 let _db: ReturnType<typeof drizzle> | null = null;
+let _client: ReturnType<typeof postgres> | null = null;
+let didWarnAboutMissingDatabase = false;
 
-// Lazily create the drizzle instance so local tooling can run without a DB.
+// Lazily create the PostgreSQL client so commands that do not use the database
+// (for example local type checking) do not require DATABASE_URL.
 export async function getDb() {
-  if (!_db && process.env.DATABASE_URL) {
-    try {
-      _db = drizzle(process.env.DATABASE_URL);
-    } catch (error) {
-      console.warn("[Database] Failed to connect:", error);
-      _db = null;
+  if (_db) return _db;
+
+  const connectionString = process.env.DATABASE_URL;
+  if (!connectionString) {
+    if (!didWarnAboutMissingDatabase) {
+      console.warn("[Database] DATABASE_URL is not configured");
+      didWarnAboutMissingDatabase = true;
     }
+    return null;
   }
-  return _db;
+
+  try {
+    _client = postgres(connectionString, { max: 5, ssl: "require" });
+    _db = drizzle(_client);
+    return _db;
+  } catch {
+    // Do not log connection details, which may contain the DATABASE_URL.
+    console.error("[Database] Failed to initialize PostgreSQL client");
+    return null;
+  }
+}
+
+export async function closeDb() {
+  const client = _client;
+  _db = null;
+  _client = null;
+  if (client) await client.end({ timeout: 5 });
 }
 
 export async function upsertUser(user: InsertUser): Promise<void> {
@@ -78,13 +100,8 @@ export async function upsertUser(user: InsertUser): Promise<void> {
       values.lastSignedIn = user.lastSignedIn;
       updateSet.lastSignedIn = user.lastSignedIn;
     }
-    if (user.role !== undefined) {
-      values.role = user.role;
-      updateSet.role = user.role;
-    } else if (user.openId && user.openId === ENV.ownerOpenId) {
-      values.role = 'admin';
-      updateSet.role = 'admin';
-    }
+    // Role changes are an admin-only action. Never copy a role provided by a
+    // login or OAuth payload into either a new or existing account.
 
     if (!values.lastSignedIn) {
       values.lastSignedIn = new Date();
@@ -94,11 +111,13 @@ export async function upsertUser(user: InsertUser): Promise<void> {
       updateSet.lastSignedIn = new Date();
     }
 
-    await db.insert(users).values(values).onDuplicateKeyUpdate({
+    await db.insert(users).values(values).onConflictDoUpdate({
+      target: users.email,
       set: updateSet,
     });
   } catch (error) {
-    console.error("[Database] Failed to upsert user:", error);
+    // SQL errors can contain values such as password hashes; never log them.
+    console.error("[Database] Failed to upsert user");
     throw error;
   }
 }
@@ -135,8 +154,10 @@ export async function createStore(store: InsertStore) {
   const db = await getDb();
   if (!db) throw new Error("Database not available");
 
-  const result = await db.insert(stores).values(store);
-  return result;
+  const result = await db.insert(stores).values(store).returning({ id: stores.id });
+  const insertedStore = result[0];
+  if (!insertedStore) throw new Error("Failed to create store");
+  return insertedStore;
 }
 
 export async function getStoresByUserId(userId: number) {
@@ -183,10 +204,15 @@ export async function upsertShopifyConnection(connection: InsertShopifyConnectio
   const db = await getDb();
   if (!db) throw new Error("Database not available");
 
-  await db.insert(shopifyConnections).values(connection).onDuplicateKeyUpdate({
+  // encryptToken throws before this query when TOKEN_ENCRYPTION_KEY is missing
+  // or invalid, so provider credentials are never persisted in plaintext.
+  const accessToken = encryptToken(connection.accessToken);
+
+  await db.insert(shopifyConnections).values({ ...connection, accessToken }).onConflictDoUpdate({
+    target: shopifyConnections.storeId,
     set: {
       shopDomain: connection.shopDomain,
-      accessToken: connection.accessToken,
+      accessToken,
       scopes: connection.scopes,
       apiVersion: connection.apiVersion,
       connectedAt: new Date(),
@@ -199,7 +225,8 @@ export async function getShopifyConnectionByStoreId(storeId: number) {
   if (!db) return undefined;
 
   const result = await db.select().from(shopifyConnections).where(eq(shopifyConnections.storeId, storeId)).limit(1);
-  return result.length > 0 ? result[0] : undefined;
+  const connection = result[0];
+  return connection ? { ...connection, accessToken: decryptToken(connection.accessToken) } : undefined;
 }
 
 export async function deleteShopifyConnection(storeId: number) {
@@ -217,9 +244,14 @@ export async function upsertFacebookConnection(connection: InsertFacebookConnect
   const db = await getDb();
   if (!db) throw new Error("Database not available");
 
-  await db.insert(facebookConnections).values(connection).onDuplicateKeyUpdate({
+  // encryptToken throws before this query when TOKEN_ENCRYPTION_KEY is missing
+  // or invalid, so provider credentials are never persisted in plaintext.
+  const accessToken = encryptToken(connection.accessToken);
+
+  await db.insert(facebookConnections).values({ ...connection, accessToken }).onConflictDoUpdate({
+    target: [facebookConnections.storeId, facebookConnections.adAccountId],
     set: {
-      accessToken: connection.accessToken,
+      accessToken,
       tokenExpiresAt: connection.tokenExpiresAt,
       apiVersion: connection.apiVersion,
       timezoneOffset: connection.timezoneOffset,
@@ -232,7 +264,20 @@ export async function getFacebookConnectionsByStoreId(storeId: number) {
   const db = await getDb();
   if (!db) return [];
 
-  return await db.select().from(facebookConnections).where(eq(facebookConnections.storeId, storeId));
+  const connections = await db.select().from(facebookConnections).where(eq(facebookConnections.storeId, storeId));
+  return connections.map((connection) => ({
+    ...connection,
+    accessToken: decryptToken(connection.accessToken),
+  }));
+}
+
+export async function getFacebookConnectionById(connectionId: number) {
+  const db = await getDb();
+  if (!db) return undefined;
+
+  const result = await db.select().from(facebookConnections).where(eq(facebookConnections.id, connectionId)).limit(1);
+  const connection = result[0];
+  return connection ? { ...connection, accessToken: decryptToken(connection.accessToken) } : undefined;
 }
 
 export async function deleteFacebookConnection(connectionId: number) {
@@ -250,7 +295,8 @@ export async function upsertCogsConfig(config: InsertCogsConfig) {
   const db = await getDb();
   if (!db) throw new Error("Database not available");
 
-  await db.insert(cogsConfig).values(config).onDuplicateKeyUpdate({
+  await db.insert(cogsConfig).values(config).onConflictDoUpdate({
+    target: [cogsConfig.storeId, cogsConfig.variantId],
     set: {
       cogsValue: config.cogsValue,
       productTitle: config.productTitle,
@@ -281,7 +327,8 @@ export async function upsertShippingConfig(config: InsertShippingConfig) {
   const db = await getDb();
   if (!db) throw new Error("Database not available");
 
-  await db.insert(shippingConfig).values(config).onDuplicateKeyUpdate({
+  await db.insert(shippingConfig).values(config).onConflictDoUpdate({
+    target: [shippingConfig.storeId, shippingConfig.variantId],
     set: {
       configJson: config.configJson,
       productTitle: config.productTitle,
@@ -354,6 +401,14 @@ export async function getOperationalExpensesByStoreId(storeId: number) {
   return await db.select().from(operationalExpenses).where(eq(operationalExpenses.storeId, storeId));
 }
 
+export async function getOperationalExpenseById(expenseId: number) {
+  const db = await getDb();
+  if (!db) return undefined;
+
+  const result = await db.select().from(operationalExpenses).where(eq(operationalExpenses.id, expenseId)).limit(1);
+  return result.length > 0 ? result[0] : undefined;
+}
+
 export async function updateOperationalExpense(expenseId: number, updates: Partial<InsertOperationalExpense>) {
   const db = await getDb();
   if (!db) throw new Error("Database not available");
@@ -378,7 +433,8 @@ export async function upsertProcessingFeesConfig(config: InsertProcessingFeesCon
   const db = await getDb();
   if (!db) throw new Error("Database not available");
 
-  await db.insert(processingFeesConfig).values(config).onDuplicateKeyUpdate({
+  await db.insert(processingFeesConfig).values(config).onConflictDoUpdate({
+    target: processingFeesConfig.storeId,
     set: {
       percentFee: config.percentFee,
       fixedFee: config.fixedFee,
@@ -447,7 +503,8 @@ export async function assignShippingProfile(assignment: InsertProductShippingPro
   const db = await getDb();
   if (!db) throw new Error("Database not available");
 
-  await db.insert(productShippingProfiles).values(assignment).onDuplicateKeyUpdate({
+  await db.insert(productShippingProfiles).values(assignment).onConflictDoUpdate({
+    target: [productShippingProfiles.storeId, productShippingProfiles.variantId],
     set: {
       profileId: assignment.profileId,
       productTitle: assignment.productTitle,

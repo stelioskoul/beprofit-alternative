@@ -30,6 +30,6 @@ export async function createUser(userData: InsertUser) {
     throw new Error("Database not available");
   }
 
-  const result = await db.insert(users).values(userData);
-  return result;
+  const result = await db.insert(users).values(userData).returning();
+  return result[0];
 }
